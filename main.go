@@ -2,12 +2,12 @@ package main
 
 import (
 	"walk-server/controller"
-	"walk-server/handler"
 	"walk-server/middleware"
+	"walk-server/utility"
 )
 
 func main() {
-	router := handler.InitRouter()
+	router := utility.InitRouter()
 
 	api := router.Group("/api/v1", middleware.TimeValidity)
 	{
@@ -37,5 +37,5 @@ func main() {
 	}
 
 	// start server
-	handler.StartServer(router, ":8080")
+	utility.StartServer(router, ":8080")
 }

@@ -2,7 +2,7 @@
  * Copyright (c) 2021 IInfo.
  */
 
-package handler
+package utility
 
 import (
 	"fmt"

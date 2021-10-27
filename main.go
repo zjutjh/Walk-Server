@@ -7,6 +7,7 @@ import (
 )
 
 func main() {
+	utility.InitConfig() // 读取配置
 	router := utility.InitRouter()
 
 	api := router.Group("/api/v1", middleware.TimeValidity)

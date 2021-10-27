@@ -1,4 +1,4 @@
-package utility
+package initial
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 
 var Config = viper.New()
 
-func InitConfig() {
+func ConfigInit() {
 	Config.SetConfigType("yaml")
 	Config.AddConfigPath("./config")
 	Config.SetConfigName("config")

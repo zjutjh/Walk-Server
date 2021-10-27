@@ -9,12 +9,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"walk-server/utility"
+	"walk-server/utility/initial"
 )
 
 func Oauth(ctx *gin.Context) {
 	redirectUrl := "https://open.weixin.qq.com/connect/oauth2/authorize?appid=" +
-		utility.Config.GetString("server.wechatAPPID") +
-		"&redirect_uri=" + utility.Config.GetString("server.oauth") + utility.Config.GetString("server.wechatRedirect") +
+		initial.Config.GetString("server.wechatAPPID") +
+		"&redirect_uri=" + initial.Config.GetString("server.oauth") + initial.Config.GetString("server.wechatRedirect") +
 		"&response_type=code&scope=snsapi_base&state=STATE#wechat_redirect"
 	ctx.Redirect(http.StatusTemporaryRedirect, redirectUrl)
 }

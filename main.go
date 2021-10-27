@@ -4,11 +4,12 @@ import (
 	"walk-server/controller"
 	"walk-server/middleware"
 	"walk-server/utility"
+	"walk-server/utility/initial"
 )
 
 func main() {
-	utility.InitConfig() // 读取配置
-	router := utility.InitRouter()
+	initial.ConfigInit() // 读取配置
+	router := initial.RouterInit()
 
 	api := router.Group("/api/v1", middleware.TimeValidity)
 	{

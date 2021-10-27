@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"time"
+	"walk-server/utility/initial"
 )
 
 // 一些结构体的定义
@@ -30,6 +31,6 @@ func GenerateJWT(openID string) (string, error) {
 
 	tokenClaims := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	//该方法内部生成签名字符串，再用于获取完整、已签名的token
-	token, err := tokenClaims.SignedString([]byte(Config.GetString("server.JWTSecret")))
+	token, err := tokenClaims.SignedString([]byte(initial.Config.GetString("server.JWTSecret")))
 	return token, err
 }

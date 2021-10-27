@@ -2,7 +2,7 @@
  * Copyright (c) 2021 IInfo.
  */
 
-package utility
+package initial
 
 import (
 	"fmt"
@@ -10,8 +10,8 @@ import (
 	"time"
 )
 
-//InitRouter modify & init gin router
-func InitRouter() *gin.Engine {
+//RouterInit modify & initial gin router
+func RouterInit() *gin.Engine {
 	router := gin.New()
 	router.Use(gin.LoggerWithFormatter(func(param gin.LogFormatterParams) string {
 		// log format

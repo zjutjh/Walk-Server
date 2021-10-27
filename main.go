@@ -13,8 +13,9 @@ func main() {
 	api := router.Group("/api/v1", middleware.TimeValidity)
 	{
 		// Basic
-		api.GET("/login", controller.Login)
-		api.POST("/register", controller.Register)
+		api.GET("/login", controller.Login)        // 微信服务器的回调地址
+		api.POST("/register", controller.Register) // 报名地址
+		api.GET("/oauth", controller.Oauth)        // 微信 Oauth 的起点接口
 
 		// User
 		user := api.Group("/user", middleware.Auth)

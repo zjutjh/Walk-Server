@@ -35,12 +35,11 @@ func Login(ctx *gin.Context) {
 	// 生成 JWT
 	jwtToken, err := utility.GenerateJWT(openID)
 	if err != nil {
-		fmt.Println("JWT 生成失败")
-		fmt.Println(err)
+		utility.ResponseError(ctx, "登陆错误，请重新打开网页重试")
 	}
-	ctx.JSON(http.StatusOK, gin.H{"code": "200", "msg": "login", "data": gin.H{
+	utility.ResponseSuccess(ctx, gin.H{
 		"jwt": jwtToken,
-	}})
+	})
 }
 
 func Register(ctx *gin.Context) {

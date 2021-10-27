@@ -6,3 +6,16 @@
 配置文件样例为 ./config/config.example.yaml 文件
 
 配置文件 ./config/config.yaml 不可以上传到 Github 上，否则重要开发信息泄漏，后果自负 
+
+### 项目文件说明
+
+### main.go 
+程序的入口，同时用来绑定路由
+
+### controller
+这个地方存放每个路由对应的控制器
+
+### utility 
+用来存放一些一些工具小函数
+
+比如说获取用户 open ID 的相关函数

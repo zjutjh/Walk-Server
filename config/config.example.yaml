@@ -4,3 +4,10 @@ server:
   oauth: ""
   wechatRedirect: ""
   JWTSecret: ""
+
+database:
+  host: ""
+  user: ""
+  passport: ""
+  port: ""
+  name: ""

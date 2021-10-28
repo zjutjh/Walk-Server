@@ -1,11 +1,12 @@
 package model
 
 type Person struct {
-	OpenId    string `gorm:"primaryKey"`
+	OpenId    string `gorm:"primaryKey"` // openID
 	Name      string
 	Gender    uint8
 	StuId     string
 	Campus    uint8
+	Identify  string // 身份证号
 	Qq        string
 	Wechat    string
 	Tel       string

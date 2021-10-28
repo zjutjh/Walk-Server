@@ -14,9 +14,15 @@ func main() {
 	api := router.Group("/api/v1", middleware.TimeValidity)
 	{
 		// Basic
-		api.GET("/login", controller.Login)        // 微信服务器的回调地址
-		api.POST("/register", controller.Register) // 报名地址
-		api.GET("/oauth", controller.Oauth)        // 微信 Oauth 的起点接口
+		api.GET("/login", controller.Login) // 微信服务器的回调地址
+		api.GET("/oauth", controller.Oauth) // 微信 Oauth 的起点接口
+
+		// Register
+		register := api.Group("/register", middleware.RegisterJWTValidity)
+		{
+			register.POST("/student", controller.StudentRegister)   // 在校生报名地址
+			register.POST("/graduate", controller.GraduateRegister) // 校友报名地址
+		}
 
 		// User
 		user := api.Group("/user", middleware.Auth)
@@ -28,7 +34,6 @@ func main() {
 		// Team
 		team := api.Group("/team", middleware.Auth)
 		{
-
 			team.GET("/info")
 			team.GET("/create")
 			team.POST("/modify")

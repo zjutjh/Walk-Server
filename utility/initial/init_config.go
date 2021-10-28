@@ -18,6 +18,4 @@ func ConfigInit() {
 		fmt.Println("配置读取错误! ")
 		fmt.Println(err)
 	}
-
-	fmt.Println(Config.GetString("server.wechatAPPID"), Config.GetString("server.wechatSecret"))
 }

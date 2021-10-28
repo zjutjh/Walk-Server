@@ -18,7 +18,7 @@ type JwtData struct {
 func GenerateJWT(openID string) (string, error) {
 	//设置token有效时间
 	nowTime := time.Now()
-	expireTime := nowTime.Add(3 * time.Hour)
+	expireTime := nowTime.Add(24 * time.Hour) // 1 天后过期
 
 	claims := JwtData{
 		OpenID:   fmt.Sprintf("%x", md5.Sum([]byte(openID))),
@@ -39,7 +39,7 @@ func GenerateJWT(openID string) (string, error) {
 
 // ParseToken 根据传入的token值获取到Claims对象信息，（进而获取其中的用户名和密码）
 func ParseToken(token string) (*JwtData, error) {
-	jwtSecret := initial.Config.GetString("server.JWTSecret")
+	jwtSecret := []byte(initial.Config.GetString("server.JWTSecret"))
 	//用于解析鉴权的声明，方法内部主要是具体的解码和校验的过程，最终返回*Token
 	tokenClaims, err := jwt.ParseWithClaims(token, &JwtData{}, func(token *jwt.Token) (interface{}, error) {
 		return jwtSecret, nil

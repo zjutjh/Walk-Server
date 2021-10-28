@@ -16,7 +16,7 @@ func Oauth(ctx *gin.Context) {
 	redirectUrl := "https://open.weixin.qq.com/connect/oauth2/authorize?appid=" +
 		initial.Config.GetString("server.wechatAPPID") +
 		"&redirect_uri=" + initial.Config.GetString("server.oauth") + initial.Config.GetString("server.wechatRedirect") +
-		"&response_type=code&scope=snsapi_base&state=STATE#wechat_redirect"
+		"&response_type=code&scope=snsapi_userinfo&state=STATE#wechat_redirect"
 	ctx.Redirect(http.StatusTemporaryRedirect, redirectUrl)
 }
 
@@ -27,7 +27,6 @@ func Login(ctx *gin.Context) {
 
 	// 获取用户的 open id
 	openID, err := utility.GetOpenID(code)
-	fmt.Println(openID) // debug
 	if err != nil {
 		fmt.Println("open ID 获取失败")
 		fmt.Println(err)
@@ -41,8 +40,4 @@ func Login(ctx *gin.Context) {
 	utility.ResponseSuccess(ctx, gin.H{
 		"jwt": jwtToken,
 	})
-}
-
-func Register(ctx *gin.Context) {
-	ctx.JSON(http.StatusOK, gin.H{"code": "200", "msg": "register"})
 }

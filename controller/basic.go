@@ -5,7 +5,6 @@
 package controller
 
 import (
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"walk-server/utility"
@@ -28,14 +27,15 @@ func Login(ctx *gin.Context) {
 	// 获取用户的 open id
 	openID, err := utility.GetOpenID(code)
 	if err != nil {
-		fmt.Println("open ID 获取失败")
-		fmt.Println(err)
+		utility.ResponseError(ctx, "open ID 错误，请重新打开网页重试")
+		return
 	}
 
 	// 生成 JWT
 	jwtToken, err := utility.GenerateJWT(openID)
 	if err != nil {
 		utility.ResponseError(ctx, "登陆错误，请重新打开网页重试")
+		return
 	}
 	utility.ResponseSuccess(ctx, gin.H{
 		"jwt": jwtToken,

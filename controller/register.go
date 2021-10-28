@@ -3,16 +3,18 @@ package controller
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"walk-server/model"
 	"walk-server/utility"
+	"walk-server/utility/initial"
 )
 
 // GraduateRegisterData 定义接收校友报名用的数据的类型
 type GraduateRegisterData struct {
 	Name    string `json:"name" binding:"required"`
 	ID      string `json:"id" binding:"required"`
-	Gender  int    `json:"gender" binding:"required"`
+	Gender  uint8  `json:"gender" binding:"required"`
 	Contact struct {
-		Qq     string `json:"qq"`
+		QQ     string `json:"qq"`
 		Wechat string `json:"wechat"`
 		Tel    string `json:"tel"`
 	} `json:"contact"`
@@ -24,10 +26,35 @@ func StudentRegister(ctx *gin.Context) {
 }
 
 func GraduateRegister(context *gin.Context) {
+	// 获取 openID
+	jwtToken := context.GetHeader("Authorization")[7:]
+	jwtData, _ := utility.ParseToken(jwtToken) // 中间件校验过是否合法了
+
+	// 获取报名数据
 	var postData GraduateRegisterData
 	err := context.ShouldBindJSON(&postData)
 	if err != nil {
 		utility.ResponseError(context, "上传数据错误")
 		return
+	}
+
+	person := model.Person{
+		OpenId:    jwtData.OpenID,
+		Name:      postData.Name,
+		Gender:    postData.Gender,
+		Campus:    5,
+		Qq:        postData.Contact.QQ,
+		Wechat:    postData.Contact.Wechat,
+		Tel:       postData.Contact.Tel,
+		CreatedOp: 1,
+		JoinOp:    3,
+		TeamId:    "",
+	}
+
+	result := initial.DB.Create(&person)
+	if result.RowsAffected == 0 {
+		utility.ResponseError(context, "报名失败，请重试")
+	} else {
+		utility.ResponseSuccess(context, nil)
 	}
 }

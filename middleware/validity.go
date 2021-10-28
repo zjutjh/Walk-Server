@@ -7,6 +7,7 @@ import (
 
 // TimeValidity Require implement ... Check if in open time
 func TimeValidity(ctx *gin.Context) {
+	// TODO: 开放时间中间件尚未完工
 	ctx.Next()
 }
 

@@ -21,10 +21,8 @@ func DBInit() {
 	dsn := fmt.Sprintf("%v:%v@tcp(%v:%v)/%v",
 		dbUser, dbPassport, dbHost, dbPort, dbName)
 
-	// debug
-	fmt.Println(dsn)
-
-	DB, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	var err error
+	DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		fmt.Println("数据库连接错误")
 		fmt.Println(err)

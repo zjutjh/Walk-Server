@@ -28,8 +28,8 @@ func main() {
 		// User
 		user := api.Group("/user", middleware.Auth)
 		{
-			user.GET("/info", controller.GetInfo) // 获取用户信息
-			user.POST("/modify")
+			user.GET("/info", controller.GetInfo)       // 获取用户信息
+			user.POST("/modify", controller.ModifyInfo) // 修改用户信息
 		}
 
 		// Team

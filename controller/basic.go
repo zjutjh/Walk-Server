@@ -32,7 +32,7 @@ func Login(ctx *gin.Context) {
 	}
 
 	// 生成 JWT
-	jwtToken, err := utility.GenerateJWT(openID)
+	jwtToken, err := utility.InitJWT(openID)
 	if err != nil {
 		utility.ResponseError(ctx, "登陆错误，请重新打开网页重试")
 		return

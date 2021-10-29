@@ -5,8 +5,11 @@
 package controller
 
 import (
+	"crypto/md5"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"walk-server/model"
 	"walk-server/utility"
 	"walk-server/utility/initial"
 )
@@ -20,9 +23,10 @@ func Oauth(ctx *gin.Context) {
 }
 
 func Login(ctx *gin.Context) {
+	var jwtData utility.JwtData
 	code := ctx.Query("code") // 微信回调的 code 参数
 
-	// TODO: 对微信返回的 code 做校验
+	// TODO 对微信返回的 code 做校验
 
 	// 获取用户的 open id
 	openID, err := utility.GetOpenID(code)
@@ -30,9 +34,26 @@ func Login(ctx *gin.Context) {
 		utility.ResponseError(ctx, "open ID 错误，请重新打开网页重试")
 		return
 	}
+	jwtData.OpenID = fmt.Sprintf("%x", md5.Sum([]byte(openID)))
+
+	// 获取用户信息
+	var person model.Person
+	result := initial.DB.Where("open_id = ?", openID).First(&person)
+
+	// 查询在团队中的身份
+	if result.RowsAffected == 0 || person.Status == 0 {
+		jwtData.Identity = "not-join"
+		jwtData.TeamID = -1
+	} else if person.Status == 1 {
+		jwtData.Identity = "member"
+		jwtData.TeamID = person.TeamId
+	} else if person.Status == 2 {
+		jwtData.Identity = "leader"
+		jwtData.TeamID = person.TeamId
+	}
 
 	// 生成 JWT
-	jwtToken, err := utility.InitJWT(openID)
+	jwtToken, err := utility.GenerateStandardJwt(jwtData)
 	if err != nil {
 		utility.ResponseError(ctx, "登陆错误，请重新打开网页重试")
 		return

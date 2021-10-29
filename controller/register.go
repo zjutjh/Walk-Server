@@ -52,6 +52,7 @@ func StudentRegister(context *gin.Context) {
 		Name:      postData.Name,
 		Gender:    postData.Gender,
 		StuId:     postData.StuID,
+		Status:    0,
 		Identify:  postData.ID,
 		Campus:    postData.Campus,
 		Qq:        postData.Contact.QQ,
@@ -59,7 +60,7 @@ func StudentRegister(context *gin.Context) {
 		Tel:       postData.Contact.Tel,
 		CreatedOp: 1,
 		JoinOp:    3,
-		TeamId:    "",
+		TeamId:    -1,
 	}
 
 	result := initial.DB.Create(&person)
@@ -89,12 +90,13 @@ func GraduateRegister(context *gin.Context) {
 		Gender:    postData.Gender,
 		Campus:    5,
 		Identify:  postData.ID,
+		Status:    0,
 		Qq:        postData.Contact.QQ,
 		Wechat:    postData.Contact.Wechat,
 		Tel:       postData.Contact.Tel,
 		CreatedOp: 1,
 		JoinOp:    3,
-		TeamId:    "",
+		TeamId:    -1,
 	}
 
 	result := initial.DB.Create(&person)

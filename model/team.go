@@ -1,7 +1,7 @@
 package model
 
 type Team struct {
-	TeamID    string `gorm:"primaryKey"`
+	ID        uint
 	Password  string
 	Captain   string // 队长的 Open ID
 	Route     uint8

@@ -13,6 +13,7 @@ func Auth(context *gin.Context) {
 	// jwt token 解析失败
 	if err != nil {
 		utility.ResponseError(context, "登陆错误，重新进入网页试试")
+		context.Abort()
 		return
 	}
 
@@ -22,6 +23,7 @@ func Auth(context *gin.Context) {
 	result := initial.DB.Where("open_id = ?", openID).First(&person)
 	if result.RowsAffected == 0 {
 		utility.ResponseError(context, "请先报名")
+		context.Abort()
 		return
 	}
 

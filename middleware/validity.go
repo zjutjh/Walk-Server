@@ -18,6 +18,7 @@ func RegisterJWTValidity(context *gin.Context) {
 
 	if err != nil {
 		utility.ResponseError(context, "请先登陆")
+		context.Abort()
 	} else {
 		context.Next() // 转到 controller 继续执行
 	}

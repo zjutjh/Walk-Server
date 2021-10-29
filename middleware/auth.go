@@ -29,3 +29,23 @@ func Auth(context *gin.Context) {
 
 	context.Next()
 }
+
+func IsRegistered(context *gin.Context) {
+	jwtToken := context.GetHeader("Authorization")[7:]
+	jwtData, err := utility.ParseToken(jwtToken)
+	// jwt token 解析失败
+	if err != nil {
+		utility.ResponseError(context, "登陆错误，重新进入网页试试")
+		context.Abort()
+		return
+	}
+
+	result := initial.DB.Where("open_id = ?", jwtData.OpenID).First(&model.Person{})
+	if result.RowsAffected == 0 {
+		utility.ResponseError(context, "请先报名注册")
+		context.Abort()
+		return
+	}
+
+	context.Next()
+}

@@ -33,10 +33,10 @@ func main() {
 		}
 
 		// Team
-		team := api.Group("/team", middleware.Auth)
+		team := api.Group("/team", middleware.IsRegistered)
 		{
 			team.GET("/info")
-			team.GET("/create")
+			team.POST("/create", controller.CreateTeam) // 创建团队
 			team.POST("/modify")
 			team.GET("/join")
 			team.GET("/leave")

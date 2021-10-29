@@ -12,5 +12,5 @@ type Person struct {
 	Tel       string
 	CreatedOp uint8
 	JoinOp    uint8
-	TeamId    string
+	TeamId    string `gorm:"index"`
 }

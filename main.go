@@ -38,7 +38,7 @@ func main() {
 			team.GET("/info")
 			team.POST("/create", controller.CreateTeam) // 创建团队
 			team.POST("/modify")
-			team.GET("/join")
+			team.POST("/join", controller.JoinTeam) // 加入团队
 			team.GET("/leave")
 			team.GET("/disband")
 		}

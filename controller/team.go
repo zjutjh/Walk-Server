@@ -105,6 +105,10 @@ func JoinTeam(context *gin.Context) {
 		utility.ResponseError(context, "找不到团队")
 		return
 	}
+	if team.Submitted == true {
+		utility.ResponseError(context, "该队伍已提交，无法加入")
+		return
+	}
 	if team.Password != joinTeamData.Password {
 		utility.ResponseError(context, "密码错误")
 		return

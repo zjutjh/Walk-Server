@@ -35,7 +35,7 @@ func main() {
 		// Team
 		team := api.Group("/team", middleware.IsRegistered)
 		{
-			team.GET("/info")
+			team.GET("/info", controller.GetTeamInfo)   // 获取团队信息
 			team.POST("/create", controller.CreateTeam) // 创建团队
 			team.POST("/modify")
 			team.POST("/join", controller.JoinTeam) // 加入团队

@@ -21,6 +21,7 @@ type JoinTeamData struct {
 }
 
 func CreateTeam(context *gin.Context) {
+	// TODO 加入对当天团队数上限的判断
 	// 获取 jwt 数据
 	jwtToken := context.GetHeader("Authorization")[7:]
 	jwtData, _ := utility.ParseToken(jwtToken)
@@ -129,4 +130,59 @@ func JoinTeam(context *gin.Context) {
 			"jwt": jwtNewToken,
 		})
 	}
+}
+
+func GetTeamInfo(context *gin.Context) {
+	// 获取 jwt 数据
+	jwtToken := context.GetHeader("Authorization")[7:]
+	jwtData, _ := utility.ParseToken(jwtToken)
+
+	// 先判断是否加入了团队
+	if jwtData.Identity == "not-join" {
+		utility.ResponseError(context, "尚未加入团队")
+		return
+	}
+
+	// 查找团队
+	var team model.Team
+	teamID := jwtData.TeamID // 获取队伍信息
+	initial.DB.Where("id = ?", teamID).First(&team)
+
+	// 查找团队成员
+	var persons []model.Person
+	var leader model.Person
+	var members []gin.H
+	initial.DB.Where("team_id = ?", teamID).Find(&persons)
+	for _, person := range persons {
+		if person.Status == 2 { // 队长
+			leader = person
+		} else {
+			members = append(members, gin.H{
+				"name":   person.Name,
+				"gender": person.Gender,
+				"contact": gin.H{
+					"qq":     person.Qq,
+					"wechat": person.Wechat,
+					"tel":    person.Tel,
+				},
+			})
+		}
+	}
+
+	// 返回结果
+	utility.ResponseSuccess(context, gin.H{
+		"id":    teamID,
+		"name":  team.Name,
+		"route": team.Route,
+		"leader": gin.H{
+			"name":   leader.Name,
+			"gender": leader.Gender,
+			"contact": gin.H{
+				"qq":     leader.Qq,
+				"wechat": leader.Wechat,
+				"tel":    leader.Tel,
+			},
+		},
+		"member": members,
+	})
 }

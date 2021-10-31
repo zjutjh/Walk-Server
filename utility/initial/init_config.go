@@ -1,4 +1,4 @@
-package utility
+package initial
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 
 var Config = viper.New()
 
-func InitConfig() {
+func ConfigInit() {
 	Config.SetConfigType("yaml")
 	Config.AddConfigPath("./config")
 	Config.SetConfigName("config")
@@ -18,6 +18,4 @@ func InitConfig() {
 		fmt.Println("配置读取错误! ")
 		fmt.Println(err)
 	}
-
-	fmt.Println(Config.GetString("server.wechatAPPID"), Config.GetString("server.wechatSecret"))
 }

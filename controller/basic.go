@@ -5,44 +5,43 @@
 package controller
 
 import (
+	"crypto/md5"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"walk-server/utility"
+	"walk-server/utility/initial"
 )
 
 func Oauth(ctx *gin.Context) {
 	redirectUrl := "https://open.weixin.qq.com/connect/oauth2/authorize?appid=" +
-		utility.Config.GetString("server.wechatAPPID") +
-		"&redirect_uri=" + utility.Config.GetString("server.oauth") + utility.Config.GetString("server.wechatRedirect") +
-		"&response_type=code&scope=snsapi_base&state=STATE#wechat_redirect"
+		initial.Config.GetString("server.wechatAPPID") +
+		"&redirect_uri=" + initial.Config.GetString("server.oauth") + initial.Config.GetString("server.wechatRedirect") +
+		"&response_type=code&scope=snsapi_userinfo&state=STATE#wechat_redirect"
 	ctx.Redirect(http.StatusTemporaryRedirect, redirectUrl)
 }
 
 func Login(ctx *gin.Context) {
+	var jwtData utility.JwtData
 	code := ctx.Query("code") // 微信回调的 code 参数
 
-	// TODO: 对微信返回的 code 做校验
+	// TODO 对微信返回的 code 做校验
 
 	// 获取用户的 open id
 	openID, err := utility.GetOpenID(code)
-	fmt.Println(openID) // debug
 	if err != nil {
-		fmt.Println("open ID 获取失败")
-		fmt.Println(err)
+		utility.ResponseError(ctx, "open ID 错误，请重新打开网页重试")
+		return
 	}
+	jwtData.OpenID = fmt.Sprintf("%x", md5.Sum([]byte(openID)))
 
 	// 生成 JWT
-	jwtToken, err := utility.GenerateJWT(openID)
+	jwtToken, err := utility.GenerateStandardJwt(&jwtData)
 	if err != nil {
-		fmt.Println("JWT 生成失败")
-		fmt.Println(err)
+		utility.ResponseError(ctx, "登陆错误，请重新打开网页重试")
+		return
 	}
-	ctx.JSON(http.StatusOK, gin.H{"code": "200", "msg": "login", "data": gin.H{
+	utility.ResponseSuccess(ctx, gin.H{
 		"jwt": jwtToken,
-	}})
-}
-
-func Register(ctx *gin.Context) {
-	ctx.JSON(http.StatusOK, gin.H{"code": "200", "msg": "register"})
+	})
 }

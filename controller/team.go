@@ -34,14 +34,15 @@ func CreateTeam(context *gin.Context) {
 		return
 	}
 
+	// 查询用户信息
 	openID := jwtData.OpenID
-	identify := jwtData.Identity
 	var person model.Person
+	initial.DB.Where("open_id = ?", openID).First(&person)
 
-	if identify != "not-join" { // 现在已经加入了一个团队
+	if person.Status != 0 { // 现在已经加入了一个团队
 		utility.ResponseError(context, "请先退出或解散原来的团队")
 	}
-	initial.DB.Where("open_id = ?", openID).First(&person)
+
 	if person.CreatedOp == 0 {
 		utility.ResponseError(context, "无法创建团队了")
 	} else {
@@ -59,16 +60,12 @@ func CreateTeam(context *gin.Context) {
 		// 将入团队后对应的状态更新
 		person.CreatedOp -= 1
 		person.Status = 1
-		jwtData.TeamID = int(team.ID)
-		jwtData.Identity = "leader"
-		jwtNewToken, _ := utility.GenerateStandardJwt(jwtData)
 
 		initial.DB.Model(&person).Updates(person) // 将新的用户信息写入数据库
 
 		// 返回新的 team_id 和 jwt 数据
 		utility.ResponseSuccess(context, gin.H{
 			"team_id": team.ID,
-			"jwt":     jwtNewToken,
 		})
 	}
 }
@@ -78,7 +75,11 @@ func JoinTeam(context *gin.Context) {
 	jwtToken := context.GetHeader("Authorization")[7:]
 	jwtData, _ := utility.ParseToken(jwtToken)
 
-	if jwtData.Identity != "not-join" { // 如果在一个团队中
+	// 从数据库中读取用户信息
+	var person model.Person
+	initial.DB.Where("open_id = ?", jwtData.OpenID).Find(&person)
+
+	if person.Status != 0 { // 如果在一个团队中
 		utility.ResponseError(context, "请退出或解散原来的团队")
 		return
 	}
@@ -89,10 +90,6 @@ func JoinTeam(context *gin.Context) {
 		utility.ResponseError(context, "参数错误")
 		return
 	}
-
-	// 从数据库中读取用户信息
-	var person model.Person
-	initial.DB.Where("open_id = ?", jwtData.OpenID).Find(&person)
 
 	if person.JoinOp == 0 { // 加入次数用完了
 		utility.ResponseError(context, "没有加入次数了")
@@ -122,13 +119,8 @@ func JoinTeam(context *gin.Context) {
 	} else {
 		person.Status = 1
 		person.JoinOp--
-		jwtData.Identity = "member"
-		jwtData.TeamID = int(team.ID)
-		jwtNewToken, _ := utility.GenerateStandardJwt(jwtData)
 		initial.DB.Model(&person).Updates(person) // 将新的用户信息写入数据库
-		utility.ResponseSuccess(context, gin.H{
-			"jwt": jwtNewToken,
-		})
+		utility.ResponseSuccess(context, nil)
 	}
 }
 
@@ -137,22 +129,25 @@ func GetTeamInfo(context *gin.Context) {
 	jwtToken := context.GetHeader("Authorization")[7:]
 	jwtData, _ := utility.ParseToken(jwtToken)
 
+	// 获取个人信息
+	var person model.Person
+	initial.DB.Where("open_id = ?", jwtData.OpenID).First(&person)
+
 	// 先判断是否加入了团队
-	if jwtData.Identity == "not-join" {
+	if person.Status == 0 {
 		utility.ResponseError(context, "尚未加入团队")
 		return
 	}
 
 	// 查找团队
 	var team model.Team
-	teamID := jwtData.TeamID // 获取队伍信息
-	initial.DB.Where("id = ?", teamID).First(&team)
+	initial.DB.Where("id = ?", person.TeamId).First(&team)
 
 	// 查找团队成员
 	var persons []model.Person
 	var leader model.Person
 	var members []gin.H
-	initial.DB.Where("team_id = ?", teamID).Find(&persons)
+	initial.DB.Where("team_id = ?", person.TeamId).First(&persons)
 	for _, person := range persons {
 		if person.Status == 2 { // 队长
 			leader = person
@@ -171,7 +166,7 @@ func GetTeamInfo(context *gin.Context) {
 
 	// 返回结果
 	utility.ResponseSuccess(context, gin.H{
-		"id":    teamID,
+		"id":    person.TeamId,
 		"name":  team.Name,
 		"route": team.Route,
 		"leader": gin.H{
@@ -185,4 +180,40 @@ func GetTeamInfo(context *gin.Context) {
 		},
 		"member": members,
 	})
+}
+
+func DisbandTeam(context *gin.Context) {
+	// 获取 jwt 数据
+	jwtToken := context.GetHeader("Authorization")[7:]
+	jwtData, _ := utility.ParseToken(jwtToken)
+
+	// 查找用户
+	var person model.Person
+	initial.DB.Where("open_id = ?", jwtData.OpenID).First(&person)
+
+	if person.Status == 0 {
+		utility.ResponseError(context, "请先创建一个队伍")
+		return
+	} else if person.Status == 1 {
+		utility.ResponseError(context, "队员无法解散队伍")
+		return
+	}
+
+	// 查找团队
+	var team model.Team
+	initial.DB.Where("id = ?", person.TeamId).First(&team)
+
+	// 查找团队所有用户
+	var persons []model.Person
+	initial.DB.Where("team_id = ?", person.TeamId).First(&persons)
+
+	// 删除团队记录
+	initial.DB.Delete(&team)
+
+	// 还原所有队员的权限和所属团队ID
+	for _, person := range persons {
+		person.Status = 0
+		person.TeamId = -1
+		initial.DB.Save(&person)
+	}
 }

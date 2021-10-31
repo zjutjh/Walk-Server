@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"walk-server/model"
 	"walk-server/utility"
 	"walk-server/utility/initial"
 )
@@ -35,22 +34,6 @@ func Login(ctx *gin.Context) {
 		return
 	}
 	jwtData.OpenID = fmt.Sprintf("%x", md5.Sum([]byte(openID)))
-
-	// 获取用户信息
-	var person model.Person
-	result := initial.DB.Where("open_id = ?", openID).First(&person)
-
-	// 查询在团队中的身份
-	if result.RowsAffected == 0 || person.Status == 0 {
-		jwtData.Identity = "not-join"
-		jwtData.TeamID = -1
-	} else if person.Status == 1 {
-		jwtData.Identity = "member"
-		jwtData.TeamID = person.TeamId
-	} else if person.Status == 2 {
-		jwtData.Identity = "leader"
-		jwtData.TeamID = person.TeamId
-	}
 
 	// 生成 JWT
 	jwtToken, err := utility.GenerateStandardJwt(&jwtData)

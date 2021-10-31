@@ -40,7 +40,7 @@ func main() {
 			team.POST("/modify")
 			team.POST("/join", controller.JoinTeam) // 加入团队
 			team.GET("/leave")
-			team.GET("/disband")
+			team.GET("/disband", controller.DisbandTeam) // 解散团队
 		}
 
 	}

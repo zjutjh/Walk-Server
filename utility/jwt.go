@@ -8,9 +8,7 @@ import (
 
 // JwtData 一些结构体的定义
 type JwtData struct {
-	OpenID   string `json:"open_id"`
-	Identity string `json:"identity"` // 身份说明，not-join 为未加入，leader 为队长，member 为队员
-	TeamID   int    `json:"team_id"`
+	OpenID string `json:"open_id"`
 	jwt.StandardClaims
 }
 

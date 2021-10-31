@@ -6,7 +6,7 @@ type Person struct {
 	Gender    uint8
 	StuId     string
 	Campus    uint8
-	Identify  string // 身份证号
+	Identity  string // 身份证号
 	Status    uint8  // 0 没加入团队，1 加入了并且是队员，2 是队长
 	Qq        string
 	Wechat    string

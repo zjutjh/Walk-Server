@@ -67,7 +67,7 @@ func ModifyInfo(context *gin.Context) {
 		Gender:   postData.Gender,
 		StuId:    postData.StuID,
 		Campus:   postData.Campus,
-		Identify: postData.ID,
+		Identity: postData.ID,
 		Qq:       postData.Contact.QQ,
 		Wechat:   postData.Contact.Wechat,
 		Tel:      postData.Contact.Tel,

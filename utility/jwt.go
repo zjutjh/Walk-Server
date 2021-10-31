@@ -1,7 +1,7 @@
 package utility
 
 import (
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 	"time"
 	"walk-server/utility/initial"
 )

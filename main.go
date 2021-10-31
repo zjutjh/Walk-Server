@@ -38,8 +38,8 @@ func main() {
 			team.GET("/info", controller.GetTeamInfo)   // 获取团队信息
 			team.POST("/create", controller.CreateTeam) // 创建团队
 			team.POST("/modify")
-			team.POST("/join", controller.JoinTeam) // 加入团队
-			team.GET("/leave")
+			team.POST("/join", controller.JoinTeam)      // 加入团队
+			team.GET("/leave", controller.LeaveTeam)     // 离开团队
 			team.GET("/disband", controller.DisbandTeam) // 解散团队
 		}
 

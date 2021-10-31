@@ -217,3 +217,28 @@ func DisbandTeam(context *gin.Context) {
 		initial.DB.Save(&person)
 	}
 }
+
+func LeaveTeam(context *gin.Context) {
+	// 获取 jwt 数据
+	jwtToken := context.GetHeader("Authorization")[7:]
+	jwtData, _ := utility.ParseToken(jwtToken)
+
+	// 查找用户
+	var person model.Person
+	initial.DB.Where("open_id = ?", jwtData.OpenID).First(&person)
+
+	if person.Status == 0 {
+		utility.ResponseError(context, "请先加入队伍")
+		return
+	} else if person.Status == 2 {
+		utility.ResponseError(context, "队长只能解散队伍")
+		return
+	}
+
+	// 恢复队员信息到未加入的状态
+	person.Status = 0
+	person.TeamId = -1
+	initial.DB.Save(&person)
+
+	utility.ResponseSuccess(context, nil)
+}

@@ -14,6 +14,12 @@ type CreateTeamData struct {
 	Route    uint8  `json:"route" binding:"required"`
 }
 
+// UpdateTeamData 更新团队信息的数据类型
+type UpdateTeamData struct {
+	Name  string `json:"name"`
+	Route uint8  `json:"route"`
+}
+
 // JoinTeamData 加入团队时接收的信息类型
 type JoinTeamData struct {
 	TeamID   int    `json:"team_id"`
@@ -274,4 +280,38 @@ func RemoveMember(context *gin.Context) {
 	personRemoved.Status = 0
 	personRemoved.TeamId = -1
 	initial.DB.Save(&personRemoved)
+}
+
+func UpdateTeam(context *gin.Context) {
+	// 获取 jwt 数据
+	jwtToken := context.GetHeader("Authorization")[7:]
+	jwtData, _ := utility.ParseToken(jwtToken)
+
+	// 查找用户
+	var person model.Person
+	initial.DB.Where("open_id = ?", jwtData.OpenID).First(&person)
+
+	// 判断用户权限
+	if person.Status == 0 {
+		utility.ResponseError(context, "请先加入队伍")
+		return
+	} else if person.Status == 1 {
+		utility.ResponseError(context, "没有修改的权限")
+		return
+	}
+
+	// 解析 post 数据
+	var updateTeamData UpdateTeamData
+	err := context.ShouldBindJSON(&updateTeamData)
+	if err != nil {
+		utility.ResponseError(context, "参数错误")
+		return
+	}
+
+	// 更新团队信息
+	var team model.Team
+	initial.DB.Where("team_id = ?", person.TeamId).First(&team)
+	team.Name = updateTeamData.Name
+	team.Route = updateTeamData.Route
+	initial.DB.Save(&team)
 }

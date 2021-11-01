@@ -6,6 +6,7 @@ package initial
 
 import (
 	"fmt"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"time"
 )
@@ -32,6 +33,7 @@ func RouterInit() *gin.Engine {
 		)
 	}))
 	router.Use(gin.Recovery())
+	router.Use(cors.Default())
 
 	return router
 }

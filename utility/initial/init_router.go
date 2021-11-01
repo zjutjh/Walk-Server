@@ -6,9 +6,10 @@ package initial
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"time"
 )
 
 //RouterInit modify & initial gin router
@@ -33,7 +34,12 @@ func RouterInit() *gin.Engine {
 		)
 	}))
 	router.Use(gin.Recovery())
-	router.Use(cors.Default())
+
+	// 给 API 添加上跨域功能
+	config := cors.DefaultConfig()
+	config.AllowHeaders = append(config.AllowHeaders, "Authorization")
+	config.AllowAllOrigins = true
+	router.Use(cors.New(config))
 
 	return router
 }

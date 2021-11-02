@@ -1,10 +1,11 @@
 package controller
 
 import (
-	"github.com/gin-gonic/gin"
 	"walk-server/model"
 	"walk-server/utility"
 	"walk-server/utility/initial"
+
+	"github.com/gin-gonic/gin"
 )
 
 // StudentRegisterData 定义接收学生报名用的数据的类型
@@ -21,8 +22,8 @@ type StudentRegisterData struct {
 	} `json:"contact"`
 }
 
-// GraduateRegisterData 定义接收校友报名用的数据的类型
-type GraduateRegisterData struct {
+// TeacherRegisterData 定义接收校友报名用的数据的类型
+type TeacherRegisterData struct {
 	Name    string `json:"name" binding:"required"`
 	ID      string `json:"id" binding:"required"`
 	Gender  uint8  `json:"gender" binding:"required"`
@@ -31,7 +32,6 @@ type GraduateRegisterData struct {
 		Wechat string `json:"wechat"`
 		Tel    string `json:"tel"`
 	} `json:"contact"`
-	Healthcodeimgurl string `json:"healthcodeimgurl" binding:"required"`
 }
 
 func StudentRegister(context *gin.Context) {
@@ -71,13 +71,13 @@ func StudentRegister(context *gin.Context) {
 	}
 }
 
-func GraduateRegister(context *gin.Context) {
+func TeacherRegister(context *gin.Context) {
 	// 获取 openID
 	jwtToken := context.GetHeader("Authorization")[7:]
 	jwtData, _ := utility.ParseToken(jwtToken) // 中间件校验过是否合法了
 
 	// 获取报名数据
-	var postData GraduateRegisterData
+	var postData TeacherRegisterData
 	err := context.ShouldBindJSON(&postData)
 	if err != nil {
 		utility.ResponseError(context, "上传数据错误")

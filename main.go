@@ -21,8 +21,8 @@ func main() {
 		// Register
 		register := api.Group("/register", middleware.RegisterJWTValidity)
 		{
-			register.POST("/student", controller.StudentRegister)  // 在校生报名地址
-			register.POST("/teacher", controller.GraduateRegister) // 教职工报名地址
+			register.POST("/student", controller.StudentRegister) // 在校生报名地址
+			register.POST("/teacher", controller.TeacherRegister) // 教职工报名地址
 		}
 
 		// User

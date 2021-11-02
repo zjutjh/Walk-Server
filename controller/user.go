@@ -1,10 +1,11 @@
 package controller
 
 import (
-	"github.com/gin-gonic/gin"
 	"walk-server/model"
 	"walk-server/utility"
 	"walk-server/utility/initial"
+
+	"github.com/gin-gonic/gin"
 )
 
 type UserModifyData struct {
@@ -34,6 +35,7 @@ func GetInfo(context *gin.Context) {
 		"name":      person.Name,
 		"stu_id":    person.StuId,
 		"gender":    person.Gender,
+		"id":        person.Identity,
 		"campus":    person.Campus,
 		"create_op": person.CreatedOp,
 		"join_op":   person.JoinOp,

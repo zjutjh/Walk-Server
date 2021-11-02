@@ -112,7 +112,7 @@ func JoinTeam(context *gin.Context) {
 		utility.ResponseError(context, "找不到团队")
 		return
 	}
-	if team.Submitted == true {
+	if team.Submitted {
 		utility.ResponseError(context, "该队伍已提交，无法加入")
 		return
 	}
@@ -128,6 +128,7 @@ func JoinTeam(context *gin.Context) {
 	} else {
 		person.Status = 1
 		person.JoinOp--
+		person.TeamId = int(team.ID) 
 		initial.DB.Model(&person).Updates(person) // 将新的用户信息写入数据库
 		utility.ResponseSuccess(context, nil)
 	}

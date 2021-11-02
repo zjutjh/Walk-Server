@@ -157,7 +157,7 @@ func GetTeamInfo(context *gin.Context) {
 	var persons []model.Person
 	var leader model.Person
 	var members []gin.H
-	initial.DB.Where("team_id = ?", person.TeamId).First(&persons)
+	initial.DB.Where("team_id = ?", person.TeamId).Find(&persons)
 	for _, person := range persons {
 		if person.Status == 2 { // 队长
 			leader = person

@@ -68,9 +68,9 @@ func CreateTeam(context *gin.Context) {
 		// 将入团队后对应的状态更新
 		person.CreatedOp -= 1
 		person.Status = 2
-		person.TeamId = int(team.ID) 
+		person.TeamId = int(team.ID)
 
-		initial.DB.Model(&person).Updates(person) // 将新的用户信息写入数据库
+		initial.DB.Save(&person) // 将新的用户信息写入数据库
 
 		// 返回新的 team_id 和 jwt 数据
 		utility.ResponseSuccess(context, gin.H{
@@ -175,9 +175,9 @@ func GetTeamInfo(context *gin.Context) {
 
 	// 返回结果
 	utility.ResponseSuccess(context, gin.H{
-		"id":    person.TeamId,
-		"name":  team.Name,
-		"route": team.Route,
+		"id":       person.TeamId,
+		"name":     team.Name,
+		"route":    team.Route,
 		"password": team.Password,
 		"leader": gin.H{
 			"name":   leader.Name,

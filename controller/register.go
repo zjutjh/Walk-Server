@@ -13,7 +13,7 @@ type StudentRegisterData struct {
 	Name    string `json:"name"`
 	StuID   string `json:"stu_id"`
 	ID      string `json:"id"`
-	Gender  uint8  `json:"gender"`
+	Gender  int8  `json:"gender"`
 	Campus  uint8  `json:"campus"`
 	Contact struct {
 		QQ     string `json:"qq"`
@@ -26,7 +26,7 @@ type StudentRegisterData struct {
 type TeacherRegisterData struct {
 	Name    string `json:"name" binding:"required"`
 	ID      string `json:"id" binding:"required"`
-	Gender  uint8  `json:"gender" binding:"required"`
+	Gender  int8  `json:"gender" binding:"required"`
 	Contact struct {
 		QQ     string `json:"qq"`
 		Wechat string `json:"wechat"`

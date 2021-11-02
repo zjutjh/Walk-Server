@@ -12,7 +12,7 @@ type UserModifyData struct {
 	Name    string `json:"name" binding:"required"`
 	StuID   string `json:"stu_id" binding:"required"`
 	ID      string `json:"id" binding:"required"`
-	Gender  uint8  `json:"gender" binding:"required"`
+	Gender  int8  `json:"gender" binding:"required"`
 	Campus  uint8  `json:"campus" binding:"required"`
 	Contact struct {
 		QQ     string `json:"qq"`

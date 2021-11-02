@@ -1,10 +1,11 @@
 package controller
 
 import (
-	"github.com/gin-gonic/gin"
 	"walk-server/model"
 	"walk-server/utility"
 	"walk-server/utility/initial"
+
+	"github.com/gin-gonic/gin"
 )
 
 // CreateTeamData 接收创建团队信息的数据类型
@@ -47,6 +48,7 @@ func CreateTeam(context *gin.Context) {
 
 	if person.Status != 0 { // 现在已经加入了一个团队
 		utility.ResponseError(context, "请先退出或解散原来的团队")
+		return
 	}
 
 	if person.CreatedOp == 0 {
@@ -57,7 +59,7 @@ func CreateTeam(context *gin.Context) {
 			Name:      createTeamData.Name,
 			Num:       1,
 			Password:  createTeamData.Password,
-			Captain:   person.Name,
+			Captain:   person.OpenId,
 			Route:     createTeamData.Route,
 			Submitted: false,
 		}
@@ -65,7 +67,8 @@ func CreateTeam(context *gin.Context) {
 
 		// 将入团队后对应的状态更新
 		person.CreatedOp -= 1
-		person.Status = 1
+		person.Status = 2
+		person.TeamId = int(team.ID) 
 
 		initial.DB.Model(&person).Updates(person) // 将新的用户信息写入数据库
 
@@ -175,6 +178,7 @@ func GetTeamInfo(context *gin.Context) {
 		"id":    person.TeamId,
 		"name":  team.Name,
 		"route": team.Route,
+		"password": team.Password,
 		"leader": gin.H{
 			"name":   leader.Name,
 			"gender": leader.Gender,

@@ -165,6 +165,7 @@ func GetTeamInfo(context *gin.Context) {
 			members = append(members, gin.H{
 				"name":   person.Name,
 				"gender": person.Gender,
+				"open_id": person.OpenId,
 				"contact": gin.H{
 					"qq":     person.Qq,
 					"wechat": person.Wechat,
@@ -183,6 +184,7 @@ func GetTeamInfo(context *gin.Context) {
 		"leader": gin.H{
 			"name":   leader.Name,
 			"gender": leader.Gender,
+			"open_id": leader.OpenId,
 			"contact": gin.H{
 				"qq":     leader.Qq,
 				"wechat": leader.Wechat,
@@ -315,8 +317,9 @@ func UpdateTeam(context *gin.Context) {
 
 	// 更新团队信息
 	var team model.Team
-	initial.DB.Where("team_id = ?", person.TeamId).First(&team)
+	initial.DB.Where("id = ?", person.TeamId).First(&team)
 	team.Name = updateTeamData.Name
 	team.Route = updateTeamData.Route
 	initial.DB.Save(&team)
+	utility.ResponseSuccess(context, nil)
 }

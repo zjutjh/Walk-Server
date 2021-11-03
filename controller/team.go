@@ -277,7 +277,7 @@ func RemoveMember(context *gin.Context) {
 	memberRemovedOpenID := context.Query("openid")
 
 	var personRemoved model.Person
-	result := initial.DB.Where("open_id = ?", memberRemovedOpenID).First(personRemoved)
+	result := initial.DB.Where("open_id = ?", memberRemovedOpenID).First(&personRemoved)
 	if result.RowsAffected == 0 {
 		utility.ResponseError(context, "没有这个用户")
 		return

@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"walk-server/model"
 	"walk-server/utility"
 	"walk-server/utility/initial"
@@ -28,7 +29,6 @@ type JoinTeamData struct {
 }
 
 func CreateTeam(context *gin.Context) {
-	// TODO 加入对当天团队数上限的判断
 	// 获取 jwt 数据
 	jwtToken := context.GetHeader("Authorization")[7:]
 	jwtData, _ := utility.ParseToken(jwtToken)
@@ -177,10 +177,11 @@ func GetTeamInfo(context *gin.Context) {
 
 	// 返回结果
 	utility.ResponseSuccess(context, gin.H{
-		"id":       person.TeamId,
-		"name":     team.Name,
-		"route":    team.Route,
-		"password": team.Password,
+		"id":        person.TeamId,
+		"name":      team.Name,
+		"route":     team.Route,
+		"password":  team.Password,
+		"submitted": team.Submitted,
 		"leader": gin.H{
 			"name":    leader.Name,
 			"gender":  leader.Gender,
@@ -215,6 +216,11 @@ func DisbandTeam(context *gin.Context) {
 	// 查找团队
 	var team model.Team
 	initial.DB.Where("id = ?", person.TeamId).First(&team)
+
+	if team.Submitted == true {
+		utility.ResponseError(context, "该队伍已提交，无法解散")
+		return
+	}
 
 	// 查找团队所有用户
 	var persons []model.Person
@@ -283,6 +289,9 @@ func RemoveMember(context *gin.Context) {
 	if result.RowsAffected == 0 {
 		utility.ResponseError(context, "没有这个用户")
 		return
+	} else if personRemoved.TeamId != person.TeamId {
+		utility.ResponseError(context, "不能移除别的队伍的人")
+		return
 	}
 
 	// 更新被踢出的人的状态
@@ -324,4 +333,47 @@ func UpdateTeam(context *gin.Context) {
 	team.Route = updateTeamData.Route
 	initial.DB.Save(&team)
 	utility.ResponseSuccess(context, nil)
+}
+
+func SubmitTeam(context *gin.Context) {
+	// 获取 jwt 数据
+	jwtToken := context.GetHeader("Authorization")[7:]
+	jwtData, _ := utility.ParseToken(jwtToken)
+
+	// 查找用户
+	var person model.Person
+	initial.DB.Where("open_id = ?", jwtData.OpenID).First(&person)
+
+	// 判断用户权限
+	if person.Status == 0 {
+		utility.ResponseError(context, "请先加入队伍")
+		return
+	} else if person.Status == 1 {
+		utility.ResponseError(context, "没有修改的权限")
+		return
+	}
+
+	var team model.Team
+	var teamCount model.TeamCount
+
+	initial.DB.Where("id = ?", person.TeamId).First(&team)
+	if team.Submitted == true {
+		utility.ResponseError(context, "该队伍已经提交过了")
+	}
+
+	// 开始提交
+	initial.DB.Where("day_campus = ?", utility.GetCurrentDate()*10+team.Route).First(&teamCount)
+	key := fmt.Sprintf("teamUpperLimit.%v.%v", team.Route, utility.GetCurrentDate())
+	result := initial.DB.Model(&teamCount).Where("count < ?", initial.Config.GetInt(key)).Update("count", teamCount.Count+1)
+	if result.RowsAffected == 0 { // 队伍数量到达上限
+		utility.ResponseError(context, "队伍数量已经到达上限，无法提交")
+	} else { // 团队提交状态更新
+		if team.Num < 4 {
+			utility.ResponseError(context, "队伍人数太少")
+		} else {
+			team.Submitted = true
+			initial.DB.Save(&team)
+			utility.ResponseSuccess(context, nil)
+		}
+	}
 }

@@ -42,8 +42,8 @@ func main() {
 			team.GET("/leave", controller.LeaveTeam)     // 离开团队
 			team.GET("/remove", controller.RemoveMember) // 移除队员
 			team.GET("/disband", controller.DisbandTeam) // 解散团队
+			team.GET("/submit", controller.SubmitTeam)   // 提交团队
 		}
-
 	}
 
 	// start server

@@ -128,7 +128,7 @@ func JoinTeam(context *gin.Context) {
 	} else {
 		person.Status = 1
 		person.JoinOp--
-		person.TeamId = int(team.ID) 
+		person.TeamId = int(team.ID)
 		initial.DB.Model(&person).Updates(person) // 将新的用户信息写入数据库
 		utility.ResponseSuccess(context, nil)
 	}
@@ -163,8 +163,8 @@ func GetTeamInfo(context *gin.Context) {
 			leader = person
 		} else {
 			members = append(members, gin.H{
-				"name":   person.Name,
-				"gender": person.Gender,
+				"name":    person.Name,
+				"gender":  person.Gender,
 				"open_id": person.OpenId,
 				"contact": gin.H{
 					"qq":     person.Qq,
@@ -182,8 +182,8 @@ func GetTeamInfo(context *gin.Context) {
 		"route":    team.Route,
 		"password": team.Password,
 		"leader": gin.H{
-			"name":   leader.Name,
-			"gender": leader.Gender,
+			"name":    leader.Name,
+			"gender":  leader.Gender,
 			"open_id": leader.OpenId,
 			"contact": gin.H{
 				"qq":     leader.Qq,
@@ -218,7 +218,7 @@ func DisbandTeam(context *gin.Context) {
 
 	// 查找团队所有用户
 	var persons []model.Person
-	initial.DB.Where("team_id = ?", person.TeamId).First(&persons)
+	initial.DB.Where("team_id = ?", person.TeamId).Find(&persons)
 
 	// 删除团队记录
 	initial.DB.Delete(&team)
@@ -229,6 +229,8 @@ func DisbandTeam(context *gin.Context) {
 		person.TeamId = -1
 		initial.DB.Save(&person)
 	}
+
+	utility.ResponseSuccess(context, nil)
 }
 
 func LeaveTeam(context *gin.Context) {

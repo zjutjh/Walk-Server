@@ -10,10 +10,10 @@ import (
 
 type UserModifyData struct {
 	Name    string `json:"name" binding:"required"`
-	StuID   string `json:"stu_id" binding:"required"`
+	StuID   string `json:"stu_id"`
 	ID      string `json:"id" binding:"required"`
 	Gender  int8   `json:"gender" binding:"required"`
-	Campus  uint8  `json:"campus" binding:"required"`
+	Campus  uint8  `json:"campus"`
 	Contact struct {
 		QQ     string `json:"qq"`
 		Wechat string `json:"wechat"`

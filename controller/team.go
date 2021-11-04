@@ -172,6 +172,7 @@ func GetTeamInfo(context *gin.Context) {
 				"name":    person.Name,
 				"gender":  person.Gender,
 				"open_id": person.OpenId,
+				"campus":  person.Campus,
 				"contact": gin.H{
 					"qq":     person.Qq,
 					"wechat": person.Wechat,
@@ -192,6 +193,7 @@ func GetTeamInfo(context *gin.Context) {
 		"leader": gin.H{
 			"name":    leader.Name,
 			"gender":  leader.Gender,
+			"campus":  leader.Campus,
 			"open_id": leader.OpenId,
 			"contact": gin.H{
 				"qq":     leader.Qq,

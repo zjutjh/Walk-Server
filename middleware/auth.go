@@ -8,7 +8,14 @@ import (
 )
 
 func Auth(context *gin.Context) {
-	jwtToken := context.GetHeader("Authorization")[7:]
+	jwtToken := context.GetHeader("Authorization")
+	if jwtToken == "" {
+		utility.ResponseError(context, "缺少登陆凭证")
+		context.Abort()
+		return
+	} else {
+		jwtToken = jwtToken[7:]
+	}
 	jwtData, err := utility.ParseToken(jwtToken)
 	// jwt token 解析失败
 	if err != nil {
@@ -31,7 +38,14 @@ func Auth(context *gin.Context) {
 }
 
 func IsRegistered(context *gin.Context) {
-	jwtToken := context.GetHeader("Authorization")[7:]
+	jwtToken := context.GetHeader("Authorization")
+	if jwtToken == "" {
+		utility.ResponseError(context, "缺少登陆凭证")
+		context.Abort()
+		return
+	} else {
+		jwtToken = jwtToken[7:]
+	}
 	jwtData, err := utility.ParseToken(jwtToken)
 	// jwt token 解析失败
 	if err != nil {

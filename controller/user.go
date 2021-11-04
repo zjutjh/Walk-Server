@@ -1,18 +1,19 @@
 package controller
 
 import (
-	"github.com/gin-gonic/gin"
 	"walk-server/model"
 	"walk-server/utility"
 	"walk-server/utility/initial"
+
+	"github.com/gin-gonic/gin"
 )
 
 type UserModifyData struct {
 	Name    string `json:"name" binding:"required"`
-	StuID   string `json:"stu_id" binding:"required"`
+	StuID   string `json:"stu_id"`
 	ID      string `json:"id" binding:"required"`
-	Gender  uint8  `json:"gender" binding:"required"`
-	Campus  uint8  `json:"campus" binding:"required"`
+	Gender  int8   `json:"gender" binding:"required"`
+	Campus  uint8  `json:"campus"`
 	Contact struct {
 		QQ     string `json:"qq"`
 		Wechat string `json:"wechat"`
@@ -34,7 +35,9 @@ func GetInfo(context *gin.Context) {
 		"name":      person.Name,
 		"stu_id":    person.StuId,
 		"gender":    person.Gender,
+		"id":        person.Identity,
 		"campus":    person.Campus,
+		"status":    person.Status, 
 		"create_op": person.CreatedOp,
 		"join_op":   person.JoinOp,
 		"team_id":   person.TeamId,

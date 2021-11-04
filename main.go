@@ -21,8 +21,8 @@ func main() {
 		// Register
 		register := api.Group("/register", middleware.RegisterJWTValidity)
 		{
-			register.POST("/student", controller.StudentRegister)   // 在校生报名地址
-			register.POST("/graduate", controller.GraduateRegister) // 校友报名地址
+			register.POST("/student", controller.StudentRegister) // 在校生报名地址
+			register.POST("/teacher", controller.TeacherRegister) // 教职工报名地址
 		}
 
 		// User
@@ -42,8 +42,9 @@ func main() {
 			team.GET("/leave", controller.LeaveTeam)     // 离开团队
 			team.GET("/remove", controller.RemoveMember) // 移除队员
 			team.GET("/disband", controller.DisbandTeam) // 解散团队
+			team.GET("/submit", controller.SubmitTeam)   // 提交团队
+			team.GET("/match", controller.RandomMatch)   // 随机匹配
 		}
-
 	}
 
 	// start server

@@ -13,7 +13,14 @@ func TimeValidity(ctx *gin.Context) {
 
 // RegisterJWTValidity 注册的时候验证 JWT 是否合法
 func RegisterJWTValidity(context *gin.Context) {
-	jwtToken := context.GetHeader("Authorization")[7:]
+	jwtToken := context.GetHeader("Authorization")
+	if jwtToken == "" {
+		utility.ResponseError(context, "缺少登陆凭证")
+		context.Abort()
+		return
+	} else {
+		jwtToken = jwtToken[7:]
+	}
 	_, err := utility.ParseToken(jwtToken)
 
 	if err != nil {

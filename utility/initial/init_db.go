@@ -34,4 +34,17 @@ func DBInit() {
 		fmt.Println("数据表创建错误")
 		os.Exit(-1)
 	}
+
+	// 初始化 teamCount 表的数据
+	var teamCount model.TeamCount
+	for i := 0; i <= 3; i++ { // 枚举天数
+		for j := 1; j <= 5; j++ { // 枚举路线编号
+			result := DB.Where("day_campus = ?", i*10+j).First(&model.TeamCount{})
+			if result.RowsAffected == 0 {
+				teamCount.DayCampus = uint8(i*10 + j)
+				teamCount.Count = 0
+				DB.Create(&teamCount) // 创建队伍计数器
+			}
+		}
+	}
 }

@@ -3,7 +3,7 @@ package model
 type Person struct {
 	OpenId    string `gorm:"primaryKey"` // openID
 	Name      string
-	Gender    uint8
+	Gender    int8
 	StuId     string
 	Campus    uint8
 	Identity  string // 身份证号

@@ -15,7 +15,7 @@ func TimeValidity(ctx *gin.Context) {
 func RegisterJWTValidity(context *gin.Context) {
 	jwtToken := context.GetHeader("Authorization")
 	if jwtToken == "" {
-		utility.ResponseError(context, "缺少登陆凭证")
+		utility.ResponseError(context, "缺少登录凭证")
 		context.Abort()
 		return
 	} else {
@@ -24,7 +24,7 @@ func RegisterJWTValidity(context *gin.Context) {
 	_, err := utility.ParseToken(jwtToken)
 
 	if err != nil {
-		utility.ResponseError(context, "请先登陆")
+		utility.ResponseError(context, "请先登录")
 		context.Abort()
 	} else {
 		context.Next() // 转到 controller 继续执行

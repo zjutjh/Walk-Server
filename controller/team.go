@@ -58,6 +58,7 @@ func CreateTeam(context *gin.Context) {
 
 	if person.CreatedOp == 0 {
 		utility.ResponseError(context, "无法创建团队了")
+		return
 	} else {
 		// 再数据库中插入一个团队
 		team := model.Team{
@@ -90,19 +91,19 @@ func JoinTeam(context *gin.Context) {
 	jwtToken := context.GetHeader("Authorization")[7:]
 	jwtData, _ := utility.ParseToken(jwtToken)
 
+	var joinTeamData JoinTeamData
+	err := context.ShouldBindJSON(&joinTeamData)
+	if err != nil { // 参数发送错误
+		utility.ResponseError(context, "参数错误")
+		return
+	}
+
 	// 从数据库中读取用户信息
 	var person model.Person
 	initial.DB.Where("open_id = ?", jwtData.OpenID).Find(&person)
 
 	if person.Status != 0 { // 如果在一个团队中
 		utility.ResponseError(context, "请退出或解散原来的团队")
-		return
-	}
-
-	var joinTeamData JoinTeamData
-	err := context.ShouldBindJSON(&joinTeamData)
-	if err != nil { // 参数发送错误
-		utility.ResponseError(context, "参数错误")
 		return
 	}
 

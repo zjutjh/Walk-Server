@@ -10,7 +10,7 @@ import (
 func Auth(context *gin.Context) {
 	jwtToken := context.GetHeader("Authorization")
 	if jwtToken == "" {
-		utility.ResponseError(context, "缺少登陆凭证")
+		utility.ResponseError(context, "缺少登录凭证")
 		context.Abort()
 		return
 	} else {
@@ -19,7 +19,7 @@ func Auth(context *gin.Context) {
 	jwtData, err := utility.ParseToken(jwtToken)
 	// jwt token 解析失败
 	if err != nil {
-		utility.ResponseError(context, "登陆错误，重新进入网页试试")
+		utility.ResponseError(context, "登录错误，重新进入网页试试")
 		context.Abort()
 		return
 	}
@@ -40,7 +40,7 @@ func Auth(context *gin.Context) {
 func IsRegistered(context *gin.Context) {
 	jwtToken := context.GetHeader("Authorization")
 	if jwtToken == "" {
-		utility.ResponseError(context, "缺少登陆凭证")
+		utility.ResponseError(context, "缺少登录凭证")
 		context.Abort()
 		return
 	} else {
@@ -49,7 +49,7 @@ func IsRegistered(context *gin.Context) {
 	jwtData, err := utility.ParseToken(jwtToken)
 	// jwt token 解析失败
 	if err != nil {
-		utility.ResponseError(context, "登陆错误，重新进入网页试试")
+		utility.ResponseError(context, "登录错误，重新进入网页试试")
 		context.Abort()
 		return
 	}

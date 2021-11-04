@@ -43,6 +43,7 @@ func main() {
 			team.GET("/remove", controller.RemoveMember) // 移除队员
 			team.GET("/disband", controller.DisbandTeam) // 解散团队
 			team.GET("/submit", controller.SubmitTeam)   // 提交团队
+			team.GET("/match", controller.RandomMatch)   // 随机匹配
 		}
 	}
 

@@ -2,6 +2,9 @@ package controller
 
 import (
 	"fmt"
+	"math/rand"
+	"strconv"
+	"time"
 	"walk-server/model"
 	"walk-server/utility"
 	"walk-server/utility/initial"
@@ -11,15 +14,17 @@ import (
 
 // CreateTeamData 接收创建团队信息的数据类型
 type CreateTeamData struct {
-	Name     string `json:"name" binding:"required"`
-	Password string `json:"password" binding:"required"`
-	Route    uint8  `json:"route" binding:"required"`
+	Name       string `json:"name" binding:"required"`
+	Password   string `json:"password" binding:"required"`
+	AllowMatch bool   `json:"allow_match" binding:"required"`
+	Route      uint8  `json:"route" binding:"required"`
 }
 
 // UpdateTeamData 更新团队信息的数据类型
 type UpdateTeamData struct {
-	Name  string `json:"name"`
-	Route uint8  `json:"route"`
+	Name       string `json:"name" binding:"required"`
+	Route      uint8  `json:"route" binding:"required"`
+	AllowMatch bool   `json:"allow_match" binding:"required"`
 }
 
 // JoinTeamData 加入团队时接收的信息类型
@@ -56,12 +61,13 @@ func CreateTeam(context *gin.Context) {
 	} else {
 		// 再数据库中插入一个团队
 		team := model.Team{
-			Name:      createTeamData.Name,
-			Num:       1,
-			Password:  createTeamData.Password,
-			Captain:   person.OpenId,
-			Route:     createTeamData.Route,
-			Submitted: false,
+			Name:       createTeamData.Name,
+			Num:        1,
+			AllowMatch: createTeamData.AllowMatch,
+			Password:   createTeamData.Password,
+			Captain:    person.OpenId,
+			Route:      createTeamData.Route,
+			Submitted:  false,
 		}
 		initial.DB.Create(&team)
 
@@ -177,11 +183,12 @@ func GetTeamInfo(context *gin.Context) {
 
 	// 返回结果
 	utility.ResponseSuccess(context, gin.H{
-		"id":        person.TeamId,
-		"name":      team.Name,
-		"route":     team.Route,
-		"password":  team.Password,
-		"submitted": team.Submitted,
+		"id":          person.TeamId,
+		"name":        team.Name,
+		"route":       team.Route,
+		"password":    team.Password,
+		"submitted":   team.Submitted,
+		"allow_match": team.AllowMatch,
 		"leader": gin.H{
 			"name":    leader.Name,
 			"gender":  leader.Gender,
@@ -331,6 +338,7 @@ func UpdateTeam(context *gin.Context) {
 	initial.DB.Where("id = ?", person.TeamId).First(&team)
 	team.Name = updateTeamData.Name
 	team.Route = updateTeamData.Route
+	team.AllowMatch = updateTeamData.AllowMatch
 	initial.DB.Save(&team)
 	utility.ResponseSuccess(context, nil)
 }
@@ -376,4 +384,55 @@ func SubmitTeam(context *gin.Context) {
 			utility.ResponseSuccess(context, nil)
 		}
 	}
+}
+
+// RandomMatch 随机组队
+func RandomMatch(context *gin.Context) {
+	route, err := strconv.Atoi(context.Query("route"))
+	if err != nil {
+		utility.ResponseError(context, "参数错误")
+		return
+	}
+
+	// 获取 jwt 数据
+	jwtToken := context.GetHeader("Authorization")[7:]
+	jwtData, _ := utility.ParseToken(jwtToken)
+
+	// 从数据库中读取用户信息
+	var person model.Person
+	initial.DB.Where("open_id = ?", jwtData.OpenID).Find(&person)
+
+	if person.Status != 0 { // 如果在一个团队中
+		utility.ResponseError(context, "请退出或解散原来的团队")
+		return
+	}
+
+	if person.JoinOp == 0 { // 加入次数用完了
+		utility.ResponseError(context, "没有加入次数了")
+		return
+	}
+
+	// 找到一个可以加入的随机队伍
+	var teams, randTeams []model.Team
+	initial.DB.Where("num < 6 AND route = ? AND allow_match = 1 AND submitted = 0", route).Find(&teams) // 从可能的队伍中挑选前 10 条
+	rand.Seed(time.Now().UnixNano())                                                                    // 设置随机种子
+	for n := len(teams); n > 0; n-- {
+		randIndex := rand.Intn(n)
+		randTeams = append(randTeams, teams[randIndex])
+		teams[n-1], teams[randIndex] = teams[randIndex], teams[n-1] // 将 teams[randIndex] 丢到末尾
+	}
+	for _, team := range randTeams {
+		result := initial.DB.Model(&team).Where("num < 6 AND allow_match = 1 AND submitted = 0").Update("num", team.Num+1) // 更新队伍人数
+		if result.RowsAffected != 0 {                                                                                      // 更新成功
+			person.Status = 1
+			person.JoinOp--
+			person.TeamId = int(team.ID)
+			initial.DB.Model(&person).Updates(person) // 将新的用户信息写入数据库
+			utility.ResponseSuccess(context, nil)
+
+			return
+		}
+	}
+
+	utility.ResponseError(context, "没有匹配上的队伍")
 }

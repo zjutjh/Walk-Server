@@ -13,7 +13,7 @@ type StudentRegisterData struct {
 	Name    string `json:"name"`
 	StuID   string `json:"stu_id"`
 	ID      string `json:"id"`
-	Gender  int8  `json:"gender"`
+	Gender  int8   `json:"gender"`
 	Campus  uint8  `json:"campus"`
 	Contact struct {
 		QQ     string `json:"qq"`
@@ -26,7 +26,7 @@ type StudentRegisterData struct {
 type TeacherRegisterData struct {
 	Name    string `json:"name" binding:"required"`
 	ID      string `json:"id" binding:"required"`
-	Gender  int8  `json:"gender" binding:"required"`
+	Gender  int8   `json:"gender" binding:"required"`
 	Contact struct {
 		QQ     string `json:"qq"`
 		Wechat string `json:"wechat"`
@@ -58,8 +58,8 @@ func StudentRegister(context *gin.Context) {
 		Qq:        postData.Contact.QQ,
 		Wechat:    postData.Contact.Wechat,
 		Tel:       postData.Contact.Tel,
-		CreatedOp: 1,
-		JoinOp:    3,
+		CreatedOp: 2,
+		JoinOp:    5,
 		TeamId:    -1,
 	}
 
@@ -94,8 +94,8 @@ func TeacherRegister(context *gin.Context) {
 		Qq:        postData.Contact.QQ,
 		Wechat:    postData.Contact.Wechat,
 		Tel:       postData.Contact.Tel,
-		CreatedOp: 1,
-		JoinOp:    3,
+		CreatedOp: 2,
+		JoinOp:    5,
 		TeamId:    -1,
 	}
 

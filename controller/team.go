@@ -15,16 +15,16 @@ import (
 // CreateTeamData 接收创建团队信息的数据类型
 type CreateTeamData struct {
 	Name       string `json:"name" binding:"required"`
-	Password   string `json:"password" binding:"required"`
-	AllowMatch bool   `json:"allow_match" binding:"required"`
 	Route      uint8  `json:"route" binding:"required"`
+	Password   string `json:"password" binding:"required"`
+	AllowMatch bool   `json:"allow_match"`
 }
 
 // UpdateTeamData 更新团队信息的数据类型
 type UpdateTeamData struct {
 	Name       string `json:"name" binding:"required"`
 	Route      uint8  `json:"route" binding:"required"`
-	AllowMatch bool   `json:"allow_match" binding:"required"`
+	AllowMatch bool   `json:"allow_match"`
 }
 
 // JoinTeamData 加入团队时接收的信息类型

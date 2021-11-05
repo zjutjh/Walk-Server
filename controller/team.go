@@ -373,18 +373,21 @@ func SubmitTeam(context *gin.Context) {
 	}
 
 	// 开始提交
-	initial.DB.Where("day_campus = ?", utility.GetCurrentDate()*10+team.Route).First(&teamCount)
+	tx := initial.DB.Begin() // 开始事务
+	tx.Where("day_campus = ?", utility.GetCurrentDate()*10+team.Route).First(&teamCount)
 	key := fmt.Sprintf("teamUpperLimit.%v.%v", team.Route, utility.GetCurrentDate())
-	result := initial.DB.Model(&teamCount).Where("count < ?", initial.Config.GetInt(key)).Update("count", teamCount.Count+1)
+	result := tx.Model(&teamCount).Where("count < ?", initial.Config.GetInt(key)).Update("count", teamCount.Count+1)
 	if result.RowsAffected == 0 { // 队伍数量到达上限
 		utility.ResponseError(context, "队伍数量已经到达上限，无法提交")
 	} else { // 团队提交状态更新
-		if team.Num < 4 {
+		team.Submitted = true
+		result := tx.Model(&team).Where("num >= 4").Update("submitted", 1)
+		if result.RowsAffected == 0 {
 			utility.ResponseError(context, "队伍人数太少")
+			tx.Rollback() // 人数不够回滚 teamCount
 		} else {
-			team.Submitted = true
-			initial.DB.Save(&team)
 			utility.ResponseSuccess(context, nil)
+			tx.Commit()
 		}
 	}
 }

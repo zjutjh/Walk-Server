@@ -25,13 +25,18 @@ func Login(ctx *gin.Context) {
 	var jwtData utility.JwtData
 	code := ctx.Query("code") // 微信回调的 code 参数
 
-	// TODO 对微信返回的 code 做校验
+	if code == "" {
+		utility.ResponseError(ctx, "请在微信客户端中打开")
+		return
+	}
 
 	// 获取用户的 open id
 	openID, err := utility.GetOpenID(code)
 	if err != nil {
 		utility.ResponseError(ctx, "open ID 错误，请重新打开网页重试")
 		return
+	} else if openID == "" {
+		utility.ResponseError(ctx, "请在微信中打开")
 	}
 	jwtData.OpenID = fmt.Sprintf("%x", md5.Sum([]byte(openID)))
 

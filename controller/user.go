@@ -13,6 +13,7 @@ type UserModifyData struct {
 	StuID   string `json:"stu_id"`
 	ID      string `json:"id" binding:"required"`
 	Gender  int8   `json:"gender" binding:"required"`
+	College string `json:"college"`
 	Campus  uint8  `json:"campus"`
 	Contact struct {
 		QQ     string `json:"qq"`
@@ -37,7 +38,7 @@ func GetInfo(context *gin.Context) {
 		"gender":    person.Gender,
 		"id":        person.Identity,
 		"campus":    person.Campus,
-		"status":    person.Status, 
+		"status":    person.Status,
 		"create_op": person.CreatedOp,
 		"join_op":   person.JoinOp,
 		"team_id":   person.TeamId,
@@ -70,6 +71,7 @@ func ModifyInfo(context *gin.Context) {
 		Gender:   postData.Gender,
 		StuId:    postData.StuID,
 		Campus:   postData.Campus,
+		College:  postData.College,
 		Identity: postData.ID,
 		Qq:       postData.Contact.QQ,
 		Wechat:   postData.Contact.Wechat,

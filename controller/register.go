@@ -14,6 +14,7 @@ type StudentRegisterData struct {
 	StuID   string `json:"stu_id"`
 	ID      string `json:"id"`
 	Gender  int8   `json:"gender"`
+	College string `json:"college"`
 	Campus  uint8  `json:"campus"`
 	Contact struct {
 		QQ     string `json:"qq"`
@@ -53,6 +54,7 @@ func StudentRegister(context *gin.Context) {
 		Gender:    postData.Gender,
 		StuId:     postData.StuID,
 		Status:    0,
+		College:   postData.College,
 		Identity:  postData.ID,
 		Campus:    postData.Campus,
 		Qq:        postData.Contact.QQ,

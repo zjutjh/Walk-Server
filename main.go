@@ -35,15 +35,15 @@ func main() {
 		// Team
 		team := api.Group("/team", middleware.IsRegistered)
 		{
-			team.GET("/info", controller.GetTeamInfo)    // 获取团队信息
-			team.POST("/create", controller.CreateTeam)  // 创建团队
-			team.POST("/update", controller.UpdateTeam)  // 修改队伍信息
-			team.POST("/join", controller.JoinTeam)      // 加入团队
-			team.GET("/leave", controller.LeaveTeam)     // 离开团队
-			team.GET("/remove", controller.RemoveMember) // 移除队员
-			team.GET("/disband", controller.DisbandTeam) // 解散团队
-			team.GET("/submit", controller.SubmitTeam)   // 提交团队
-			team.GET("/match", controller.RandomMatch)   // 随机匹配
+			team.GET("/info", controller.GetTeamInfo)                        // 获取团队信息
+			team.POST("/create", controller.CreateTeam)                      // 创建团队
+			team.POST("/update", controller.UpdateTeam)                      // 修改队伍信息
+			team.POST("/join", controller.JoinTeam)                          // 加入团队
+			team.GET("/leave", controller.LeaveTeam)                         // 离开团队
+			team.GET("/remove", controller.RemoveMember)                     // 移除队员
+			team.GET("/disband", controller.DisbandTeam)                     // 解散团队
+			team.GET("/submit", middleware.CanSubmit, controller.SubmitTeam) // 提交团队
+			team.GET("/match", controller.RandomMatch)                       // 随机匹配
 		}
 	}
 

@@ -13,3 +13,19 @@ func GetCurrentDate() uint8 {
 	nowTimeUnix := time.Now().Unix() - timeUnix
 	return uint8(nowTimeUnix / 3600 / 24)
 }
+
+func CanOpenApi() bool {
+	if time.Now().Hour() >= 8 {
+		return true
+	} else {
+		return false
+	}
+}
+
+func CanSubmit() bool {
+	if time.Now().Hour() >= 12 {
+		return true
+	} else {
+		return false
+	}
+}

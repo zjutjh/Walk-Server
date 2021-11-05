@@ -7,8 +7,23 @@ import (
 
 // TimeValidity Require implement ... Check if in open time
 func TimeValidity(ctx *gin.Context) {
-	// TODO 开放时间中间件尚未完工
+	if !utility.CanOpenApi() {
+		utility.ResponseError(ctx, "time error")
+		ctx.Abort()
+		return
+	}
+
 	ctx.Next()
+}
+
+// CanSubmit 是否开发提交队伍
+func CanSubmit(context *gin.Context) {
+	if !utility.CanSubmit() {
+		utility.ResponseError(context, "尚且不能提交")
+		context.Abort()
+	} else {
+		context.Next()
+	}
 }
 
 // RegisterJWTValidity 注册的时候验证 JWT 是否合法

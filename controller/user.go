@@ -38,6 +38,7 @@ func GetInfo(context *gin.Context) {
 		"gender":    person.Gender,
 		"id":        person.Identity,
 		"campus":    person.Campus,
+		"college":   person.College,
 		"status":    person.Status,
 		"create_op": person.CreatedOp,
 		"join_op":   person.JoinOp,

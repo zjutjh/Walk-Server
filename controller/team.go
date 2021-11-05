@@ -24,6 +24,7 @@ type CreateTeamData struct {
 type UpdateTeamData struct {
 	Name       string `json:"name" binding:"required"`
 	Route      uint8  `json:"route" binding:"required"`
+	Password   string `json:"password" binding:"required"`
 	AllowMatch bool   `json:"allow_match"`
 }
 
@@ -341,6 +342,7 @@ func UpdateTeam(context *gin.Context) {
 	initial.DB.Where("id = ?", person.TeamId).First(&team)
 	team.Name = updateTeamData.Name
 	team.Route = updateTeamData.Route
+	team.Password = updateTeamData.Password
 	team.AllowMatch = updateTeamData.AllowMatch
 	initial.DB.Save(&team)
 	utility.ResponseSuccess(context, nil)

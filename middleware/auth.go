@@ -19,7 +19,7 @@ func Auth(context *gin.Context) {
 	jwtData, err := utility.ParseToken(jwtToken)
 	// jwt token 解析失败
 	if err != nil {
-		utility.ResponseError(context, "登录错误，重新进入网页试试")
+		utility.ResponseError(context, "jwt error")
 		context.Abort()
 		return
 	}

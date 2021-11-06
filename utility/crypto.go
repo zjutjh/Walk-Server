@@ -21,16 +21,16 @@ func AesEncrypt(orig string, key string) string {
 	// 加密模式
 	blockMode := cipher.NewCBCEncrypter(block, k[:blockSize])
 	// 创建数组
-	cryted := make([]byte, len(origData))
+	crypt := make([]byte, len(origData))
 	// 加密
-	blockMode.CryptBlocks(cryted, origData)
-	return base64.StdEncoding.EncodeToString(cryted)
+	blockMode.CryptBlocks(crypt, origData)
+	return base64.StdEncoding.EncodeToString(crypt)
 }
 
 // AesDecrypt AES 解密
-func AesDecrypt(cryted string, key string) string {
+func AesDecrypt(crypt string, key string) string {
 	// 转成字节数组
-	cryptByte, _ := base64.StdEncoding.DecodeString(cryted)
+	cryptByte, _ := base64.StdEncoding.DecodeString(crypt)
 	k := []byte(key)
 	// 分组秘钥
 	block, _ := aes.NewCipher(k)

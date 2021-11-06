@@ -4,6 +4,7 @@ server:
   oauth: ""
   wechatRedirect: ""
   JWTSecret: ""
+  port: "8089"
 
 database:
   host: ""

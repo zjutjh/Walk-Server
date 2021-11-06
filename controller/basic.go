@@ -37,6 +37,7 @@ func Login(ctx *gin.Context) {
 		return
 	} else if openID == "" {
 		utility.ResponseError(ctx, "请在微信中打开")
+		return
 	}
 	jwtData.OpenID = fmt.Sprintf("%x", md5.Sum([]byte(openID)))
 

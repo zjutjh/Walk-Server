@@ -267,6 +267,14 @@ func LeaveTeam(context *gin.Context) {
 		return
 	}
 
+	// 检查队伍是否提交
+	var team model.Team
+	initial.DB.Where("id = ?", person.TeamId).First(&team)
+	if team.Submitted {
+		utility.ResponseError(context, "该队伍已经提交，无法退出")
+		return
+	}
+
 	// 恢复队员信息到未加入的状态
 	person.Status = 0
 	person.TeamId = -1
@@ -289,6 +297,13 @@ func RemoveMember(context *gin.Context) {
 		return
 	} else if person.Status == 1 {
 		utility.ResponseError(context, "只有队长可以移除队员")
+		return
+	}
+
+	var team model.Team
+	initial.DB.Where("id = ?", person.TeamId).First(&team)
+	if team.Submitted {
+		utility.ResponseError(context, "该队伍已经提交, 无法移除队员")
 		return
 	}
 
@@ -340,6 +355,10 @@ func UpdateTeam(context *gin.Context) {
 	// 更新团队信息
 	var team model.Team
 	initial.DB.Where("id = ?", person.TeamId).First(&team)
+	if team.Submitted {
+		utility.ResponseError(context, "该队伍已经提交，无法修改")
+		return
+	}
 	team.Name = updateTeamData.Name
 	team.Route = updateTeamData.Route
 	team.Password = updateTeamData.Password
@@ -385,7 +404,7 @@ func SubmitTeam(context *gin.Context) {
 		team.Submitted = true
 		result := tx.Model(&team).Where("num >= 4").Update("submitted", 1)
 		if result.RowsAffected == 0 {
-			utility.ResponseError(context, "队伍人数太少")
+			utility.ResponseError(context, "队伍人数不足 4 人")
 			tx.Rollback() // 人数不够回滚 teamCount
 		} else {
 			utility.ResponseSuccess(context, nil)

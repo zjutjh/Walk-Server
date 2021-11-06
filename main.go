@@ -48,5 +48,5 @@ func main() {
 	}
 
 	// start server
-	utility.StartServer(router, ":8080")
+	utility.StartServer(router, ":"+initial.Config.GetString("server.port"))
 }

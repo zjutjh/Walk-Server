@@ -12,11 +12,11 @@ func main() {
 	initial.DBInit()     // 初始化数据库
 	router := initial.RouterInit()
 
+	router.GET("/api/v1/oauth", controller.Oauth) // 微信 Oauth 的起点接口
 	api := router.Group("/api/v1", middleware.TimeValidity)
 	{
 		// Basic
 		api.GET("/login", controller.Login) // 微信服务器的回调地址
-		api.GET("/oauth", controller.Oauth) // 微信 Oauth 的起点接口
 
 		// Register
 		register := api.Group("/register", middleware.RegisterJWTValidity)

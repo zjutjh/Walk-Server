@@ -5,8 +5,6 @@
 package controller
 
 import (
-	"crypto/md5"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"walk-server/utility"
@@ -39,7 +37,7 @@ func Login(ctx *gin.Context) {
 		utility.ResponseError(ctx, "请在微信中打开")
 		return
 	}
-	jwtData.OpenID = fmt.Sprintf("%x", md5.Sum([]byte(openID)))
+	jwtData.OpenID = utility.AesEncrypt(openID, initial.Config.GetString("server.AESSecret"))
 
 	// 生成 JWT
 	jwtToken, err := utility.GenerateStandardJwt(&jwtData)

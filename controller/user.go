@@ -30,7 +30,7 @@ func GetInfo(context *gin.Context) {
 
 	// 获取用户数据
 	person := model.Person{}
-	initial.DB.Where("open_id = ?", openID).First(&person)
+	initial.DB.Where("open_id = ?", openID).Take(&person)
 
 	utility.ResponseSuccess(context, gin.H{
 		"name":      person.Name,

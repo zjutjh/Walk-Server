@@ -27,7 +27,7 @@ func Auth(context *gin.Context) {
 	// 检查 open ID 是否有对应的用户
 	openID := jwtData.OpenID
 	person := model.Person{}
-	result := initial.DB.Where("open_id = ?", openID).First(&person)
+	result := initial.DB.Where("open_id = ?", openID).Take(&person)
 	if result.RowsAffected == 0 {
 		utility.ResponseError(context, "请先报名")
 		context.Abort()
@@ -54,7 +54,7 @@ func IsRegistered(context *gin.Context) {
 		return
 	}
 
-	result := initial.DB.Where("open_id = ?", jwtData.OpenID).First(&model.Person{})
+	result := initial.DB.Where("open_id = ?", jwtData.OpenID).Take(&model.Person{})
 	if result.RowsAffected == 0 {
 		utility.ResponseError(context, "请先报名注册")
 		context.Abort()

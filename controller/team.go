@@ -270,7 +270,10 @@ func LeaveTeam(context *gin.Context) {
 	// 检查队伍是否提交
 	var team model.Team
 	initial.DB.Where("id = ?", person.TeamId).First(&team)
-	if team.Submitted {
+
+	// 队伍成员数量减一
+	result := initial.DB.Model(&team).Where("submitted = 0").Update("num", team.Num - 1)
+	if result.RowsAffected == 0 {
 		utility.ResponseError(context, "该队伍已经提交，无法退出")
 		return
 	}
@@ -319,6 +322,10 @@ func RemoveMember(context *gin.Context) {
 		utility.ResponseError(context, "不能移除别的队伍的人")
 		return
 	}
+
+	// 队伍数量减少
+	team.Num--
+	initial.DB.Save(&team)
 
 	// 更新被踢出的人的状态
 	personRemoved.Status = 0

@@ -272,7 +272,7 @@ func LeaveTeam(context *gin.Context) {
 	initial.DB.Where("id = ?", person.TeamId).First(&team)
 
 	// 队伍成员数量减一
-	result := initial.DB.Model(&team).Where("submitted = 0").Update("num", team.Num - 1)
+	result := initial.DB.Model(&team).Where("submitted = 0").Update("num", team.Num-1)
 	if result.RowsAffected == 0 {
 		utility.ResponseError(context, "该队伍已经提交，无法退出")
 		return
@@ -407,6 +407,7 @@ func SubmitTeam(context *gin.Context) {
 	result := tx.Model(&teamCount).Where("count < ?", initial.Config.GetInt(key)).Update("count", teamCount.Count+1)
 	if result.RowsAffected == 0 { // 队伍数量到达上限
 		utility.ResponseError(context, "队伍数量已经到达上限，无法提交")
+		tx.Commit()
 	} else { // 团队提交状态更新
 		team.Submitted = true
 		result := tx.Model(&team).Where("num >= 4").Update("submitted", 1)

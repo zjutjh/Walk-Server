@@ -44,6 +44,7 @@ func main() {
 			team.GET("/disband", controller.DisbandTeam)                     // 解散团队
 			team.GET("/submit", middleware.CanSubmit, controller.SubmitTeam) // 提交团队
 			team.GET("/match", controller.RandomMatch)                       // 随机匹配
+			team.GET("/rollback", controller.RollBackTeam)                   // 撤销提交
 		}
 	}
 

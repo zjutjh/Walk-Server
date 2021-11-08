@@ -4,6 +4,8 @@ server:
   oauth: ""
   wechatRedirect: ""
   JWTSecret: ""
+  AESSecret: "" # AES 加密密钥
+  port: "8089"
 
 database:
   host: ""

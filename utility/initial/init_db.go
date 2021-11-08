@@ -39,7 +39,7 @@ func DBInit() {
 	var teamCount model.TeamCount
 	for i := 0; i <= 3; i++ { // 枚举天数
 		for j := 1; j <= 5; j++ { // 枚举路线编号
-			result := DB.Where("day_campus = ?", i*10+j).First(&model.TeamCount{})
+			result := DB.Where("day_campus = ?", i*10+j).Take(&model.TeamCount{})
 			if result.RowsAffected == 0 {
 				teamCount.DayCampus = uint8(i*10 + j)
 				teamCount.Count = 0

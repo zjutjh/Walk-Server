@@ -13,3 +13,26 @@ func GetCurrentDate() uint8 {
 	nowTimeUnix := time.Now().Unix() - timeUnix
 	return uint8(nowTimeUnix / 3600 / 24)
 }
+
+func CanOpenApi() bool {
+	var timeLayout = "2006-01-02 15:04:05"
+	startTimes, _ := time.Parse(timeLayout, initial.Config.GetString("startDate"))
+	startTimeUnix := startTimes.Unix()
+	if time.Now().Unix() <= startTimeUnix {
+		return false
+	}
+
+	if time.Now().Hour() >= 8 {
+		return true
+	} else {
+		return false
+	}
+}
+
+func CanSubmit() bool {
+	if time.Now().Hour() >= 12 {
+		return true
+	} else {
+		return false
+	}
+}

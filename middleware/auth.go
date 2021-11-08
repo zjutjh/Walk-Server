@@ -10,7 +10,7 @@ import (
 func Auth(context *gin.Context) {
 	jwtToken := context.GetHeader("Authorization")
 	if jwtToken == "" {
-		utility.ResponseError(context, "缺少登陆凭证")
+		utility.ResponseError(context, "缺少登录凭证")
 		context.Abort()
 		return
 	} else {
@@ -19,7 +19,7 @@ func Auth(context *gin.Context) {
 	jwtData, err := utility.ParseToken(jwtToken)
 	// jwt token 解析失败
 	if err != nil {
-		utility.ResponseError(context, "登陆错误，重新进入网页试试")
+		utility.ResponseError(context, "jwt error")
 		context.Abort()
 		return
 	}
@@ -27,7 +27,7 @@ func Auth(context *gin.Context) {
 	// 检查 open ID 是否有对应的用户
 	openID := jwtData.OpenID
 	person := model.Person{}
-	result := initial.DB.Where("open_id = ?", openID).First(&person)
+	result := initial.DB.Where("open_id = ?", openID).Take(&person)
 	if result.RowsAffected == 0 {
 		utility.ResponseError(context, "请先报名")
 		context.Abort()
@@ -40,7 +40,7 @@ func Auth(context *gin.Context) {
 func IsRegistered(context *gin.Context) {
 	jwtToken := context.GetHeader("Authorization")
 	if jwtToken == "" {
-		utility.ResponseError(context, "缺少登陆凭证")
+		utility.ResponseError(context, "缺少登录凭证")
 		context.Abort()
 		return
 	} else {
@@ -49,12 +49,12 @@ func IsRegistered(context *gin.Context) {
 	jwtData, err := utility.ParseToken(jwtToken)
 	// jwt token 解析失败
 	if err != nil {
-		utility.ResponseError(context, "登陆错误，重新进入网页试试")
+		utility.ResponseError(context, "登录错误，重新进入网页试试")
 		context.Abort()
 		return
 	}
 
-	result := initial.DB.Where("open_id = ?", jwtData.OpenID).First(&model.Person{})
+	result := initial.DB.Where("open_id = ?", jwtData.OpenID).Take(&model.Person{})
 	if result.RowsAffected == 0 {
 		utility.ResponseError(context, "请先报名注册")
 		context.Abort()

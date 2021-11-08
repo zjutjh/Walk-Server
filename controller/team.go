@@ -24,6 +24,7 @@ type CreateTeamData struct {
 type UpdateTeamData struct {
 	Name       string `json:"name" binding:"required"`
 	Route      uint8  `json:"route" binding:"required"`
+	Password   string `json:"password" binding:"required"`
 	AllowMatch bool   `json:"allow_match"`
 }
 
@@ -49,7 +50,7 @@ func CreateTeam(context *gin.Context) {
 	// 查询用户信息
 	openID := jwtData.OpenID
 	var person model.Person
-	initial.DB.Where("open_id = ?", openID).First(&person)
+	initial.DB.Where("open_id = ?", openID).Take(&person)
 
 	if person.Status != 0 { // 现在已经加入了一个团队
 		utility.ResponseError(context, "请先退出或解散原来的团队")
@@ -58,6 +59,7 @@ func CreateTeam(context *gin.Context) {
 
 	if person.CreatedOp == 0 {
 		utility.ResponseError(context, "无法创建团队了")
+		return
 	} else {
 		// 再数据库中插入一个团队
 		team := model.Team{
@@ -90,19 +92,19 @@ func JoinTeam(context *gin.Context) {
 	jwtToken := context.GetHeader("Authorization")[7:]
 	jwtData, _ := utility.ParseToken(jwtToken)
 
+	var joinTeamData JoinTeamData
+	err := context.ShouldBindJSON(&joinTeamData)
+	if err != nil { // 参数发送错误
+		utility.ResponseError(context, "参数错误")
+		return
+	}
+
 	// 从数据库中读取用户信息
 	var person model.Person
 	initial.DB.Where("open_id = ?", jwtData.OpenID).Find(&person)
 
 	if person.Status != 0 { // 如果在一个团队中
 		utility.ResponseError(context, "请退出或解散原来的团队")
-		return
-	}
-
-	var joinTeamData JoinTeamData
-	err := context.ShouldBindJSON(&joinTeamData)
-	if err != nil { // 参数发送错误
-		utility.ResponseError(context, "参数错误")
 		return
 	}
 
@@ -113,7 +115,7 @@ func JoinTeam(context *gin.Context) {
 
 	// 检查密码
 	var team model.Team
-	result := initial.DB.Where("id = ?", joinTeamData.TeamID).First(&team)
+	result := initial.DB.Where("id = ?", joinTeamData.TeamID).Take(&team)
 	if result.RowsAffected == 0 {
 		utility.ResponseError(context, "找不到团队")
 		return
@@ -147,7 +149,7 @@ func GetTeamInfo(context *gin.Context) {
 
 	// 获取个人信息
 	var person model.Person
-	initial.DB.Where("open_id = ?", jwtData.OpenID).First(&person)
+	initial.DB.Where("open_id = ?", jwtData.OpenID).Take(&person)
 
 	// 先判断是否加入了团队
 	if person.Status == 0 {
@@ -157,7 +159,7 @@ func GetTeamInfo(context *gin.Context) {
 
 	// 查找团队
 	var team model.Team
-	initial.DB.Where("id = ?", person.TeamId).First(&team)
+	initial.DB.Where("id = ?", person.TeamId).Take(&team)
 
 	// 查找团队成员
 	var persons []model.Person
@@ -212,7 +214,7 @@ func DisbandTeam(context *gin.Context) {
 
 	// 查找用户
 	var person model.Person
-	initial.DB.Where("open_id = ?", jwtData.OpenID).First(&person)
+	initial.DB.Where("open_id = ?", jwtData.OpenID).Take(&person)
 
 	if person.Status == 0 {
 		utility.ResponseError(context, "请先创建一个队伍")
@@ -224,7 +226,7 @@ func DisbandTeam(context *gin.Context) {
 
 	// 查找团队
 	var team model.Team
-	initial.DB.Where("id = ?", person.TeamId).First(&team)
+	initial.DB.Where("id = ?", person.TeamId).Take(&team)
 
 	if team.Submitted == true {
 		utility.ResponseError(context, "该队伍已提交，无法解散")
@@ -255,13 +257,24 @@ func LeaveTeam(context *gin.Context) {
 
 	// 查找用户
 	var person model.Person
-	initial.DB.Where("open_id = ?", jwtData.OpenID).First(&person)
+	initial.DB.Where("open_id = ?", jwtData.OpenID).Take(&person)
 
 	if person.Status == 0 {
 		utility.ResponseError(context, "请先加入队伍")
 		return
 	} else if person.Status == 2 {
 		utility.ResponseError(context, "队长只能解散队伍")
+		return
+	}
+
+	// 检查队伍是否提交
+	var team model.Team
+	initial.DB.Where("id = ?", person.TeamId).Take(&team)
+
+	// 队伍成员数量减一
+	result := initial.DB.Model(&team).Where("submitted = 0").Update("num", team.Num-1)
+	if result.RowsAffected == 0 {
+		utility.ResponseError(context, "该队伍已经提交，无法退出")
 		return
 	}
 
@@ -280,7 +293,7 @@ func RemoveMember(context *gin.Context) {
 
 	// 查找用户
 	var person model.Person
-	initial.DB.Where("open_id = ?", jwtData.OpenID).First(&person)
+	initial.DB.Where("open_id = ?", jwtData.OpenID).Take(&person)
 
 	if person.Status == 0 {
 		utility.ResponseError(context, "请先加入团队")
@@ -290,11 +303,18 @@ func RemoveMember(context *gin.Context) {
 		return
 	}
 
+	var team model.Team
+	initial.DB.Where("id = ?", person.TeamId).Take(&team)
+	if team.Submitted {
+		utility.ResponseError(context, "该队伍已经提交, 无法移除队员")
+		return
+	}
+
 	// 读取 Get 参数
 	memberRemovedOpenID := context.Query("openid")
 
 	var personRemoved model.Person
-	result := initial.DB.Where("open_id = ?", memberRemovedOpenID).First(&personRemoved)
+	result := initial.DB.Where("open_id = ?", memberRemovedOpenID).Take(&personRemoved)
 	if result.RowsAffected == 0 {
 		utility.ResponseError(context, "没有这个用户")
 		return
@@ -302,6 +322,10 @@ func RemoveMember(context *gin.Context) {
 		utility.ResponseError(context, "不能移除别的队伍的人")
 		return
 	}
+
+	// 队伍数量减少
+	team.Num--
+	initial.DB.Save(&team)
 
 	// 更新被踢出的人的状态
 	personRemoved.Status = 0
@@ -316,7 +340,7 @@ func UpdateTeam(context *gin.Context) {
 
 	// 查找用户
 	var person model.Person
-	initial.DB.Where("open_id = ?", jwtData.OpenID).First(&person)
+	initial.DB.Where("open_id = ?", jwtData.OpenID).Take(&person)
 
 	// 判断用户权限
 	if person.Status == 0 {
@@ -337,9 +361,14 @@ func UpdateTeam(context *gin.Context) {
 
 	// 更新团队信息
 	var team model.Team
-	initial.DB.Where("id = ?", person.TeamId).First(&team)
+	initial.DB.Where("id = ?", person.TeamId).Take(&team)
+	if team.Submitted {
+		utility.ResponseError(context, "该队伍已经提交，无法修改")
+		return
+	}
 	team.Name = updateTeamData.Name
 	team.Route = updateTeamData.Route
+	team.Password = updateTeamData.Password
 	team.AllowMatch = updateTeamData.AllowMatch
 	initial.DB.Save(&team)
 	utility.ResponseSuccess(context, nil)
@@ -352,7 +381,7 @@ func SubmitTeam(context *gin.Context) {
 
 	// 查找用户
 	var person model.Person
-	initial.DB.Where("open_id = ?", jwtData.OpenID).First(&person)
+	initial.DB.Where("open_id = ?", jwtData.OpenID).Take(&person)
 
 	// 判断用户权限
 	if person.Status == 0 {
@@ -366,24 +395,28 @@ func SubmitTeam(context *gin.Context) {
 	var team model.Team
 	var teamCount model.TeamCount
 
-	initial.DB.Where("id = ?", person.TeamId).First(&team)
+	initial.DB.Where("id = ?", person.TeamId).Take(&team)
 	if team.Submitted == true {
 		utility.ResponseError(context, "该队伍已经提交过了")
 	}
 
 	// 开始提交
-	initial.DB.Where("day_campus = ?", utility.GetCurrentDate()*10+team.Route).First(&teamCount)
+	tx := initial.DB.Begin() // 开始事务
+	tx.Where("day_campus = ?", utility.GetCurrentDate()*10+team.Route).Take(&teamCount)
 	key := fmt.Sprintf("teamUpperLimit.%v.%v", team.Route, utility.GetCurrentDate())
-	result := initial.DB.Model(&teamCount).Where("count < ?", initial.Config.GetInt(key)).Update("count", teamCount.Count+1)
+	result := tx.Model(&teamCount).Where("count < ?", initial.Config.GetInt(key)).Update("count", teamCount.Count+1)
 	if result.RowsAffected == 0 { // 队伍数量到达上限
 		utility.ResponseError(context, "队伍数量已经到达上限，无法提交")
+		tx.Commit()
 	} else { // 团队提交状态更新
-		if team.Num < 4 {
-			utility.ResponseError(context, "队伍人数太少")
+		team.Submitted = true
+		result := tx.Model(&team).Where("num >= 4").Update("submitted", 1)
+		if result.RowsAffected == 0 {
+			utility.ResponseError(context, "队伍人数不足 4 人")
+			tx.Rollback() // 人数不够回滚 teamCount
 		} else {
-			team.Submitted = true
-			initial.DB.Save(&team)
 			utility.ResponseSuccess(context, nil)
+			tx.Commit()
 		}
 	}
 }
@@ -437,4 +470,38 @@ func RandomMatch(context *gin.Context) {
 	}
 
 	utility.ResponseError(context, "没有匹配上的队伍")
+}
+
+func RollBackTeam(context *gin.Context) {
+	// 获取 jwt 数据
+	jwtToken := context.GetHeader("Authorization")[7:]
+	jwtData, _ := utility.ParseToken(jwtToken)
+
+	// 查找用户
+	var person model.Person
+	initial.DB.Where("open_id = ?", jwtData.OpenID).Take(&person)
+
+	// 判断用户权限
+	if person.Status == 0 {
+		utility.ResponseError(context, "请先加入队伍")
+		return
+	} else if person.Status == 1 {
+		utility.ResponseError(context, "没有修改的权限")
+		return
+	}
+
+	var team model.Team
+	var teamCount model.TeamCount
+
+	initial.DB.Where("id = ?", person.TeamId).Take(&team)
+	if team.Submitted == false {
+		utility.ResponseError(context, "该队伍还没有提交")
+	}
+
+	// 删除队伍的提交状态
+	initial.DB.Model(&team).Update("submitted", 0)
+	initial.DB.Where("day_campus = ?", utility.GetCurrentDate()*10+team.Route).Take(&teamCount)
+	initial.DB.Model(&teamCount).Update("count", teamCount.Count-1)
+
+	utility.ResponseSuccess(context, nil)
 }

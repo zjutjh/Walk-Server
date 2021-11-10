@@ -15,6 +15,7 @@ database:
   name: ""
 
 startDate: "2021-11-01 00:00:00"  # 报名开始的日期
+expiredDate: "2021-11-10 00:00:00" # 报名结束的日期
 
 teamUpperLimit: # 每天的团队上限
   zhAll: # 朝晖校区全程

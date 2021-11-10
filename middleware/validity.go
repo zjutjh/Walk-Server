@@ -2,7 +2,9 @@ package middleware
 
 import (
 	"github.com/gin-gonic/gin"
+	"time"
 	"walk-server/utility"
+	"walk-server/utility/initial"
 )
 
 // TimeValidity Require implement ... Check if in open time
@@ -14,6 +16,20 @@ func TimeValidity(ctx *gin.Context) {
 	}
 
 	ctx.Next()
+}
+
+// IsExpired 检查是否过了报名时间，报名时间过了就无法修改用户信息了
+func IsExpired(context *gin.Context) {
+	expiredTime, _ := time.Parse(utility.TimeLayout, initial.Config.GetString("expiredDate"))
+	expiredTimeUnix := expiredTime.Unix()
+	deltaTimeUnix := time.Now().Unix() - expiredTimeUnix
+
+	if deltaTimeUnix >= 0 { // 过期了
+		utility.ResponseError(context, "报名截止了哦")
+		context.Abort()
+	} else {
+		context.Next()
+	}
 }
 
 // CanSubmit 是否开发提交队伍

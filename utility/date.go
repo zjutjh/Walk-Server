@@ -5,18 +5,18 @@ import (
 	"walk-server/utility/initial"
 )
 
+const TimeLayout = "2006-01-02 15:04:05"
+
 // GetCurrentDate 获取当前的天数
 func GetCurrentDate() uint8 {
-	var timeLayout = "2006-01-02 15:04:05"
-	times, _ := time.Parse(timeLayout, initial.Config.GetString("startDate"))
+	times, _ := time.Parse(TimeLayout, initial.Config.GetString("startDate"))
 	timeUnix := times.Unix()
 	nowTimeUnix := time.Now().Unix() - timeUnix
 	return uint8(nowTimeUnix / 3600 / 24)
 }
 
 func CanOpenApi() bool {
-	var timeLayout = "2006-01-02 15:04:05"
-	startTimes, _ := time.Parse(timeLayout, initial.Config.GetString("startDate"))
+	startTimes, _ := time.Parse(TimeLayout, initial.Config.GetString("startDate"))
 	startTimeUnix := startTimes.Unix()
 	if time.Now().Unix() <= startTimeUnix {
 		return false

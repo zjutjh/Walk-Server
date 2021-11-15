@@ -9,14 +9,22 @@ const TimeLayout = "2006-01-02 15:04:05"
 
 // GetCurrentDate 获取当前的天数
 func GetCurrentDate() uint8 {
-	times, _ := time.Parse(TimeLayout, initial.Config.GetString("startDate"))
+	times, _ := time.ParseInLocation(
+		TimeLayout,
+		initial.Config.GetString("startDate"),
+		time.Local,
+	)
 	timeUnix := times.Unix()
 	nowTimeUnix := time.Now().Unix() - timeUnix
 	return uint8(nowTimeUnix / 3600 / 24)
 }
 
 func CanOpenApi() bool {
-	startTimes, _ := time.Parse(TimeLayout, initial.Config.GetString("startDate"))
+	startTimes, _ := time.ParseInLocation(
+		TimeLayout,
+		initial.Config.GetString("startDate"),
+		time.Local,
+	)
 	startTimeUnix := startTimes.Unix()
 	if time.Now().Unix() <= startTimeUnix {
 		return false

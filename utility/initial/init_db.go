@@ -18,7 +18,7 @@ func DBInit() {
 	dbPort := Config.GetString("database.port")
 	dbName := Config.GetString("database.name")
 
-	dsn := fmt.Sprintf("%v:%v@tcp(%v:%v)/%v",
+	dsn := fmt.Sprintf("%v:%v@tcp(%v:%v)/%v?charset=utf8mb4&parseTime=True&loc=Local",
 		dbUser, dbPassport, dbHost, dbPort, dbName)
 
 	var err error

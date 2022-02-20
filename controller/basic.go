@@ -5,10 +5,12 @@
 package controller
 
 import (
-	"github.com/gin-gonic/gin"
+	"fmt"
 	"net/http"
 	"walk-server/utility"
 	"walk-server/utility/initial"
+
+	"github.com/gin-gonic/gin"
 )
 
 func Oauth(ctx *gin.Context) {
@@ -27,7 +29,6 @@ func Login(ctx *gin.Context) {
 		utility.ResponseError(ctx, "请在微信客户端中打开")
 		return
 	}
-
 	// 获取用户的 open id
 	openID, err := utility.GetOpenID(code)
 	if err != nil {
@@ -45,7 +46,11 @@ func Login(ctx *gin.Context) {
 		utility.ResponseError(ctx, "登录错误，请重新打开网页重试")
 		return
 	}
-	utility.ResponseSuccess(ctx, gin.H{
-		"jwt": jwtToken,
-	})
+
+	frontEndUrl := initial.Config.GetString("frontEnd.url");
+	redirectUrl := frontEndUrl + "/" + jwtToken
+
+	fmt.Println(redirectUrl) // debug
+
+	ctx.Redirect(http.StatusTemporaryRedirect, redirectUrl)
 }

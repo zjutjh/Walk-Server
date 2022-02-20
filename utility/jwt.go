@@ -1,9 +1,12 @@
 package utility
 
 import (
-	"github.com/golang-jwt/jwt"
+	"fmt"
+	"strings"
 	"time"
 	"walk-server/utility/initial"
+
+	"github.com/golang-jwt/jwt"
 )
 
 // JwtData 一些结构体的定义
@@ -44,4 +47,16 @@ func ParseToken(token string) (*JwtData, error) {
 		}
 	}
 	return nil, err
+}
+
+// UrlToken 用来生成能在 url 中传输的
+func UrlToken(jwtData *JwtData) (string, error) {
+	jwtToken, err := GenerateStandardJwt(jwtData)
+
+	fmt.Println(jwtToken) // debug
+
+	// 将 jwtToken 中的 . 符号替换成能在 http 中传输的 !
+	jwtToken = strings.Replace(jwtToken, ".", "!", 2)
+
+	return jwtToken, err
 }

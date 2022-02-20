@@ -5,7 +5,6 @@
 package controller
 
 import (
-	"fmt"
 	"net/http"
 	"walk-server/utility"
 	"walk-server/utility/initial"
@@ -41,16 +40,13 @@ func Login(ctx *gin.Context) {
 	jwtData.OpenID = utility.AesEncrypt(openID, initial.Config.GetString("server.AESSecret"))
 
 	// 生成 JWT
-	jwtToken, err := utility.GenerateStandardJwt(&jwtData)
+	urlToken, err := utility.UrlToken(&jwtData)
 	if err != nil {
 		utility.ResponseError(ctx, "登录错误，请重新打开网页重试")
 		return
 	}
 
-	frontEndUrl := initial.Config.GetString("frontEnd.url");
-	redirectUrl := frontEndUrl + "/" + jwtToken
-
-	fmt.Println(redirectUrl) // debug
-
+	frontEndUrl := initial.Config.GetString("frontEnd.url")
+	redirectUrl := frontEndUrl + "/" + urlToken
 	ctx.Redirect(http.StatusTemporaryRedirect, redirectUrl)
 }

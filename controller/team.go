@@ -228,7 +228,7 @@ func DisbandTeam(context *gin.Context) {
 	var team model.Team
 	initial.DB.Where("id = ?", person.TeamId).Take(&team)
 
-	if team.Submitted == true {
+	if team.Submitted {
 		utility.ResponseError(context, "该队伍已提交，无法解散")
 		return
 	}
@@ -396,7 +396,7 @@ func SubmitTeam(context *gin.Context) {
 	var teamCount model.TeamCount
 
 	initial.DB.Where("id = ?", person.TeamId).Take(&team)
-	if team.Submitted == true {
+	if team.Submitted {
 		utility.ResponseError(context, "该队伍已经提交过了")
 	}
 
@@ -494,7 +494,7 @@ func RollBackTeam(context *gin.Context) {
 	var teamCount model.TeamCount
 
 	initial.DB.Where("id = ?", person.TeamId).Take(&team)
-	if team.Submitted == false {
+	if !team.Submitted {
 		utility.ResponseError(context, "该队伍还没有提交")
 	}
 

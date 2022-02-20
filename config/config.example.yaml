@@ -7,6 +7,9 @@ server:
   AESSecret: "" # AES 加密密钥
   port: "8089"
 
+frontend:
+  url: ""
+
 database:
   host: ""
   user: ""

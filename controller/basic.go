@@ -47,6 +47,6 @@ func Login(ctx *gin.Context) {
 	}
 
 	frontEndUrl := initial.Config.GetString("frontEnd.url")
-	redirectUrl := frontEndUrl + "/" + urlToken
+	redirectUrl := frontEndUrl + "?jwt=" + urlToken
 	ctx.Redirect(http.StatusTemporaryRedirect, redirectUrl)
 }

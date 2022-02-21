@@ -1,7 +1,6 @@
 package utility
 
 import (
-	"fmt"
 	"strings"
 	"time"
 	"walk-server/utility/initial"
@@ -52,8 +51,6 @@ func ParseToken(token string) (*JwtData, error) {
 // UrlToken 用来生成能在 url 中传输的
 func UrlToken(jwtData *JwtData) (string, error) {
 	jwtToken, err := GenerateStandardJwt(jwtData)
-
-	fmt.Println(jwtToken) // debug
 
 	// 将 jwtToken 中的 . 符号替换成能在 http 中传输的 !
 	jwtToken = strings.Replace(jwtToken, ".", "!", 2)

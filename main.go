@@ -5,13 +5,20 @@ import (
 	"walk-server/middleware"
 	"walk-server/utility"
 	"walk-server/utility/initial"
+
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
 	initial.ConfigInit() // 读取配置
 	initial.DBInit()     // 初始化数据库
-	router := initial.RouterInit()
 
+	// 如果配置文件中开启了调试模式
+	if !utility.IsDebugMode() {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
+	router := initial.RouterInit()
 	api := router.Group("/api/v1", middleware.TimeValidity)
 	{
 		// Basic

@@ -5,6 +5,7 @@
 package controller
 
 import (
+	"fmt"
 	"net/http"
 	"walk-server/utility"
 	"walk-server/utility/initial"
@@ -44,6 +45,11 @@ func Login(ctx *gin.Context) {
 	if err != nil {
 		utility.ResponseError(ctx, "登录错误，请重新打开网页重试")
 		return
+	}
+
+	// 如果在调试模式下就输出用户的 jwt token
+	if utility.IsDebugMode() {
+		fmt.Printf("[Debug Info] %v", urlToken)
 	}
 
 	frontEndUrl := initial.Config.GetString("frontEnd.url")

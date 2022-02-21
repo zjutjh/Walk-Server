@@ -6,12 +6,14 @@ package utility
 
 import (
 	"context"
-	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"time"
+	"walk-server/utility/initial"
+
+	"github.com/gin-gonic/gin"
 )
 
 //StartServer start server with specific port
@@ -34,7 +36,7 @@ func StartServer(router *gin.Engine, port string) {
 
 	// Wait for interrupt signal to gracefully shut down the server with
 	// a timeout of 5 seconds.
-	quit := make(chan os.Signal)
+	quit := make(chan os.Signal, 5)
 	signal.Notify(quit, os.Interrupt)
 	<-quit
 	log.Println("Shutdown Server ...")
@@ -45,4 +47,10 @@ func StartServer(router *gin.Engine, port string) {
 		log.Fatal("Server Shutdown:", err)
 	}
 	log.Println("Server exiting")
+}
+
+// IsDebugMode 获取服务器是否在调试模式
+func IsDebugMode() bool {
+	initial.ConfigInit()
+	return initial.Config.GetBool("server.debug")
 }

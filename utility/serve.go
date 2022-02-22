@@ -54,3 +54,9 @@ func IsDebugMode() bool {
 	initial.ConfigInit()
 	return initial.Config.GetBool("server.debug")
 }
+
+// NeedDB 获取服务器是否需要数据库
+func NeedDB() bool {
+	initial.ConfigInit()
+	return initial.Config.GetBool("database.need")
+}

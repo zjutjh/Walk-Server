@@ -17,6 +17,7 @@ type CreateTeamData struct {
 	Name       string `json:"name" binding:"required"`
 	Route      uint8  `json:"route" binding:"required"`
 	Password   string `json:"password" binding:"required"`
+	Slogan     string `json:"slogan" binding:"required"`
 	AllowMatch bool   `json:"allow_match"`
 }
 
@@ -25,6 +26,7 @@ type UpdateTeamData struct {
 	Name       string `json:"name" binding:"required"`
 	Route      uint8  `json:"route" binding:"required"`
 	Password   string `json:"password" binding:"required"`
+	Slogan     string `json:"slogan" binding:"required"`
 	AllowMatch bool   `json:"allow_match"`
 }
 
@@ -69,6 +71,7 @@ func CreateTeam(context *gin.Context) {
 			Password:   createTeamData.Password,
 			Captain:    person.OpenId,
 			Route:      createTeamData.Route,
+			Slogan:     createTeamData.Slogan,
 			Submitted:  false,
 		}
 		initial.DB.Create(&team)
@@ -192,6 +195,7 @@ func GetTeamInfo(context *gin.Context) {
 		"password":    team.Password,
 		"submitted":   team.Submitted,
 		"allow_match": team.AllowMatch,
+		"slogan":      team.Slogan,
 		"leader": gin.H{
 			"name":    leader.Name,
 			"gender":  leader.Gender,
@@ -370,6 +374,7 @@ func UpdateTeam(context *gin.Context) {
 	team.Route = updateTeamData.Route
 	team.Password = updateTeamData.Password
 	team.AllowMatch = updateTeamData.AllowMatch
+	team.Slogan = updateTeamData.Slogan
 	initial.DB.Save(&team)
 	utility.ResponseSuccess(context, nil)
 }

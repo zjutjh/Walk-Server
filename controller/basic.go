@@ -49,7 +49,7 @@ func Login(ctx *gin.Context) {
 
 	// 如果在调试模式下就输出用户的 jwt token
 	if utility.IsDebugMode() {
-		fmt.Printf("[Debug Info] %v", urlToken)
+		fmt.Printf("[Debug Info] %v\n", urlToken)
 	}
 
 	frontEndUrl := initial.Config.GetString("frontEnd.url")

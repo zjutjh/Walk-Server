@@ -10,7 +10,7 @@ type Person struct {
 	Status    uint8  // 0 没加入团队，1 加入了并且是队员，2 是队长
 	Qq        string
 	Wechat    string
-	College   string // 校区
+	College   string // 学院
 	Tel       string
 	CreatedOp uint8
 	JoinOp    uint8

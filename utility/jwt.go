@@ -5,6 +5,7 @@ import (
 	"time"
 	"walk-server/utility/initial"
 
+	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
 )
 
@@ -56,4 +57,13 @@ func UrlToken(jwtData *JwtData) (string, error) {
 	jwtToken = strings.Replace(jwtToken, ".", "!", 2)
 
 	return jwtToken, err
+}
+
+// GetJwtData 从控制器上下文中获取 jwt 数据
+func GetJwtData(context *gin.Context) *JwtData {
+	// 获取 jwt 数据
+	jwtToken := context.GetHeader("Authorization")[7:]
+	jwtData, _ := ParseToken(jwtToken)
+
+	return jwtData
 }

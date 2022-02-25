@@ -10,13 +10,6 @@ import (
 )
 
 func main() {
-	var x []string
-	x=append(x,"zjh")
-	x=append(x,"zjj")
-	x=append(x,"zhh")
-	x=append(x,"zhj")
-	utility.Pic("朝晖全程","TeamName","TeamSlogan", len(x),x)
-	return
 	initial.ConfigInit() // 读取配置
 	
 	if utility.NeedDB() {

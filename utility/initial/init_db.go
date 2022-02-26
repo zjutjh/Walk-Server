@@ -2,10 +2,11 @@ package initial
 
 import (
 	"fmt"
-	"gorm.io/driver/mysql"
-	"gorm.io/gorm"
 	"os"
 	"walk-server/model"
+
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
 )
 
 var DB *gorm.DB
@@ -22,7 +23,9 @@ func DBInit() {
 		dbUser, dbPassport, dbHost, dbPort, dbName)
 
 	var err error
-	DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
+		PrepareStmt: true, // 开启预编译
+	})
 	if err != nil {
 		fmt.Println("数据库连接错误")
 		fmt.Println(err)

@@ -39,17 +39,17 @@ func GetRandomList(context *gin.Context) {
 	var teamList []gin.H
 
 	// 先查找 3 人以下的团队
-	result := initial.DB.Where("num <= 3 and allow_match = 1 and route = ?", getRandomListData.Route).Limit(3).Find(&teams)
+	result := initial.DB.Where("num <= 3 and allow_match = 1 and route = ?", getRandomListData.Route).Order("rand()").Limit(3).Find(&teams)
 	teamNum1 := result.RowsAffected
 	teamList = addTeamData(teamList, &teams)
 
 	// 查找 4 人团队
-	result = initial.DB.Where("num = 4 and allow_match = 1 and route = ?", getRandomListData.Route).Limit(1 + (3 - int(teamNum1))).Find(&teams)
+	result = initial.DB.Where("num = 4 and allow_match = 1 and route = ?", getRandomListData.Route).Order("rand()").Limit(1 + (3 - int(teamNum1))).Find(&teams)
 	teamNum2 := result.RowsAffected
 	teamList = addTeamData(teamList, &teams)
 
 	// 查找 5 人团队
-	result = initial.DB.Where("num = 5 and allow_match = 1 and route = ?", getRandomListData.Route).Limit(1 + (1 - int(teamNum2)) + (3 - int(teamNum1))).Find(&teams)
+	result = initial.DB.Where("num = 5 and allow_match = 1 and route = ?", getRandomListData.Route).Order("rand()").Limit(1 + (1 - int(teamNum2)) + (3 - int(teamNum1))).Find(&teams)
 	teamNum3 := result.RowsAffected
 	teamList = addTeamData(teamList, &teams)
 

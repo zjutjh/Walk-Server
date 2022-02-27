@@ -42,24 +42,12 @@ func GetPerson(encOpenID string) (*Person, error) {
 }
 
 // encOpenID 加密后的用户 openID
-// person 用户数据
+// person 用户数据 (完整的)
 // UpdatePerson 更新 person 数据
 func UpdatePerson(encOpenID string, person *Person) {
 	// 如果缓存中存在这个数据, 先更新缓存
-	if x, found := global.Cache.Get(encOpenID); found {
-		cachePerson := x.(*Person)
-
-		cachePerson.Name = person.Name
-		cachePerson.Gender = person.Gender
-		cachePerson.StuId = person.StuId
-		cachePerson.Campus = person.Campus
-		cachePerson.College = person.College
-		cachePerson.Identity = person.Identity
-		cachePerson.Qq = person.Qq
-		cachePerson.Wechat = person.Wechat
-		cachePerson.Tel = person.Tel
-
-		global.Cache.SetDefault(encOpenID, cachePerson)
+	if _, found := global.Cache.Get(encOpenID); found {
+		global.Cache.SetDefault(encOpenID, person)
 	}
 
 	// 更新数据库中的数据

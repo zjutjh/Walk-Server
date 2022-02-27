@@ -35,17 +35,19 @@ func ModifyInfo(context *gin.Context) {
 		return
 	}
 
+	// 获取个人信息
+	person, _ := model.GetPerson(openID)
+	person.Name = postData.Name
+	person.Gender = postData.Gender
+	person.StuId = postData.StuID
+	person.Campus = postData.Campus
+	person.College = postData.College
+	person.Identity = postData.ID
+	person.Qq = postData.Contact.QQ
+	person.Wechat = postData.Contact.Wechat
+	person.Tel = postData.Contact.Tel
+
 	// 更新数据
-	model.UpdatePerson(openID, &model.Person{
-		Name:     postData.Name,
-		Gender:   postData.Gender,
-		StuId:    postData.StuID,
-		Campus:   postData.Campus,
-		College:  postData.College,
-		Identity: postData.ID,
-		Qq:       postData.Contact.QQ,
-		Wechat:   postData.Contact.Wechat,
-		Tel:      postData.Contact.Tel,
-	})
+	model.UpdatePerson(openID, person)
 	utility.ResponseSuccess(context, nil)
 }

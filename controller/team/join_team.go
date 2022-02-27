@@ -27,8 +27,7 @@ func JoinTeam(context *gin.Context) {
 	}
 
 	// 从数据库中读取用户信息
-	var person model.Person
-	global.DB.Where("open_id = ?", jwtData.OpenID).Find(&person)
+	person, _ := model.GetPerson(jwtData.OpenID)
 
 	if person.Status != 0 { // 如果在一个团队中
 		utility.ResponseError(context, "请退出或解散原来的团队")
@@ -64,7 +63,7 @@ func JoinTeam(context *gin.Context) {
 		person.Status = 1
 		person.JoinOp--
 		person.TeamId = int(team.ID)
-		global.DB.Model(&person).Updates(person) // 将新的用户信息写入数据库
+		model.UpdatePerson(jwtData.OpenID, person)
 		utility.ResponseSuccess(context, nil)
 	}
 }

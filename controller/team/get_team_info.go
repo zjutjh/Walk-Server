@@ -14,8 +14,7 @@ func GetTeamInfo(context *gin.Context) {
 	jwtData, _ := utility.ParseToken(jwtToken)
 
 	// 获取个人信息
-	var person model.Person
-	global.DB.Where("open_id = ?", jwtData.OpenID).Take(&person)
+	person, _ := model.GetPerson(jwtData.OpenID)
 
 	// 先判断是否加入了团队
 	if person.Status == 0 {

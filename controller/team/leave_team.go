@@ -14,8 +14,7 @@ func LeaveTeam(context *gin.Context) {
 	jwtData, _ := utility.ParseToken(jwtToken)
 
 	// 查找用户
-	var person model.Person
-	global.DB.Where("open_id = ?", jwtData.OpenID).Take(&person)
+	person, _ := model.GetPerson(jwtData.OpenID)
 
 	if person.Status == 0 {
 		utility.ResponseError(context, "请先加入队伍")
@@ -39,7 +38,7 @@ func LeaveTeam(context *gin.Context) {
 	// 恢复队员信息到未加入的状态
 	person.Status = 0
 	person.TeamId = -1
-	global.DB.Save(&person)
+	model.UpdatePerson(jwtData.OpenID, person)
 
 	utility.ResponseSuccess(context, nil)
 }

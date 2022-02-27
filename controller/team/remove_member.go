@@ -14,8 +14,7 @@ func RemoveMember(context *gin.Context) {
 	jwtData, _ := utility.ParseToken(jwtToken)
 
 	// 查找用户
-	var person model.Person
-	global.DB.Where("open_id = ?", jwtData.OpenID).Take(&person)
+	person, _ := model.GetPerson(jwtData.OpenID)
 
 	if person.Status == 0 {
 		utility.ResponseError(context, "请先加入团队")
@@ -35,9 +34,8 @@ func RemoveMember(context *gin.Context) {
 	// 读取 Get 参数
 	memberRemovedOpenID := context.Query("openid")
 
-	var personRemoved model.Person
-	result := global.DB.Where("open_id = ?", memberRemovedOpenID).Take(&personRemoved)
-	if result.RowsAffected == 0 {
+	personRemoved, err := model.GetPerson(memberRemovedOpenID)
+	if err != nil {
 		utility.ResponseError(context, "没有这个用户")
 		return
 	} else if personRemoved.TeamId != person.TeamId {
@@ -52,5 +50,5 @@ func RemoveMember(context *gin.Context) {
 	// 更新被踢出的人的状态
 	personRemoved.Status = 0
 	personRemoved.TeamId = -1
-	global.DB.Save(&personRemoved)
+	model.UpdatePerson(memberRemovedOpenID, personRemoved)
 }

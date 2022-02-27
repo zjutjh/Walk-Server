@@ -15,8 +15,7 @@ func SubmitTeam(context *gin.Context) {
 	jwtData, _ := utility.ParseToken(jwtToken)
 
 	// 查找用户
-	var person model.Person
-	global.DB.Where("open_id = ?", jwtData.OpenID).Take(&person)
+	person, _ := model.GetPerson(jwtData.OpenID)
 
 	// 判断用户权限
 	if person.Status == 0 {

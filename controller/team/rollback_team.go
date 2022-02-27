@@ -14,7 +14,7 @@ func RollBackTeam(context *gin.Context) {
 	jwtData, _ := utility.ParseToken(jwtToken)
 
 	// 查找用户
-	var person model.Person
+	person, _ := model.GetPerson(jwtData.OpenID)
 	global.DB.Where("open_id = ?", jwtData.OpenID).Take(&person)
 
 	// 判断用户权限

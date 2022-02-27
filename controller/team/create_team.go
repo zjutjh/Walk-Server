@@ -31,9 +31,7 @@ func CreateTeam(context *gin.Context) {
 	}
 
 	// 查询用户信息
-	openID := jwtData.OpenID
-	var person model.Person
-	global.DB.Where("open_id = ?", openID).Take(&person)
+	person, _ := model.GetPerson(jwtData.OpenID)
 
 	if person.Status != 0 { // 现在已经加入了一个团队
 		utility.ResponseError(context, "请先退出或解散原来的团队")
@@ -62,7 +60,7 @@ func CreateTeam(context *gin.Context) {
 		person.Status = 2
 		person.TeamId = int(team.ID)
 
-		global.DB.Save(&person) // 将新的用户信息写入数据库
+		model.UpdatePerson(jwtData.OpenID, person)
 
 		// 返回新的 team_id 和 jwt 数据
 		utility.ResponseSuccess(context, gin.H{

@@ -1,7 +1,6 @@
 package user
 
 import (
-	"walk-server/global"
 	"walk-server/model"
 	"walk-server/utility"
 
@@ -15,8 +14,7 @@ func GetInfo(context *gin.Context) {
 	openID := jwtData.OpenID
 
 	// 获取用户数据
-	person := model.Person{}
-	global.DB.Where("open_id = ?", openID).Take(&person)
+	person, _ := model.GetPerson(openID)
 
 	utility.ResponseSuccess(context, gin.H{
 		"name":      person.Name,

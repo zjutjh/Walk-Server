@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"walk-server/global"
 	"walk-server/model"
 	"walk-server/utility"
 
@@ -20,13 +19,12 @@ func IsRegistered(context *gin.Context) {
 	jwtData, err := utility.ParseToken(jwtToken)
 	// jwt token 解析失败
 	if err != nil {
-		utility.ResponseError(context, "登录错误，重新进入网页试试")
+		utility.ResponseError(context, "jwt error")
 		context.Abort()
 		return
 	}
 
-	result := global.DB.Where("open_id = ?", jwtData.OpenID).Take(&model.Person{})
-	if result.RowsAffected == 0 {
+	if _, err = model.GetPerson(jwtData.OpenID); err != nil {
 		utility.ResponseError(context, "请先报名注册")
 		context.Abort()
 		return

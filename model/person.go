@@ -51,5 +51,5 @@ func UpdatePerson(encOpenID string, person *Person) {
 	}
 
 	// 更新数据库中的数据
-	global.DB.Model(&person).Where("open_id = ?", encOpenID).Updates(*person)
+	global.DB.Model(&person).Where("open_id = ?", encOpenID).Save(*person)
 }

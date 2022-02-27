@@ -3,8 +3,8 @@ package basic
 import (
 	"fmt"
 	"net/http"
+	"walk-server/global"
 	"walk-server/utility"
-	"walk-server/utility/initial"
 
 	"github.com/gin-gonic/gin"
 )
@@ -26,7 +26,7 @@ func Login(ctx *gin.Context) {
 		utility.ResponseError(ctx, "请在微信中打开")
 		return
 	}
-	jwtData.OpenID = utility.AesEncrypt(openID, initial.Config.GetString("server.AESSecret"))
+	jwtData.OpenID = utility.AesEncrypt(openID, global.Config.GetString("server.AESSecret"))
 
 	// 生成 JWT
 	urlToken, err := utility.UrlToken(&jwtData)
@@ -40,7 +40,7 @@ func Login(ctx *gin.Context) {
 		fmt.Printf("[Debug Info] %v\n", urlToken)
 	}
 
-	frontEndUrl := initial.Config.GetString("frontEnd.url")
+	frontEndUrl := global.Config.GetString("frontEnd.url")
 	redirectUrl := frontEndUrl + "?jwt=" + urlToken
 	ctx.Redirect(http.StatusTemporaryRedirect, redirectUrl)
 }

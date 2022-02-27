@@ -1,9 +1,9 @@
 package register
 
 import (
+	"walk-server/global"
 	"walk-server/model"
 	"walk-server/utility"
-	"walk-server/utility/initial"
 
 	"github.com/gin-gonic/gin"
 )
@@ -53,7 +53,7 @@ func StudentRegister(context *gin.Context) {
 		TeamId:    -1,
 	}
 
-	result := initial.DB.Create(&person)
+	result := global.DB.Create(&person)
 	if result.RowsAffected == 0 {
 		utility.ResponseError(context, "报名失败，请重试")
 	} else {

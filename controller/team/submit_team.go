@@ -2,9 +2,9 @@ package team
 
 import (
 	"fmt"
+	"walk-server/global"
 	"walk-server/model"
 	"walk-server/utility"
-	"walk-server/utility/initial"
 
 	"github.com/gin-gonic/gin"
 )
@@ -16,7 +16,7 @@ func SubmitTeam(context *gin.Context) {
 
 	// 查找用户
 	var person model.Person
-	initial.DB.Where("open_id = ?", jwtData.OpenID).Take(&person)
+	global.DB.Where("open_id = ?", jwtData.OpenID).Take(&person)
 
 	// 判断用户权限
 	if person.Status == 0 {
@@ -30,16 +30,16 @@ func SubmitTeam(context *gin.Context) {
 	var team model.Team
 	var teamCount model.TeamCount
 
-	initial.DB.Where("id = ?", person.TeamId).Take(&team)
+	global.DB.Where("id = ?", person.TeamId).Take(&team)
 	if team.Submitted {
 		utility.ResponseError(context, "该队伍已经提交过了")
 	}
 
 	// 开始提交
-	tx := initial.DB.Begin() // 开始事务
+	tx := global.DB.Begin() // 开始事务
 	tx.Where("day_campus = ?", utility.GetCurrentDate()*10+team.Route).Take(&teamCount)
 	key := fmt.Sprintf("teamUpperLimit.%v.%v", team.Route, utility.GetCurrentDate())
-	result := tx.Model(&teamCount).Where("count < ?", initial.Config.GetInt(key)).Update("count", teamCount.Count+1)
+	result := tx.Model(&teamCount).Where("count < ?", global.Config.GetInt(key)).Update("count", teamCount.Count+1)
 	if result.RowsAffected == 0 { // 队伍数量到达上限
 		utility.ResponseError(context, "队伍数量已经到达上限，无法提交")
 		tx.Commit()

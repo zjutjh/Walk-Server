@@ -1,9 +1,9 @@
 package user
 
 import (
+	"walk-server/global"
 	"walk-server/model"
 	"walk-server/utility"
-	"walk-server/utility/initial"
 
 	"github.com/gin-gonic/gin"
 )
@@ -38,7 +38,7 @@ func ModifyInfo(context *gin.Context) {
 
 	// 更新数据
 	var person model.Person
-	initial.DB.Model(&person).Where("open_id = ?", openID).Updates(model.Person{
+	global.DB.Model(&person).Where("open_id = ?", openID).Updates(model.Person{
 		Name:     postData.Name,
 		Gender:   postData.Gender,
 		StuId:    postData.StuID,

@@ -1,9 +1,9 @@
 package team
 
 import (
+	"walk-server/global"
 	"walk-server/model"
 	"walk-server/utility"
-	"walk-server/utility/initial"
 
 	"github.com/gin-gonic/gin"
 )
@@ -15,7 +15,7 @@ func RollBackTeam(context *gin.Context) {
 
 	// 查找用户
 	var person model.Person
-	initial.DB.Where("open_id = ?", jwtData.OpenID).Take(&person)
+	global.DB.Where("open_id = ?", jwtData.OpenID).Take(&person)
 
 	// 判断用户权限
 	if person.Status == 0 {
@@ -29,15 +29,15 @@ func RollBackTeam(context *gin.Context) {
 	var team model.Team
 	var teamCount model.TeamCount
 
-	initial.DB.Where("id = ?", person.TeamId).Take(&team)
+	global.DB.Where("id = ?", person.TeamId).Take(&team)
 	if !team.Submitted {
 		utility.ResponseError(context, "该队伍还没有提交")
 	}
 
 	// 删除队伍的提交状态
-	initial.DB.Model(&team).Update("submitted", 0)
-	initial.DB.Where("day_campus = ?", utility.GetCurrentDate()*10+team.Route).Take(&teamCount)
-	initial.DB.Model(&teamCount).Update("count", teamCount.Count-1)
+	global.DB.Model(&team).Update("submitted", 0)
+	global.DB.Where("day_campus = ?", utility.GetCurrentDate()*10+team.Route).Take(&teamCount)
+	global.DB.Model(&teamCount).Update("count", teamCount.Count-1)
 
 	utility.ResponseSuccess(context, nil)
 }

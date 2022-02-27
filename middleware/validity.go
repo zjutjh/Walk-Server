@@ -1,10 +1,11 @@
 package middleware
 
 import (
-	"github.com/gin-gonic/gin"
 	"time"
+	"walk-server/global"
 	"walk-server/utility"
-	"walk-server/utility/initial"
+
+	"github.com/gin-gonic/gin"
 )
 
 // TimeValidity Require implement ... Check if in open time
@@ -22,7 +23,7 @@ func TimeValidity(ctx *gin.Context) {
 func IsExpired(context *gin.Context) {
 	expiredTime, _ := time.ParseInLocation(
 		utility.TimeLayout,
-		initial.Config.GetString("expiredDate"),
+		global.Config.GetString("expiredDate"),
 		time.Local,
 	)
 	expiredTimeUnix := expiredTime.Unix()

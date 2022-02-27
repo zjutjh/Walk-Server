@@ -25,7 +25,7 @@ func MountRoutes(router *gin.Engine) {
 		}
 
 		// User
-		userApi := api.Group("/user", middleware.Auth)
+		userApi := api.Group("/user", middleware.IsRegistered)
 		{
 			userApi.GET("/info", user.GetInfo)                             // 获取用户信息
 			userApi.POST("/modify", middleware.IsExpired, user.ModifyInfo) // 修改用户信息

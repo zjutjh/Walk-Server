@@ -4,9 +4,9 @@ import (
 	"math/rand"
 	"strconv"
 	"time"
+	"walk-server/global"
 	"walk-server/model"
 	"walk-server/utility"
-	"walk-server/utility/initial"
 
 	"github.com/gin-gonic/gin"
 )
@@ -25,7 +25,7 @@ func RandomMatch(context *gin.Context) {
 
 	// 从数据库中读取用户信息
 	var person model.Person
-	initial.DB.Where("open_id = ?", jwtData.OpenID).Find(&person)
+	global.DB.Where("open_id = ?", jwtData.OpenID).Find(&person)
 
 	if person.Status != 0 { // 如果在一个团队中
 		utility.ResponseError(context, "请退出或解散原来的团队")
@@ -39,7 +39,7 @@ func RandomMatch(context *gin.Context) {
 
 	// 找到一个可以加入的随机队伍
 	var teams, randTeams []model.Team
-	initial.DB.Where("num < 6 AND route = ? AND allow_match = 1 AND submitted = 0", route).Find(&teams) // 从可能的队伍中挑选前 10 条
+	global.DB.Where("num < 6 AND route = ? AND allow_match = 1 AND submitted = 0", route).Find(&teams) // 从可能的队伍中挑选前 10 条
 	rand.Seed(time.Now().UnixNano())                                                                    // 设置随机种子
 	for n := len(teams); n > 0; n-- {
 		randIndex := rand.Intn(n)
@@ -47,12 +47,12 @@ func RandomMatch(context *gin.Context) {
 		teams[n-1], teams[randIndex] = teams[randIndex], teams[n-1] // 将 teams[randIndex] 丢到末尾
 	}
 	for _, team := range randTeams {
-		result := initial.DB.Model(&team).Where("num < 6 AND allow_match = 1 AND submitted = 0").Update("num", team.Num+1) // 更新队伍人数
+		result := global.DB.Model(&team).Where("num < 6 AND allow_match = 1 AND submitted = 0").Update("num", team.Num+1) // 更新队伍人数
 		if result.RowsAffected != 0 {                                                                                      // 更新成功
 			person.Status = 1
 			person.JoinOp--
 			person.TeamId = int(team.ID)
-			initial.DB.Model(&person).Updates(person) // 将新的用户信息写入数据库
+			global.DB.Model(&person).Updates(person) // 将新的用户信息写入数据库
 			utility.ResponseSuccess(context, nil)
 
 			return

@@ -2,7 +2,7 @@ package utility
 
 import (
 	"time"
-	"walk-server/utility/initial"
+	"walk-server/global"
 )
 
 const TimeLayout = "2006-01-02 15:04:05"
@@ -11,7 +11,7 @@ const TimeLayout = "2006-01-02 15:04:05"
 func GetCurrentDate() uint8 {
 	times, _ := time.ParseInLocation(
 		TimeLayout,
-		initial.Config.GetString("startDate"),
+		global.Config.GetString("startDate"),
 		time.Local,
 	)
 	timeUnix := times.Unix()
@@ -22,7 +22,7 @@ func GetCurrentDate() uint8 {
 func CanOpenApi() bool {
 	startTimes, _ := time.ParseInLocation(
 		TimeLayout,
-		initial.Config.GetString("startDate"),
+		global.Config.GetString("startDate"),
 		time.Local,
 	)
 	startTimeUnix := startTimes.Unix()

@@ -16,3 +16,20 @@ type Person struct {
 	JoinOp    uint8
 	TeamId    int `gorm:"index;default:-1"`
 }
+
+// encOpenID 是加密后的 openID
+// GetPerson 使用加密后的 open ID 获取 person 数据
+func GetPerson(encOpenID string) (*Person, error) {
+	
+
+	// if x, found := main.Cache.Get(encOpenID); found {
+	// 	// 如果缓存中找到了这个数据
+	// 	return x.(*Person), nil
+	// } else {
+	// 	// 如果缓存中没有就进数据库查询
+
+	// }
+	return nil, nil
+}
+
+// UpdatePerson 更新 person 数据

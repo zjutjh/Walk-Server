@@ -3,7 +3,7 @@ package utility
 import (
 	"strings"
 	"time"
-	"walk-server/utility/initial"
+	"walk-server/global"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
@@ -27,13 +27,13 @@ func GenerateStandardJwt(jwtData *JwtData) (string, error) {
 
 	tokenClaims := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	//该方法内部生成签名字符串，再用于获取完整、已签名的token
-	token, err := tokenClaims.SignedString([]byte(initial.Config.GetString("server.JWTSecret")))
+	token, err := tokenClaims.SignedString([]byte(global.Config.GetString("server.JWTSecret")))
 	return token, err
 }
 
 // ParseToken 根据传入的token值获取到Claims对象信息，（进而获取其中的用户名和密码）
 func ParseToken(token string) (*JwtData, error) {
-	jwtSecret := []byte(initial.Config.GetString("server.JWTSecret"))
+	jwtSecret := []byte(global.Config.GetString("server.JWTSecret"))
 	//用于解析鉴权的声明，方法内部主要是具体的解码和校验的过程，最终返回*Token
 	tokenClaims, err := jwt.ParseWithClaims(token, &JwtData{}, func(token *jwt.Token) (interface{}, error) {
 		return jwtSecret, nil

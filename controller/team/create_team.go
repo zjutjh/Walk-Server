@@ -1,9 +1,9 @@
 package team
 
 import (
+	"walk-server/global"
 	"walk-server/model"
 	"walk-server/utility"
-	"walk-server/utility/initial"
 
 	"github.com/gin-gonic/gin"
 )
@@ -33,7 +33,7 @@ func CreateTeam(context *gin.Context) {
 	// 查询用户信息
 	openID := jwtData.OpenID
 	var person model.Person
-	initial.DB.Where("open_id = ?", openID).Take(&person)
+	global.DB.Where("open_id = ?", openID).Take(&person)
 
 	if person.Status != 0 { // 现在已经加入了一个团队
 		utility.ResponseError(context, "请先退出或解散原来的团队")
@@ -55,14 +55,14 @@ func CreateTeam(context *gin.Context) {
 			Slogan:     createTeamData.Slogan,
 			Submitted:  false,
 		}
-		initial.DB.Create(&team)
+		global.DB.Create(&team)
 
 		// 将入团队后对应的状态更新
 		person.CreatedOp -= 1
 		person.Status = 2
 		person.TeamId = int(team.ID)
 
-		initial.DB.Save(&person) // 将新的用户信息写入数据库
+		global.DB.Save(&person) // 将新的用户信息写入数据库
 
 		// 返回新的 team_id 和 jwt 数据
 		utility.ResponseSuccess(context, gin.H{

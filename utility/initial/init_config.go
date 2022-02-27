@@ -2,18 +2,16 @@ package initial
 
 import (
 	"fmt"
-	"github.com/spf13/viper"
+	"walk-server/global"
 )
 
-var Config = viper.New()
-
 func ConfigInit() {
-	Config.SetConfigType("yaml")
-	Config.AddConfigPath("./config")
-	Config.SetConfigName("config")
-	Config.WatchConfig() // Watch the change of the config file
+	global.Config.SetConfigType("yaml")
+	global.Config.AddConfigPath("./config")
+	global.Config.SetConfigName("config")
+	global.Config.WatchConfig() // Watch the change of the config file
 
-	err := Config.ReadInConfig()
+	err := global.Config.ReadInConfig()
 	if err != nil {
 		fmt.Println("配置读取错误! ")
 		fmt.Println(err)

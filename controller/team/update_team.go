@@ -1,9 +1,9 @@
 package team
 
 import (
+	"walk-server/global"
 	"walk-server/model"
 	"walk-server/utility"
-	"walk-server/utility/initial"
 
 	"github.com/gin-gonic/gin"
 )
@@ -24,7 +24,7 @@ func UpdateTeam(context *gin.Context) {
 
 	// 查找用户
 	var person model.Person
-	initial.DB.Where("open_id = ?", jwtData.OpenID).Take(&person)
+	global.DB.Where("open_id = ?", jwtData.OpenID).Take(&person)
 
 	// 判断用户权限
 	if person.Status == 0 {
@@ -45,7 +45,7 @@ func UpdateTeam(context *gin.Context) {
 
 	// 更新团队信息
 	var team model.Team
-	initial.DB.Where("id = ?", person.TeamId).Take(&team)
+	global.DB.Where("id = ?", person.TeamId).Take(&team)
 	if team.Submitted {
 		utility.ResponseError(context, "该队伍已经提交，无法修改")
 		return
@@ -55,6 +55,6 @@ func UpdateTeam(context *gin.Context) {
 	team.Password = updateTeamData.Password
 	team.AllowMatch = updateTeamData.AllowMatch
 	team.Slogan = updateTeamData.Slogan
-	initial.DB.Save(&team)
+	global.DB.Save(&team)
 	utility.ResponseSuccess(context, nil)
 }

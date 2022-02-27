@@ -1,9 +1,9 @@
 package team
 
 import (
+	"walk-server/global"
 	"walk-server/model"
 	"walk-server/utility"
-	"walk-server/utility/initial"
 
 	"github.com/gin-gonic/gin"
 )
@@ -15,7 +15,7 @@ func RemoveMember(context *gin.Context) {
 
 	// 查找用户
 	var person model.Person
-	initial.DB.Where("open_id = ?", jwtData.OpenID).Take(&person)
+	global.DB.Where("open_id = ?", jwtData.OpenID).Take(&person)
 
 	if person.Status == 0 {
 		utility.ResponseError(context, "请先加入团队")
@@ -26,7 +26,7 @@ func RemoveMember(context *gin.Context) {
 	}
 
 	var team model.Team
-	initial.DB.Where("id = ?", person.TeamId).Take(&team)
+	global.DB.Where("id = ?", person.TeamId).Take(&team)
 	if team.Submitted {
 		utility.ResponseError(context, "该队伍已经提交, 无法移除队员")
 		return
@@ -36,7 +36,7 @@ func RemoveMember(context *gin.Context) {
 	memberRemovedOpenID := context.Query("openid")
 
 	var personRemoved model.Person
-	result := initial.DB.Where("open_id = ?", memberRemovedOpenID).Take(&personRemoved)
+	result := global.DB.Where("open_id = ?", memberRemovedOpenID).Take(&personRemoved)
 	if result.RowsAffected == 0 {
 		utility.ResponseError(context, "没有这个用户")
 		return
@@ -47,10 +47,10 @@ func RemoveMember(context *gin.Context) {
 
 	// 队伍数量减少
 	team.Num--
-	initial.DB.Save(&team)
+	global.DB.Save(&team)
 
 	// 更新被踢出的人的状态
 	personRemoved.Status = 0
 	personRemoved.TeamId = -1
-	initial.DB.Save(&personRemoved)
+	global.DB.Save(&personRemoved)
 }

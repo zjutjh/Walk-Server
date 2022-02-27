@@ -1,9 +1,9 @@
 package team
 
 import (
+	"walk-server/global"
 	"walk-server/model"
 	"walk-server/utility"
-	"walk-server/utility/initial"
 
 	"github.com/gin-gonic/gin"
 )
@@ -15,7 +15,7 @@ func GetTeamInfo(context *gin.Context) {
 
 	// 获取个人信息
 	var person model.Person
-	initial.DB.Where("open_id = ?", jwtData.OpenID).Take(&person)
+	global.DB.Where("open_id = ?", jwtData.OpenID).Take(&person)
 
 	// 先判断是否加入了团队
 	if person.Status == 0 {
@@ -25,13 +25,13 @@ func GetTeamInfo(context *gin.Context) {
 
 	// 查找团队
 	var team model.Team
-	initial.DB.Where("id = ?", person.TeamId).Take(&team)
+	global.DB.Where("id = ?", person.TeamId).Take(&team)
 
 	// 查找团队成员
 	var persons []model.Person
 	var leader model.Person
 	var members []gin.H
-	initial.DB.Where("team_id = ?", person.TeamId).Find(&persons)
+	global.DB.Where("team_id = ?", person.TeamId).Find(&persons)
 	for _, person := range persons {
 		if person.Status == 2 { // 队长
 			leader = person

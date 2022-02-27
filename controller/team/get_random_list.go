@@ -1,9 +1,9 @@
 package team
 
 import (
+	"walk-server/global"
 	"walk-server/model"
 	"walk-server/utility"
-	"walk-server/utility/initial"
 
 	"github.com/gin-gonic/gin"
 )
@@ -40,7 +40,7 @@ func GetRandomList(context *gin.Context) {
 	var teamList []gin.H
 
 	// 先查找 3 人以下的团队
-	result := initial.DB.Raw("SELECT * "+
+	result := global.DB.Raw("SELECT * "+
 		"FROM teams, ( "+
 		"SELECT id AS sid, route, num "+
 		"FROM teams WHERE route = ? AND num <= 3 "+
@@ -54,7 +54,7 @@ func GetRandomList(context *gin.Context) {
 	teamList = addTeamData(teamList, &teams)
 
 	// 查找 4 人团队	
-	result = initial.DB.Raw("SELECT * "+
+	result = global.DB.Raw("SELECT * "+
 		"FROM teams, ( "+
 		"SELECT id AS sid, route, num "+
 		"FROM teams WHERE route = ? AND num = 4 "+
@@ -69,7 +69,7 @@ func GetRandomList(context *gin.Context) {
 	teamList = addTeamData(teamList, &teams)
 
 	// 查找 5 人团队
-	result = initial.DB.Raw("SELECT * "+
+	result = global.DB.Raw("SELECT * "+
 		"FROM teams, ( "+
 		"SELECT id AS sid, route, num "+
 		"FROM teams WHERE route = ? AND num = 5 "+

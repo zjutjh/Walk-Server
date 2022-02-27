@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"time"
+	"walk-server/global"
 	"walk-server/utility/initial"
 
 	"github.com/gin-gonic/gin"
@@ -52,7 +53,7 @@ func StartServer(router *gin.Engine, port string) {
 // IsDebugMode 获取服务器是否在调试模式
 func IsDebugMode() bool {
 	initial.ConfigInit()
-	return initial.Config.GetBool("server.debug")
+	return global.Config.GetBool("server.debug")
 }
 
 // NeedDB 获取服务器是否需要数据库
@@ -61,5 +62,5 @@ func NeedDB() bool {
 		return true
 	}
 	initial.ConfigInit()
-	return initial.Config.GetBool("database.need")
+	return global.Config.GetBool("database.need")
 }

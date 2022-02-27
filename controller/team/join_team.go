@@ -1,9 +1,9 @@
 package team
 
 import (
+	"walk-server/global"
 	"walk-server/model"
 	"walk-server/utility"
-	"walk-server/utility/initial"
 
 	"github.com/gin-gonic/gin"
 )
@@ -28,7 +28,7 @@ func JoinTeam(context *gin.Context) {
 
 	// 从数据库中读取用户信息
 	var person model.Person
-	initial.DB.Where("open_id = ?", jwtData.OpenID).Find(&person)
+	global.DB.Where("open_id = ?", jwtData.OpenID).Find(&person)
 
 	if person.Status != 0 { // 如果在一个团队中
 		utility.ResponseError(context, "请退出或解散原来的团队")
@@ -42,7 +42,7 @@ func JoinTeam(context *gin.Context) {
 
 	// 检查密码
 	var team model.Team
-	result := initial.DB.Where("id = ?", joinTeamData.TeamID).Take(&team)
+	result := global.DB.Where("id = ?", joinTeamData.TeamID).Take(&team)
 	if result.RowsAffected == 0 {
 		utility.ResponseError(context, "找不到团队")
 		return
@@ -57,14 +57,14 @@ func JoinTeam(context *gin.Context) {
 	}
 
 	// 如果人数没有大于团队最大人数
-	result = initial.DB.Model(&team).Where("num < 6").Update("num", team.Num+1) // 队伍上限 6 人
+	result = global.DB.Model(&team).Where("num < 6").Update("num", team.Num+1) // 队伍上限 6 人
 	if result.RowsAffected == 0 {
 		utility.ResponseError(context, "队伍人数到达上限")
 	} else {
 		person.Status = 1
 		person.JoinOp--
 		person.TeamId = int(team.ID)
-		initial.DB.Model(&person).Updates(person) // 将新的用户信息写入数据库
+		global.DB.Model(&person).Updates(person) // 将新的用户信息写入数据库
 		utility.ResponseSuccess(context, nil)
 	}
 }

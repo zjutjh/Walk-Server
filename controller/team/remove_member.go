@@ -44,8 +44,7 @@ func RemoveMember(context *gin.Context) {
 	}
 
 	// 队伍数量减少
-	team.Num--
-	global.DB.Save(&team)
+	global.DB.Model(&team).Update("num", team.Num-1)
 
 	// 更新被踢出的人的状态
 	personRemoved.Status = 0

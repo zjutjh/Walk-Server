@@ -31,7 +31,8 @@ func DBInit() {
 		os.Exit(-1)
 	}
 
-	err = global.DB.AutoMigrate(&model.Person{}, &model.Team{}, &model.TeamCount{})
+	// 这个地方需要填入要迁移的表
+	err = global.DB.AutoMigrate(&model.Person{}, &model.Team{}, &model.TeamCount{}, &model.Message{})
 	if err != nil {
 		fmt.Println("数据表创建错误")
 		os.Exit(-1)

@@ -54,6 +54,7 @@ func GetRandomList(context *gin.Context) {
 	teamList = addTeamData(teamList, &teams)
 
 	// 查找 4 人团队	
+	teams = teams[:0]
 	result = global.DB.Raw("SELECT * "+
 		"FROM teams, ( "+
 		"SELECT id AS sid, route, num "+
@@ -69,6 +70,7 @@ func GetRandomList(context *gin.Context) {
 	teamList = addTeamData(teamList, &teams)
 
 	// 查找 5 人团队
+	teams = teams[:0]
 	result = global.DB.Raw("SELECT * "+
 		"FROM teams, ( "+
 		"SELECT id AS sid, route, num "+

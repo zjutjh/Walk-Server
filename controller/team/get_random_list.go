@@ -42,8 +42,8 @@ func GetRandomList(context *gin.Context) {
 	// 先查找 3 人以下的团队
 	result := global.DB.Raw("SELECT * "+
 		"FROM teams, ( "+
-		"SELECT id AS sid, route, num "+
-		"FROM teams WHERE route = ? AND num <= 3 "+
+		"SELECT id AS sid, route, num, allow_match "+
+		"FROM teams WHERE route = ? AND num <= 3 AND allow_match = 1 "+
 		"ORDER BY RAND() "+
 		"LIMIT 3 "+
 		") tmp "+
@@ -57,8 +57,8 @@ func GetRandomList(context *gin.Context) {
 	teams = teams[:0]
 	result = global.DB.Raw("SELECT * "+
 		"FROM teams, ( "+
-		"SELECT id AS sid, route, num "+
-		"FROM teams WHERE route = ? AND num = 4 "+
+		"SELECT id AS sid, route, num, allow_match "+
+		"FROM teams WHERE route = ? AND num = 4 AND allow_match = 1 "+
 		"ORDER BY RAND() "+
 		"LIMIT ? "+
 		") tmp "+
@@ -73,8 +73,8 @@ func GetRandomList(context *gin.Context) {
 	teams = teams[:0]
 	result = global.DB.Raw("SELECT * "+
 		"FROM teams, ( "+
-		"SELECT id AS sid, route, num "+
-		"FROM teams WHERE route = ? AND num = 5 "+
+		"SELECT id AS sid, route, num, allow_match "+
+		"FROM teams WHERE route = ? AND num = 5 AND allow_match = 1 "+
 		"ORDER BY RAND() "+
 		"LIMIT ? "+
 		") tmp "+

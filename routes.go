@@ -2,6 +2,7 @@ package main
 
 import (
 	"walk-server/controller/basic"
+	"walk-server/controller/message"
 	"walk-server/controller/register"
 	"walk-server/controller/team"
 	"walk-server/controller/user"
@@ -37,7 +38,6 @@ func MountRoutes(router *gin.Engine) {
 			teamApi.GET("/info", team.GetTeamInfo)                                              // 获取团队信息
 			teamApi.POST("/random-list", team.GetRandomList)                                    // 随机获取开放随机组队的团队列表
 			teamApi.POST("/random-join", middleware.IsExpired, team.RandomJoin)                 // 通过随机列表加入团队
-			teamApi.POST("/transfer-captain", middleware.IsExpired, team.TransferLeader)         // 转让队长
 			teamApi.POST("/create", middleware.IsExpired, team.CreateTeam)                      // 创建团队
 			teamApi.POST("/update", middleware.IsExpired, team.UpdateTeam)                      // 修改队伍信息
 			teamApi.POST("/join", middleware.IsExpired, team.JoinTeam)                          // 加入团队
@@ -51,7 +51,7 @@ func MountRoutes(router *gin.Engine) {
 		// 事件相关的 API
 		messageApi := api.Group("/message", middleware.IsExpired)
 		{
-			messageApi.GET("/list") // 获取所有的事件
+			messageApi.GET("/list", message.ListMessage) // 获取所有的消息
 		}
 	}
 }

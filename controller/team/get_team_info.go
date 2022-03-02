@@ -27,7 +27,7 @@ func GetTeamInfo(context *gin.Context) {
 	global.DB.Where("id = ?", person.TeamId).Take(&team)
 
 	// 查找团队成员
-	captain, members := model.GetPersons(person.TeamId)
+	captain, members := model.GetPersonsInTeam(person.TeamId)
 
 	// 获取团队成员响应信息
 	captainData := gin.H{

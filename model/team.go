@@ -17,7 +17,7 @@ type Team struct {
 }
 
 
-func GetPersons(teamID int) (Person, []Person) {
+func GetPersonsInTeam(teamID int) (Person, []Person) {
 	var persons []Person
 
 	var captain Person

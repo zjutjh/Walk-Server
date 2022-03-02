@@ -34,18 +34,22 @@ func DisbandTeam(context *gin.Context) {
 	}
 
 	// 查找团队所有用户
-	var persons []model.Person
-	global.DB.Where("team_id = ?", person.TeamId).Find(&persons)
+	captain, members := model.GetPersonsInTeam(int(team.ID))
 
 	// 删除团队记录
 	global.DB.Delete(&team)
 
 	// 还原所有队员的权限和所属团队ID
-	for _, person := range persons {
-		person.Status = 0
-		person.TeamId = -1
-		model.UpdatePerson(person.OpenId, &person)
+	captain.Status = 0
+	captain.TeamId = -1
+	model.UpdatePerson(captain.OpenId, &captain)
+	for _, member := range members {
+		member.Status = 0
+		member.TeamId = -1
+		model.UpdatePerson(member.OpenId, &member)
 	}
+
+	utility.SendMessageToMembers(team.Name + "已经被解散", captain, members)
 
 	utility.ResponseSuccess(context, nil)
 }

@@ -49,9 +49,10 @@ func MountRoutes(router *gin.Engine) {
 		}
 
 		// 事件相关的 API
-		messageApi := api.Group("/message", middleware.IsExpired)
+		messageApi := api.Group("/message", middleware.IsRegistered)
 		{
-			messageApi.GET("/list", message.ListMessage) // 获取所有的消息
+			messageApi.GET("/list", message.ListMessage)                            // 获取所有的消息
+			messageApi.POST("/delete", middleware.IsExpired, message.DeleteMessage) // 读了消息以后删除消息
 		}
 	}
 }

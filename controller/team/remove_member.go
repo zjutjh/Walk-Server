@@ -50,4 +50,9 @@ func RemoveMember(context *gin.Context) {
 	personRemoved.Status = 0
 	personRemoved.TeamId = -1
 	model.UpdatePerson(memberRemovedOpenID, personRemoved)
+
+	// 通知被踢出的人
+	utility.SendMessage("你被团队" + team.Name + "踢出", nil, personRemoved)
+
+	utility.ResponseSuccess(context, nil)
 }

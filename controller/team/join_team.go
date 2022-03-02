@@ -63,6 +63,10 @@ func JoinTeam(context *gin.Context) {
 		person.Status = 1
 		person.JoinOp--
 		person.TeamId = int(team.ID)
+
+		captain, members := model.GetPersonsInTeam(int(team.ID)) // 获取团队之前的所有成员
+		utility.SendMessageToTeam(person.Name + "加入了团队", captain, members) // 向所有成员发送通知
+
 		model.UpdatePerson(jwtData.OpenID, person)
 		utility.ResponseSuccess(context, nil)
 	}

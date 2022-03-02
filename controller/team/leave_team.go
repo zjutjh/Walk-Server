@@ -24,7 +24,6 @@ func LeaveTeam(context *gin.Context) {
 		return
 	}
 
-	// 检查队伍是否提交
 	var team model.Team
 	global.DB.Where("id = ?", person.TeamId).Take(&team)
 
@@ -39,6 +38,9 @@ func LeaveTeam(context *gin.Context) {
 	person.Status = 0
 	person.TeamId = -1
 	model.UpdatePerson(jwtData.OpenID, person)
+
+	captain, members := model.GetPersonsInTeam(int(team.ID)) // 获取这个人退出了以后团队中的所有成员
+	utility.SendMessageToTeam(person.Name + "已经离开了队伍", captain, members)
 
 	utility.ResponseSuccess(context, nil)
 }

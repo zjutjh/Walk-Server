@@ -41,7 +41,8 @@ func RandomJoin(context *gin.Context) {
 
 	// 加入队伍
 	var team model.Team
-	global.DB.Where("id = ?", randomJoinData.ID).Take(&team) // 取出这个队伍
+	global.DB.Where("id = ?", randomJoinData.ID).Take(&team)                                                          // 取出这个队伍
+	captain, members := model.GetPersonsInTeam(int(team.ID))                                                          // 获取这个团队原来的队长和队员
 	result := global.DB.Model(&team).Where("num < 6 AND allow_match = 1 AND submitted = 0").Update("num", team.Num+1) // 更新队伍人数
 	if result.RowsAffected != 0 {                                                                                     // 更新成功
 		person.Status = 1
@@ -50,6 +51,8 @@ func RandomJoin(context *gin.Context) {
 		model.UpdatePerson(jwtData.OpenID, person) // 将新的用户信息写入数据库
 		utility.ResponseSuccess(context, nil)
 
+		// 加入成功以后发送消息给所有的用户
+		utility.SendMessageToTeam(person.Name+"通过随机组队加入了队伍", captain, members)
 		return
 	}
 

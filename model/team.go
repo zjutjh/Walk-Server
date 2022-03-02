@@ -1,5 +1,9 @@
 package model
 
+import (
+	"walk-server/global"
+)
+
 type Team struct {
 	ID         uint
 	Name       string // 队伍的名字
@@ -11,3 +15,22 @@ type Team struct {
 	Route      uint8  // 1 是朝晖路线，2 屏峰半程，3 屏峰全程，4 莫干山半程，5 莫干山全程
 	Submitted  bool   // 是否已经提交
 }
+
+
+func GetPersons(teamID int) (Person, []Person) {
+	var persons []Person
+
+	var captain Person
+	var members []Person
+
+	global.DB.Where("team_id = ?", teamID).Find(&persons)
+	for _, person := range persons {
+		if person.Status == 2 { // 队长
+			captain = person
+		} else {
+			members = append(members, person)
+		}
+	}
+
+	return captain, members
+} 

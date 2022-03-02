@@ -27,26 +27,33 @@ func GetTeamInfo(context *gin.Context) {
 	global.DB.Where("id = ?", person.TeamId).Take(&team)
 
 	// 查找团队成员
-	var persons []model.Person
-	var leader model.Person
-	var members []gin.H
-	global.DB.Where("team_id = ?", person.TeamId).Find(&persons)
-	for _, person := range persons {
-		if person.Status == 2 { // 队长
-			leader = person
-		} else {
-			members = append(members, gin.H{
-				"name":    person.Name,
-				"gender":  person.Gender,
-				"open_id": person.OpenId,
-				"campus":  person.Campus,
-				"contact": gin.H{
-					"qq":     person.Qq,
-					"wechat": person.Wechat,
-					"tel":    person.Tel,
-				},
-			})
-		}
+	captain, members := model.GetPersons(person.TeamId)
+
+	// 获取团队成员响应信息
+	captainData := gin.H{
+		"name":    captain.Name,
+		"gender":  captain.Gender,
+		"campus":  captain.Campus,
+		"open_id": captain.OpenId,
+		"contact": gin.H{
+			"qq":     captain.Qq,
+			"wechat": captain.Wechat,
+			"tel":    captain.Tel,
+		},
+	}
+	var memberData []gin.H
+	for _, member := range members {
+		memberData = append(memberData, gin.H{
+			"name":    member.Name,
+			"gender":  member.Gender,
+			"open_id": member.OpenId,
+			"campus":  member.Campus,
+			"contact": gin.H{
+				"qq":     member.Qq,
+				"wechat": member.Wechat,
+				"tel":    member.Tel,
+			},
+		})
 	}
 
 	// 返回结果
@@ -58,17 +65,7 @@ func GetTeamInfo(context *gin.Context) {
 		"submitted":   team.Submitted,
 		"allow_match": team.AllowMatch,
 		"slogan":      team.Slogan,
-		"leader": gin.H{
-			"name":    leader.Name,
-			"gender":  leader.Gender,
-			"campus":  leader.Campus,
-			"open_id": leader.OpenId,
-			"contact": gin.H{
-				"qq":     leader.Qq,
-				"wechat": leader.Wechat,
-				"tel":    leader.Tel,
-			},
-		},
-		"member": members,
+		"leader":      captainData,
+		"member":      memberData,
 	})
 }

@@ -1,6 +1,10 @@
 package utility
 
-import "walk-server/model"
+import (
+	"errors"
+	"walk-server/global"
+	"walk-server/model"
+)
 
 // TODO 加上微信通知功能
 
@@ -48,4 +52,16 @@ func SendMessage(message string, sender *model.Person, receiver *model.Person) {
 	} else {
 		model.InsertMessage(message, sender.OpenId, receiver.OpenId)
 	}
+}
+
+func DeleteMessage(id uint, jwtData *JwtData) error {
+	// 校验是否是接收者删除了自己的消息
+	var message model.Message
+	global.DB.Where("id = ?", id).Take(&message)
+	if message.ReceiverOpenId != jwtData.OpenID {
+		return errors.New("access denied")
+	}
+	
+	model.DeleteMessage(id)
+	return nil 
 }

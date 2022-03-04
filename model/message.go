@@ -2,6 +2,7 @@ package model
 
 import (
 	"errors"
+	"time"
 	"walk-server/global"
 )
 
@@ -10,13 +11,14 @@ type Message struct {
 	SenderOpenId   string // 如果发送者 open ID 为空, 相当于系统消息
 	ReceiverOpenId string `gorm:"index"`
 	Message        string
+	CreatedAt      time.Time
 }
 
 func InsertMessage(message string, senderOpenID string, receiverOpenID string) {
 	global.DB.Create(&Message{
-		SenderOpenId: senderOpenID,
+		SenderOpenId:   senderOpenID,
 		ReceiverOpenId: receiverOpenID,
-		Message: message,
+		Message:        message,
 	})
 }
 
@@ -30,7 +32,7 @@ func GetMessages(receiverOpenID string) ([]Message, error) {
 	if result.RowsAffected == 0 {
 		return nil, errors.New("no result")
 	} else {
-		return messages, nil	
+		return messages, nil
 	}
 }
 

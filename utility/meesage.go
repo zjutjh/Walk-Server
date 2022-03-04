@@ -2,8 +2,11 @@ package utility
 
 import (
 	"errors"
+	"fmt"
 	"walk-server/global"
 	"walk-server/model"
+
+	"github.com/go-resty/resty/v2"
 )
 
 // TODO 加上微信通知功能
@@ -18,6 +21,8 @@ func SendMessageToMembers(message string, captain model.Person, members []model.
 			ReceiverOpenId: member.OpenId,
 			Message:        message,
 		})
+
+		SendMessageWithWechat(message, member.OpenId)
 	}
 
 	model.InsertMessages(&messages)
@@ -33,6 +38,7 @@ func SendMessageToTeam(message string, captain model.Person, members []model.Per
 		SenderOpenId:   "",
 		ReceiverOpenId: captain.OpenId,
 	})
+	SendMessageWithWechat(message, captain.OpenId)
 
 	for _, member := range members {
 		messages = append(messages, model.Message{
@@ -40,6 +46,8 @@ func SendMessageToTeam(message string, captain model.Person, members []model.Per
 			SenderOpenId:   "",
 			ReceiverOpenId: member.OpenId,
 		})
+
+		SendMessageWithWechat(message, member.OpenId)
 	}
 
 	model.InsertMessages(&messages)
@@ -52,6 +60,8 @@ func SendMessage(message string, sender *model.Person, receiver *model.Person) {
 	} else {
 		model.InsertMessage(message, sender.OpenId, receiver.OpenId)
 	}
+
+	SendMessageWithWechat(message, receiver.OpenId)
 }
 
 func DeleteMessage(id uint, jwtData *JwtData) error {
@@ -61,7 +71,39 @@ func DeleteMessage(id uint, jwtData *JwtData) error {
 	if message.ReceiverOpenId != jwtData.OpenID {
 		return errors.New("access denied")
 	}
-	
+
 	model.DeleteMessage(id)
-	return nil 
+	return nil
+}
+
+func SendMessageWithWechat(message string, receiverEncOpenID string) {
+	var accessToekn string
+	if IsDebugMode() {
+		accessToekn = global.Config.GetString("server.accessToken")
+	} else {
+		accessToekn = GetAccessToken()
+	}
+
+	// 解密 open ID
+	aesKey := global.Config.GetString("server.AESSecret")
+	receiverOpenID := AesDecrypt(receiverEncOpenID, aesKey)
+
+	client := resty.New()
+	resp, err := client.R().SetBody(map[string]interface{}{
+		"touser":  receiverOpenID,
+		"msgtype": "text",
+		"text": map[string]interface{}{
+			"content": message + "\n---\n因为微信的限制，请回复'收到'以确保后续消息的正常接收",
+		},
+	}).Post("https://api.weixin.qq.com/cgi-bin/message/custom/send?access_token=" + accessToekn)
+
+	if IsDebugMode() {
+		fmt.Println(string(resp.Body()))
+		fmt.Println(err)
+	}
+}
+
+// GetAccessToken 获取用户 access token
+func GetAccessToken() string {
+	return ""
 }

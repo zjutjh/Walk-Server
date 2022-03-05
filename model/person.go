@@ -23,6 +23,7 @@ type Person struct {
 }
 
 // encOpenID 是加密后的 openID
+// 如果没有找到这个用户就返回 error
 // GetPerson 使用加密后的 open ID 获取 person 数据
 func GetPerson(encOpenID string) (*Person, error) {
 	// 如果缓存中找到了这个数据 直接返回缓存数据

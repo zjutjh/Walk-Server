@@ -3,6 +3,7 @@ package main
 import (
 	"walk-server/controller/basic"
 	"walk-server/controller/message"
+	"walk-server/controller/poster"
 	"walk-server/controller/register"
 	"walk-server/controller/team"
 	"walk-server/controller/user"
@@ -53,6 +54,12 @@ func MountRoutes(router *gin.Engine) {
 		{
 			messageApi.GET("/list", message.ListMessage)                            // 获取所有的消息
 			messageApi.POST("/delete", middleware.IsExpired, message.DeleteMessage) // 读了消息以后删除消息
+		}
+
+		// 海报相关的 API
+		picApi := api.Group("/poster", middleware.IsRegistered)
+		{
+			picApi.GET("/get", poster.GetPoster) // 获取海报
 		}
 	}
 }

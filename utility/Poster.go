@@ -77,7 +77,7 @@ type Req struct {
 	Data    ReqData `json:"data"`
 }
 
-func Pic(Route string, TeamName string, TeamSlogan string, CountOfMember int, TeamMember []string) (string, error) {
+func Poster(Route string, TeamName string, TeamSlogan string, CountOfMember int, TeamMember []string) (string, error) {
 	var ItemCount int
 	var PicUrl string
 	ItemCount = 0
@@ -179,11 +179,14 @@ func Pic(Route string, TeamName string, TeamSlogan string, CountOfMember int, Te
 	body, _ := ioutil.ReadAll(response.Body)
 
 	var dReq Req
-	err = json.Unmarshal(body, &dReq)
+	err = json.Unmarshal(body, &dReq) 
 	if err != nil {
 		return "", err
 	}
-	fmt.Println(dReq)
+
+	if IsDebugMode() {
+		fmt.Println(dReq)
+	}
 	if dReq.Code != 0 {
 		return "", errors.New(dReq.Message)
 	} else {

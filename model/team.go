@@ -1,6 +1,7 @@
 package model
 
 import (
+	"errors"
 	"walk-server/global"
 )
 
@@ -16,6 +17,15 @@ type Team struct {
 	Submitted  bool   // 是否已经提交
 }
 
+func GetTeamInfo(teamID uint) (*Team, error) {
+	team := new(Team)
+	result := global.DB.Where("id = ?", teamID).Take(team)
+
+	if result.RowsAffected == 0 {
+		return nil, errors.New("no team")
+	}
+	return team, nil
+}
 
 func GetPersonsInTeam(teamID int) (Person, []Person) {
 	var persons []Person
@@ -33,4 +43,4 @@ func GetPersonsInTeam(teamID int) (Person, []Person) {
 	}
 
 	return captain, members
-} 
+}

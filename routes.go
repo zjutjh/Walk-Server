@@ -36,6 +36,12 @@ func MountRoutes(router *gin.Engine) {
 		// Team
 		teamApi := api.Group("/team", middleware.IsRegistered)
 		{
+			if gin.IsDebugging() {
+				teamApi.GET("/submit", team.SubmitTeam) // 提交团队
+			} else {
+				teamApi.GET("/submit", middleware.IsExpired, middleware.CanSubmit, team.SubmitTeam) // 提交团队
+			}
+
 			teamApi.GET("/info", team.GetTeamInfo)                                              // 获取团队信息
 			teamApi.POST("/random-list", team.GetRandomList)                                    // 随机获取开放随机组队的团队列表
 			teamApi.POST("/random-join", middleware.IsExpired, team.RandomJoin)                 // 通过随机列表加入团队
@@ -45,7 +51,6 @@ func MountRoutes(router *gin.Engine) {
 			teamApi.GET("/leave", middleware.IsExpired, team.LeaveTeam)                         // 离开团队
 			teamApi.GET("/remove", middleware.IsExpired, team.RemoveMember)                     // 移除队员
 			teamApi.GET("/disband", middleware.IsExpired, team.DisbandTeam)                     // 解散团队
-			teamApi.GET("/submit", middleware.IsExpired, middleware.CanSubmit, team.SubmitTeam) // 提交团队
 			teamApi.GET("/rollback", middleware.IsExpired, team.RollBackTeam)                   // 撤销提交
 		}
 

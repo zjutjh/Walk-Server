@@ -78,10 +78,18 @@ func DeleteMessage(id uint, jwtData *JwtData) error {
 
 func SendMessageWithWechat(message string, receiverEncOpenID string) {
 	var accessToekn string
+	var err error
 	if IsDebugMode() {
 		accessToekn = global.Config.GetString("server.accessToken")
 	} else {
-		accessToekn = GetAccessToken()
+		wechatAPPID := global.Config.GetString("server.wechatAPPID")
+		wechatSecret := global.Config.GetString("server.wechatAPPID")
+		accessToekn, err = GetAccessToken(wechatAPPID, wechatSecret)
+
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
 	}
 
 	// 解密 open ID
@@ -101,9 +109,4 @@ func SendMessageWithWechat(message string, receiverEncOpenID string) {
 		fmt.Println(string(resp.Body()))
 		fmt.Println(err)
 	}
-}
-
-// GetAccessToken 获取用户 access token
-func GetAccessToken() string {
-	return ""
 }

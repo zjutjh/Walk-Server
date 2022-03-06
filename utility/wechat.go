@@ -24,3 +24,23 @@ func GetOpenID(code string) (string, error) {
 	jsonData := string(resp.Body())
 	return gjson.Get(jsonData, "openid").String(), nil
 }
+
+// GetAccessToken 获取用户 access token
+func GetAccessToken(wechatAPPID string, wechatSecret string) (string, error) {
+	client := resty.New()
+	resp, err := client.R().
+      SetQueryParams(map[string]string{
+          "grant_type": "client_credential",
+		  "appid": wechatAPPID,
+		  "secret": wechatSecret,
+      }).
+      SetHeader("Accept", "application/json").
+      Get("https://api.weixin.qq.com/cgi-bin/token")
+	
+	if err != nil {
+		return "", err
+	}
+
+	accessToken := gjson.Get(string(resp.Body()), "access_token")
+	return accessToken.String(), nil
+}

@@ -79,17 +79,16 @@ func DeleteMessage(id uint, jwtData *JwtData) error {
 func SendMessageWithWechat(message string, receiverEncOpenID string) {
 	var accessToekn string
 	var err error
-	if IsDebugMode() {
-		accessToekn = global.Config.GetString("server.accessToken")
-	} else {
-		wechatAPPID := global.Config.GetString("server.wechatAPPID")
-		wechatSecret := global.Config.GetString("server.wechatAPPID")
-		accessToekn, err = GetAccessToken(wechatAPPID, wechatSecret)
+	// accessToekn = global.Config.GetString("server.accessToken")
+	wechatAPPID := global.Config.GetString("server.wechatAPPID")
+	wechatSecret := global.Config.GetString("server.wechatSecret")
+	accessToekn, err = GetAccessToken(wechatAPPID, wechatSecret)
 
-		if err != nil {
+	if err != nil {
+		if IsDebugMode() {
 			fmt.Println(err)
-			return
 		}
+		return
 	}
 
 	// 解密 open ID

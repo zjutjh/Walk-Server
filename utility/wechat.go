@@ -1,6 +1,7 @@
 package utility
 
 import (
+	"fmt"
 	"time"
 	"walk-server/global"
 
@@ -32,27 +33,31 @@ func GetAccessToken(wechatAPPID string, wechatSecret string) (string, error) {
 	if x, found := global.Cache.Get("access_token"); found {
 		return x.(string), nil
 	}
-	
+
 	// 没有在缓存中找到 重新更新 access token
 	client := resty.New()
 	resp, err := client.R().
-      SetQueryParams(map[string]string{
-          "grant_type": "client_credential",
-		  "appid": wechatAPPID,
-		  "secret": wechatSecret,
-      }).
-      SetHeader("Accept", "application/json").
-      Get("https://api.weixin.qq.com/cgi-bin/token")
-	
+		SetQueryParams(map[string]string{
+			"grant_type": "client_credential",
+			"appid":      wechatAPPID,
+			"secret":     wechatSecret,
+		}).
+		SetHeader("Accept", "application/json").
+		Get("https://api.weixin.qq.com/cgi-bin/token")
+
+	if IsDebugMode() { // debug
+		fmt.Println(string(resp.Body()))
+	}
+
 	if err != nil {
 		return "", err
 	}
 
 	accessToken := gjson.Get(string(resp.Body()), "access_token").String()
-	
+
 	// 缓存 access token
-	expireTime := gjson.Get(string(resp.Body()), "expires_in").Int() - 60 * 30 // 单位 s (缓存比 access token 过期时间早 30 分种)
-	global.Cache.Set("access_token", accessToken, time.Duration(expireTime) * time.Second)
-	
+	expireTime := gjson.Get(string(resp.Body()), "expires_in").Int() - 60*30 // 单位 s (缓存比 access token 过期时间早 30 分种)
+	global.Cache.Set("access_token", accessToken, time.Duration(expireTime)*time.Second)
+
 	return accessToken, nil
 }

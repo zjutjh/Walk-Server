@@ -9,8 +9,6 @@ import (
 	"github.com/go-resty/resty/v2"
 )
 
-// TODO 加上微信通知功能
-
 // SaveMessageToMembers 队长将消息发给队员
 func SendMessageToMembers(message string, captain model.Person, members []model.Person) {
 	var messages []model.Message

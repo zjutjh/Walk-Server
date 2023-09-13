@@ -1,23 +1,27 @@
 server:
-  wechatAPPID: ""
-  wechatSecret: ""
-  oauth: ""
-  wechatRedirect: ""
-  JWTSecret: ""
+  wechatAPPID: "" # 公众号开发者ID（AppID） 切记不可泄漏
+  wechatSecret: "" # 公众号开发者密码（AppSecret） 切记不可泄漏
+  wechatRedirect: "" # 回调链接的地址（即授权后重定向的uri） 注：需要加 http/https
+  JWTSecret: "" # JWT 加密密钥
   AESSecret: "" # AES 加密密钥
-  port: "8089"
+  port: "8888"
   debug: true # 这个设置大多数情况下无法热更新 修改了这个配置后请重启服务器
-  accessToken: ""
 
 frontend:
-  url: ""
+  url: "" # 前端域名 注：需要加 http/https
 
 database:
-  host: ""
-  user: ""
+  host: "127.0.0.1"
+  user: "root"
   passport: ""
-  port: ""
+  port: "3306"
   name: ""
+
+redis:
+  host: "127.0.0.1"
+  port: "6379"
+  password: ""
+  db: 0
 
 startDate: "2021-11-01 00:00:00"  # 报名开始的日期
 expiredDate: "2021-11-10 00:00:00" # 报名结束的日期

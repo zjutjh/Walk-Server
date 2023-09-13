@@ -10,17 +10,17 @@ import (
 
 // StudentRegisterData 定义接收学生报名用的数据的类型
 type StudentRegisterData struct {
-	Name    string `json:"name"`
-	StuID   string `json:"stu_id"`
-	ID      string `json:"id"`
-	Gender  int8   `json:"gender"`
-	College string `json:"college"`
-	Campus  uint8  `json:"campus"`
+	Name    string `json:"name" binding:"required"`
+	StuID   string `json:"stu_id" binding:"required"`
+	ID      string `json:"id" binding:"required"`
+	Gender  int8   `json:"gender" binding:"required"`
+	College string `json:"college" binding:"required"`
+	Campus  uint8  `json:"campus" binding:"required"`
 	Contact struct {
 		QQ     string `json:"qq"`
 		Wechat string `json:"wechat"`
-		Tel    string `json:"tel"`
-	} `json:"contact"`
+		Tel    string `json:"tel" binding:"required"`
+	} `json:"contact" binding:"required"`
 }
 
 func StudentRegister(context *gin.Context) {

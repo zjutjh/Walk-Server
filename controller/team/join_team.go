@@ -1,6 +1,8 @@
 package team
 
 import (
+	"gorm.io/gorm"
+	"strconv"
 	"walk-server/global"
 	"walk-server/model"
 	"walk-server/utility"
@@ -45,29 +47,46 @@ func JoinTeam(context *gin.Context) {
 	if result.RowsAffected == 0 {
 		utility.ResponseError(context, "找不到团队")
 		return
-	}
-	if team.Submitted {
-		utility.ResponseError(context, "该队伍已提交，无法加入")
-		return
-	}
-	if team.Password != joinTeamData.Password {
+	} else if team.Password != joinTeamData.Password {
 		utility.ResponseError(context, "密码错误")
 		return
 	}
 
-	// 如果人数没有大于团队最大人数
-	result = global.DB.Model(&team).Where("num < 6").Update("num", team.Num+1) // 队伍上限 6 人
-	if result.RowsAffected == 0 {
+	teamID := strconv.Itoa(int(team.ID))
+	teamSubmitted, _ := global.Rdb.SIsMember(global.Rctx, "teams", teamID).Result()
+	if teamSubmitted {
+		utility.ResponseError(context, "该队伍已提交，无法加入")
+		return
+	}
+
+	// 队伍上限 6 人
+	if team.Num >= 6 {
 		utility.ResponseError(context, "队伍人数到达上限")
-	} else {
+		return
+	}
+
+	// 获取这个团队原来的队长和队员
+	captain, members := model.GetPersonsInTeam(int(team.ID))
+
+	err = global.DB.Transaction(func(tx *gorm.DB) error {
+		// 队伍成员数量加一
+		if err := tx.Model(&team).Update("num", team.Num+1).Error; err != nil {
+			return err
+		}
+
+		// 更新加入成员的信息
 		person.Status = 1
 		person.JoinOp--
 		person.TeamId = int(team.ID)
+		if err := model.TxUpdatePerson(tx, person); err != nil {
+			return err
+		}
 
-		captain, members := model.GetPersonsInTeam(int(team.ID)) // 获取团队之前的所有成员
-		utility.SendMessageToTeam(person.Name + "加入了团队", captain, members) // 向所有成员发送通知
+		return nil
+	})
 
-		model.UpdatePerson(jwtData.OpenID, person)
-		utility.ResponseSuccess(context, nil)
-	}
+	// 加入成功以后发送消息给所有的用户
+	utility.SendMessageToTeam(person.Name+"加入了团队", captain, members)
+
+	utility.ResponseSuccess(context, nil)
 }

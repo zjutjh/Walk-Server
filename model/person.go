@@ -3,6 +3,8 @@ package model
 import (
 	"encoding/json"
 	"errors"
+	"github.com/redis/go-redis/v9"
+	"gorm.io/gorm"
 	"time"
 	"walk-server/global"
 )
@@ -19,9 +21,9 @@ type Person struct {
 	Wechat    string
 	College   string // 学院
 	Tel       string
-	CreatedOp uint8
-	JoinOp    uint8
-	TeamId    int `gorm:"index;default:-1"`
+	CreatedOp uint8 // 创建团队次数
+	JoinOp    uint8 // 加入团队次数
+	TeamId    int   `gorm:"index;default:-1"`
 }
 
 func (p *Person) MarshalBinary() (data []byte, err error) {
@@ -63,4 +65,21 @@ func UpdatePerson(encOpenID string, person *Person) {
 
 	// 更新数据库中的数据
 	global.DB.Where(&Person{OpenId: encOpenID}).Save(person)
+}
+
+// 事务中更新
+func TxUpdatePerson(tx *gorm.DB, person *Person) error {
+	// 如果缓存中存在这个数据, 先更新缓存
+	if _, err := global.Rdb.Get(global.Rctx, person.OpenId).Result(); err == nil {
+		global.Rdb.Set(global.Rctx, person.OpenId, person, 20*time.Minute)
+	} else if err != redis.Nil {
+		return err
+	}
+
+	// 更新数据库中的数据
+	if err := tx.Where(&Person{OpenId: person.OpenId}).Save(person).Error; err != nil {
+		return err
+	}
+
+	return nil
 }

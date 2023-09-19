@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 )
@@ -81,7 +81,7 @@ func Poster(Route string, TeamName string, TeamSlogan string, CountOfMember int,
 	var ItemCount int
 	var PicUrl string
 	ItemCount = 0
-	PicUrl = "http://bilibili12433014.top:8088/chfs/shared/Downloads/1/"
+	PicUrl = "https://walk.ximo210.top/poster/"
 	sendB := Send{
 		Width:           767,
 		Height:          1085,
@@ -168,18 +168,18 @@ func Poster(Route string, TeamName string, TeamSlogan string, CountOfMember int,
 
 	reader := bytes.NewReader(sending)
 	request, _ := http.NewRequest("POST", "https://api.imgrender.cn/open/v1/pics", reader)
-	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("Authorization", "189950.Ntr3pucE6vfg02xMZU3tgMZCFaWLD+h4sUUgeMxNpWo=")
+	request.Header.Set("Content-Type", "application/json; charset=utf-8")
+	request.Header.Set("X-API-Key", "171123855488848778.iuHQWhIvOjJqIVmKDSvXj1pWfegMoePk")
 	client := &http.Client{}
 	response, err := client.Do(request)
 	if err != nil {
 		return "", err
 	}
 	defer response.Body.Close()
-	body, _ := ioutil.ReadAll(response.Body)
+	body, _ := io.ReadAll(response.Body)
 
 	var dReq Req
-	err = json.Unmarshal(body, &dReq) 
+	err = json.Unmarshal(body, &dReq)
 	if err != nil {
 		return "", err
 	}

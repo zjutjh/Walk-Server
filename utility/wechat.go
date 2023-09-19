@@ -30,8 +30,8 @@ func GetOpenID(code string) (string, error) {
 // GetAccessToken 获取用户 access token
 func GetAccessToken(wechatAPPID string, wechatSecret string) (string, error) {
 	// 先从缓存中获取 access_token
-	if x, found := global.Cache.Get("access_token"); found {
-		return x.(string), nil
+	if val, err := global.Rdb.Get(global.Rctx, "access_token").Result(); err == nil {
+		return val, nil
 	}
 
 	// 没有在缓存中找到 重新更新 access token
@@ -57,7 +57,7 @@ func GetAccessToken(wechatAPPID string, wechatSecret string) (string, error) {
 
 	// 缓存 access token
 	expireTime := gjson.Get(string(resp.Body()), "expires_in").Int() - 60*30 // 单位 s (缓存比 access token 过期时间早 30 分种)
-	global.Cache.Set("access_token", accessToken, time.Duration(expireTime)*time.Second)
+	global.Rdb.Set(global.Rctx, "access_token", accessToken, time.Duration(expireTime)*time.Second)
 
 	return accessToken, nil
 }

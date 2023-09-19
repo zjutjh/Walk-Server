@@ -5,6 +5,8 @@ import (
 	"walk-server/model"
 	"walk-server/utility"
 
+	"gorm.io/gorm"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -14,7 +16,7 @@ type CreateTeamData struct {
 	Route      uint8  `json:"route" binding:"required"`
 	Password   string `json:"password" binding:"required"`
 	Slogan     string `json:"slogan" binding:"required"`
-	AllowMatch bool   `json:"allow_match"`
+	AllowMatch *bool  `json:"allow_match" binding:"required"`
 }
 
 func CreateTeam(context *gin.Context) {
@@ -30,6 +32,11 @@ func CreateTeam(context *gin.Context) {
 		return
 	}
 
+	if createTeamData.Route > 6 {
+		utility.ResponseError(context, "参数错误")
+		return
+	}
+
 	// 查询用户信息
 	person, _ := model.GetPerson(jwtData.OpenID)
 
@@ -41,30 +48,44 @@ func CreateTeam(context *gin.Context) {
 	if person.CreatedOp == 0 {
 		utility.ResponseError(context, "无法创建团队了")
 		return
-	} else {
-		// 再数据库中插入一个团队
-		team := model.Team{
-			Name:       createTeamData.Name,
-			Num:        1,
-			AllowMatch: createTeamData.AllowMatch,
-			Password:   createTeamData.Password,
-			Captain:    person.OpenId,
-			Route:      createTeamData.Route,
-			Slogan:     createTeamData.Slogan,
-			Submitted:  false,
-		}
-		global.DB.Create(&team)
+	}
 
-		// 将入团队后对应的状态更新
+	team := model.Team{
+		Name:       createTeamData.Name,
+		Num:        1,
+		AllowMatch: *createTeamData.AllowMatch,
+		Password:   createTeamData.Password,
+		Captain:    person.OpenId,
+		Route:      createTeamData.Route,
+		Slogan:     createTeamData.Slogan,
+	}
+
+	// 事务
+	err = global.DB.Transaction(func(tx *gorm.DB) error {
+		// 创建团队
+		if err := tx.Create(&team).Error; err != nil {
+			return err
+		}
+
+		// 加入团队后对应的状态更新
 		person.CreatedOp -= 1
 		person.Status = 2
 		person.TeamId = int(team.ID)
 
-		model.UpdatePerson(jwtData.OpenID, person)
+		if err := model.TxUpdatePerson(tx, person); err != nil {
+			return err
+		}
 
-		// 返回新的 team_id 和 jwt 数据
-		utility.ResponseSuccess(context, gin.H{
-			"team_id": team.ID,
-		})
+		// 返回 nil 提交事务
+		return nil
+	})
+	if err != nil {
+		utility.ResponseError(context, "服务异常，请重试")
+		return
 	}
+
+	// 返回 team_id
+	utility.ResponseSuccess(context, gin.H{
+		"team_id": team.ID,
+	})
 }

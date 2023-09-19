@@ -1,6 +1,7 @@
 package team
 
 import (
+	"strconv"
 	"walk-server/global"
 	"walk-server/model"
 	"walk-server/utility"
@@ -15,7 +16,6 @@ func RollBackTeam(context *gin.Context) {
 
 	// 查找用户
 	person, _ := model.GetPerson(jwtData.OpenID)
-	global.DB.Where("open_id = ?", jwtData.OpenID).Take(&person)
 
 	// 判断用户权限
 	if person.Status == 0 {
@@ -27,17 +27,19 @@ func RollBackTeam(context *gin.Context) {
 	}
 
 	var team model.Team
-	var teamCount model.TeamCount
-
 	global.DB.Where("id = ?", person.TeamId).Take(&team)
-	if !team.Submitted {
-		utility.ResponseError(context, "该队伍还没有提交")
+	teamID := strconv.Itoa(int(team.ID))
+	teamSubmitted, _ := global.Rdb.SIsMember(global.Rctx, "teams", teamID).Result()
+	if !teamSubmitted {
+		utility.ResponseError(context, "队伍未提交")
+		return
 	}
 
 	// 删除队伍的提交状态
-	global.DB.Model(&team).Update("submitted", 0)
-	global.DB.Where("day_campus = ?", utility.GetCurrentDate()*10+team.Route).Take(&teamCount)
-	global.DB.Model(&teamCount).Update("count", teamCount.Count-1)
+	global.Rdb.SRem(global.Rctx, "teams", teamID)
+	dailyRoute := utility.GetCurrentDate()*10 + team.Route
+	dailyRouteKey := strconv.Itoa(int(dailyRoute))
+	global.Rdb.Incr(global.Rctx, dailyRouteKey)
 
 	utility.ResponseSuccess(context, nil)
 }

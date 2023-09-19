@@ -16,10 +16,9 @@ type TeacherRegisterData struct {
 	Contact struct {
 		QQ     string `json:"qq"`
 		Wechat string `json:"wechat"`
-		Tel    string `json:"tel"`
-	} `json:"contact"`
+		Tel    string `json:"tel" binding:"required"`
+	} `json:"contact" binding:"required"`
 }
-
 
 func TeacherRegister(context *gin.Context) {
 	// 获取 openID

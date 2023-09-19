@@ -1,6 +1,7 @@
 package team
 
 import (
+	"strconv"
 	"walk-server/global"
 	"walk-server/model"
 	"walk-server/utility"
@@ -14,7 +15,7 @@ type UpdateTeamData struct {
 	Route      uint8  `json:"route" binding:"required"`
 	Password   string `json:"password" binding:"required"`
 	Slogan     string `json:"slogan" binding:"required"`
-	AllowMatch bool   `json:"allow_match"`
+	AllowMatch *bool  `json:"allow_match" binding:"required"`
 }
 
 func UpdateTeam(context *gin.Context) {
@@ -45,14 +46,16 @@ func UpdateTeam(context *gin.Context) {
 	// 更新团队信息
 	var team model.Team
 	global.DB.Where("id = ?", person.TeamId).Take(&team)
-	if team.Submitted {
+	teamID := strconv.Itoa(int(team.ID))
+	teamSubmitted, _ := global.Rdb.SIsMember(global.Rctx, "teams", teamID).Result()
+	if teamSubmitted {
 		utility.ResponseError(context, "该队伍已经提交，无法修改")
 		return
 	}
 	team.Name = updateTeamData.Name
 	team.Route = updateTeamData.Route
 	team.Password = updateTeamData.Password
-	team.AllowMatch = updateTeamData.AllowMatch
+	team.AllowMatch = *updateTeamData.AllowMatch
 	team.Slogan = updateTeamData.Slogan
 	global.DB.Save(&team)
 	utility.ResponseSuccess(context, nil)

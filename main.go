@@ -2,6 +2,7 @@ package main
 
 import (
 	"walk-server/global"
+	"walk-server/router"
 	"walk-server/utility"
 	"walk-server/utility/initial"
 
@@ -9,9 +10,10 @@ import (
 )
 
 func main() {
-	initial.ConfigInit()   // 读取配置
-	initial.DBInit()       // 初始化数据库
-	initial.MemCacheInit() // 初始化缓存
+	initial.ConfigInit() // 读取配置
+	initial.DBInit()     // 初始化数据库
+	initial.RedisInit()  // 初始化Redis
+	initial.LimitInit()  // 初始化令牌桶
 
 	// 如果配置文件中开启了调试模式
 	if !utility.IsDebugMode() {
@@ -19,9 +21,9 @@ func main() {
 	}
 
 	// 初始化路由
-	router := initial.RouterInit()
-	MountRoutes(router)
+	r := initial.RouterInit()
+	router.MountRoutes(r)
 
 	// 启动服务器
-	utility.StartServer(router, ":"+global.Config.GetString("server.port"))
+	utility.StartServer(r, ":"+global.Config.GetString("server.port"))
 }

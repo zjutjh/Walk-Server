@@ -75,12 +75,11 @@ func DeleteMessage(id uint, jwtData *JwtData) error {
 }
 
 func SendMessageWithWechat(message string, receiverEncOpenID string) {
-	var accessToekn string
+	var accessToken string
 	var err error
-	// accessToekn = global.Config.GetString("server.accessToken")
 	wechatAPPID := global.Config.GetString("server.wechatAPPID")
 	wechatSecret := global.Config.GetString("server.wechatSecret")
-	accessToekn, err = GetAccessToken(wechatAPPID, wechatSecret)
+	accessToken, err = GetAccessToken(wechatAPPID, wechatSecret)
 
 	if err != nil {
 		if IsDebugMode() {
@@ -100,7 +99,7 @@ func SendMessageWithWechat(message string, receiverEncOpenID string) {
 		"text": map[string]interface{}{
 			"content": message + "\n---\n因为微信的限制，请回复'收到'以确保后续消息的正常接收",
 		},
-	}).Post("https://api.weixin.qq.com/cgi-bin/message/custom/send?access_token=" + accessToekn)
+	}).Post("https://api.weixin.qq.com/cgi-bin/message/custom/send?access_token=" + accessToken)
 
 	if IsDebugMode() {
 		fmt.Println(string(resp.Body()))

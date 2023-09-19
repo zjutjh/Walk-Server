@@ -32,22 +32,9 @@ func DBInit() {
 	}
 
 	// 这个地方需要填入要迁移的表
-	err = global.DB.AutoMigrate(&model.Person{}, &model.Team{}, &model.TeamCount{}, &model.Message{})
+	err = global.DB.AutoMigrate(&model.Person{}, &model.Team{}, &model.Message{})
 	if err != nil {
 		fmt.Println("数据表创建错误")
 		os.Exit(-1)
-	}
-
-	// 初始化 teamCount 表的数据
-	var teamCount model.TeamCount
-	for i := 0; i <= 3; i++ { // 枚举天数
-		for j := 1; j <= 5; j++ { // 枚举路线编号
-			result := global.DB.Where("day_campus = ?", i*10+j).Take(&model.TeamCount{})
-			if result.RowsAffected == 0 {
-				teamCount.DayCampus = uint8(i*10 + j)
-				teamCount.Count = 0
-				global.DB.Create(&teamCount) // 创建队伍计数器
-			}
-		}
 	}
 }

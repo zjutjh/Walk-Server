@@ -1,50 +1,55 @@
 server:
-  wechatAPPID: ""
-  wechatSecret: ""
-  oauth: ""
-  wechatRedirect: ""
-  JWTSecret: ""
+  wechatAPPID: "" # 公众号开发者ID（AppID） 切记不可泄漏
+  wechatSecret: "" # 公众号开发者密码（AppSecret） 切记不可泄漏
+  wechatRedirect: "" # 回调链接的地址（即授权后重定向的uri） 注：需要加 http/https
+  JWTSecret: "" # JWT 加密密钥
   AESSecret: "" # AES 加密密钥
-  port: "8089"
+  port: "8888"
   debug: true # 这个设置大多数情况下无法热更新 修改了这个配置后请重启服务器
-  accessToken: ""
 
 frontend:
-  url: ""
+  url: "" # 前端域名 注：需要加 http/https
 
 database:
-  host: ""
-  user: ""
+  host: "127.0.0.1"
+  user: "root"
   passport: ""
-  port: ""
+  port: "3306"
   name: ""
+
+redis:
+  host: "127.0.0.1"
+  port: "6379"
+  password: ""
+  db: 0
 
 startDate: "2021-11-01 00:00:00"  # 报名开始的日期
 expiredDate: "2021-11-10 00:00:00" # 报名结束的日期
 
 teamUpperLimit: # 每天的团队上限
-  zhAll: # 朝晖校区全程
-    0: 150
+  0: # 第一天
+    1: 150 # 朝晖校区全程
+    2: 180 # 屏峰校区半程
+    3: 99 # 屏峰校区全程
+    4: 100 # 莫干山校区半程
+    5: 50 # 莫干山校区全程
+  1: # 第二天
     1: 100
-    2: 100
-    3: 150
-  pfHalf: # 屏峰校区半程
-    0: 180
-    1: 120
     2: 120
-    3: 180
-  pfAll: # 屏峰校区全程
-    0: 99
-    1: 66
-    2: 66
+    3: 66
+    4: 75
+    5: 25
+  2: # 第三天
+    1: 100
+    2: 120
+    3: 66
+    4: 75
+    5: 25
+  3: # 第四天
+    1: 150
+    2: 120
     3: 99
-  mgsHalf: # 莫干山校区半程
-    0: 100
-    1: 75
-    2: 75
-    3: 100
-  mgsAll: # 莫干山校区全程
-    0: 50
-    1: 25
-    2: 25
-    3: 50
+    4: 100
+    5: 50
+
+QPS: 5000 # 任意一秒内最多可以接受的并发量

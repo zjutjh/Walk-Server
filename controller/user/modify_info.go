@@ -17,8 +17,8 @@ type UserModifyData struct {
 	Contact struct {
 		QQ     string `json:"qq"`
 		Wechat string `json:"wechat"`
-		Tel    string `json:"tel"`
-	} `json:"contact"`
+		Tel    string `json:"tel" binding:"required"`
+	} `json:"contact" binding:"required"`
 }
 
 func ModifyInfo(context *gin.Context) {

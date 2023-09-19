@@ -1,6 +1,7 @@
 package team
 
 import (
+	"strconv"
 	"walk-server/global"
 	"walk-server/model"
 	"walk-server/utility"
@@ -56,13 +57,16 @@ func GetTeamInfo(context *gin.Context) {
 		})
 	}
 
+	teamID := strconv.Itoa(int(team.ID))
+	teamSubmitted, _ := global.Rdb.SIsMember(global.Rctx, "teams", teamID).Result()
+
 	// 返回结果
 	utility.ResponseSuccess(context, gin.H{
 		"id":          person.TeamId,
 		"name":        team.Name,
 		"route":       team.Route,
 		"password":    team.Password,
-		"submitted":   team.Submitted,
+		"submitted":   teamSubmitted,
 		"allow_match": team.AllowMatch,
 		"slogan":      team.Slogan,
 		"leader":      captainData,

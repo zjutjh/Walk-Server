@@ -1,7 +1,6 @@
 package team
 
 import (
-	"fmt"
 	"strconv"
 	"walk-server/global"
 	"walk-server/model"
@@ -64,7 +63,6 @@ func SubmitTeam(context *gin.Context) {
 	dailyRouteKey := strconv.Itoa(int(dailyRoute))
 	// 运行Lua脚本
 	n, err := submit.Run(global.Rctx, global.Rdb, []string{teamID, dailyRouteKey}).Result()
-	fmt.Println(err)
 	if err != nil {
 		utility.ResponseError(context, "系统异常，请重试")
 		return

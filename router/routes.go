@@ -43,7 +43,7 @@ func MountRoutes(router *gin.Engine) {
 			if gin.IsDebugging() {
 				teamApi.GET("/submit", middleware.TokenRateLimiter, team.SubmitTeam) // 提交团队
 			} else {
-				teamApi.GET("/submit", middleware.TokenRateLimiter, middleware.IsExpired, middleware.CanSubmit, team.SubmitTeam) // 提交团队
+				teamApi.GET("/submit", middleware.TokenRateLimiter, middleware.PerRateLimiter, middleware.IsExpired, middleware.CanSubmit, team.SubmitTeam) // 提交团队
 			}
 
 			teamApi.GET("/info", team.GetTeamInfo)                              // 获取团队信息

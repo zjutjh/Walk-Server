@@ -37,20 +37,21 @@ func StudentRegister(context *gin.Context) {
 	}
 
 	person := model.Person{
-		OpenId:    jwtData.OpenID,
-		Name:      postData.Name,
-		Gender:    postData.Gender,
-		StuId:     postData.StuID,
-		Status:    0,
-		College:   postData.College,
-		Identity:  postData.ID,
-		Campus:    postData.Campus,
-		Qq:        postData.Contact.QQ,
-		Wechat:    postData.Contact.Wechat,
-		Tel:       postData.Contact.Tel,
-		CreatedOp: 2,
-		JoinOp:    5,
-		TeamId:    -1,
+		OpenId:     jwtData.OpenID,
+		Name:       postData.Name,
+		Gender:     postData.Gender,
+		StuId:      postData.StuID,
+		Status:     0,
+		College:    postData.College,
+		Identity:   postData.ID,
+		Campus:     postData.Campus,
+		Qq:         postData.Contact.QQ,
+		Wechat:     postData.Contact.Wechat,
+		Tel:        postData.Contact.Tel,
+		CreatedOp:  2,
+		JoinOp:     5,
+		TeamId:     -1,
+		WalkStatus: 1,
 	}
 
 	result := global.DB.Create(&person)

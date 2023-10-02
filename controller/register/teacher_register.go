@@ -34,18 +34,19 @@ func TeacherRegister(context *gin.Context) {
 	}
 
 	person := model.Person{
-		OpenId:    jwtData.OpenID,
-		Name:      postData.Name,
-		Gender:    postData.Gender,
-		Campus:    5,
-		Identity:  postData.ID,
-		Status:    0,
-		Qq:        postData.Contact.QQ,
-		Wechat:    postData.Contact.Wechat,
-		Tel:       postData.Contact.Tel,
-		CreatedOp: 2,
-		JoinOp:    5,
-		TeamId:    -1,
+		OpenId:     jwtData.OpenID,
+		Name:       postData.Name,
+		Gender:     postData.Gender,
+		Campus:     5,
+		Identity:   postData.ID,
+		Status:     0,
+		Qq:         postData.Contact.QQ,
+		Wechat:     postData.Contact.Wechat,
+		Tel:        postData.Contact.Tel,
+		CreatedOp:  2,
+		JoinOp:     5,
+		TeamId:     -1,
+		WalkStatus: 1,
 	}
 
 	result := global.DB.Create(&person)

@@ -10,20 +10,21 @@ import (
 )
 
 type Person struct {
-	OpenId    string `gorm:"primaryKey"` // openID
-	Name      string
-	Gender    int8 // 1 男，2 女
-	StuId     string
-	Campus    uint8  // 1 朝晖，2 屏峰，3 莫干山
-	Identity  string // 身份证号
-	Status    uint8  // 0 未加入团队，1 队员，2 队长
-	Qq        string
-	Wechat    string
-	College   string // 学院
-	Tel       string
-	CreatedOp uint8 // 创建团队次数
-	JoinOp    uint8 // 加入团队次数
-	TeamId    int   `gorm:"index;default:-1"`
+	OpenId     string `gorm:"primaryKey"` // openID
+	Name       string
+	Gender     int8 // 1 男，2 女
+	StuId      string
+	Campus     uint8  // 1 朝晖，2 屏峰，3 莫干山
+	Identity   string // 身份证号
+	Status     uint8  // 0 未加入团队，1 队员，2 队长
+	Qq         string
+	Wechat     string
+	College    string // 学院
+	Tel        string
+	CreatedOp  uint8 // 创建团队次数
+	JoinOp     uint8 // 加入团队次数
+	TeamId     int   `gorm:"index;default:-1"`
+	WalkStatus uint8 // 1 未开始，2 进行中，3 扫码成功，4 放弃，5 完成
 }
 
 func (p *Person) MarshalBinary() (data []byte, err error) {

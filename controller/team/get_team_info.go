@@ -41,6 +41,7 @@ func GetTeamInfo(context *gin.Context) {
 			"wechat": captain.Wechat,
 			"tel":    captain.Tel,
 		},
+		"walk_status": captain.WalkStatus,
 	}
 	var memberData []gin.H
 	for _, member := range members {
@@ -54,6 +55,7 @@ func GetTeamInfo(context *gin.Context) {
 				"wechat": member.Wechat,
 				"tel":    member.Tel,
 			},
+			"walk_status": member.WalkStatus,
 		})
 	}
 
@@ -69,6 +71,8 @@ func GetTeamInfo(context *gin.Context) {
 		"submitted":   teamSubmitted,
 		"allow_match": team.AllowMatch,
 		"slogan":      team.Slogan,
+		"point":       team.Point,
+		"status":      team.Status,
 		"leader":      captainData,
 		"member":      memberData,
 	})

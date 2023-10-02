@@ -63,7 +63,9 @@ func UrlToken(jwtData *JwtData) (string, error) {
 func GetJwtData(context *gin.Context) *JwtData {
 	// 获取 jwt 数据
 	jwtToken := context.GetHeader("Authorization")[7:]
-	jwtData, _ := ParseToken(jwtToken)
-
+	jwtData, err := ParseToken(jwtToken)
+	if err != nil {
+		return nil
+	}
 	return jwtData
 }

@@ -53,3 +53,7 @@ teamUpperLimit: # 每天的团队上限
     5: 50
 
 QPS: 5000 # 任意一秒内最多可以接受的并发量
+wechat: # 微信小程序相关配置 (切记不能泄漏）
+  appid:
+  appsecret:
+  driver: Redis

@@ -1,6 +1,7 @@
 package router
 
 import (
+	"walk-server/controller/admin"
 	"walk-server/controller/basic"
 	"walk-server/controller/message"
 	"walk-server/controller/poster"
@@ -69,6 +70,18 @@ func MountRoutes(router *gin.Engine) {
 		picApi := api.Group("/poster", middleware.IsRegistered)
 		{
 			picApi.GET("/get", poster.GetPoster) // 获取海报
+		}
+
+		admin2 := api.Group("/admin")
+		{
+			admin2.POST("/auth", admin.AuthByPassword)
+			admin2.POST("/auth/auto", admin.WeChatLogin)
+			admin2.POST("/auth/without", admin.AuthWithoutCode)
+			admin2.POST("/user/sd", middleware.CheckAdmin, admin.UserSD)
+			admin2.POST("/user/sm", middleware.CheckAdmin, admin.UserSM)
+			admin2.POST("/team/sm", middleware.CheckAdmin, admin.TeamSM)
+			admin2.POST("/team/out", middleware.CheckAdmin, admin.UpdateTeam)
+			admin2.GET("/team/status", middleware.CheckAdmin, admin.GetTeam)
 		}
 	}
 }

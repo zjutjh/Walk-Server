@@ -16,7 +16,7 @@ type Team struct {
 	Route      uint8  // 1 是朝晖路线，2 屏峰半程，3 屏峰全程，4 莫干山半程，5 莫干山全程
 	Point      uint8  // 点位
 	StartNum   uint   // 开始人数
-	Status     uint8  // 1 未开始，2 进行中，3 未完成，4 完成
+	Status     uint8  // 1 未开始，2 进行中，3 未完成，4 完成 ,5 扫码成功
 }
 
 func GetTeamInfo(teamID uint) (*Team, error) {

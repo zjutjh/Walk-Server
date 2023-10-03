@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"walk-server/constant"
 	"walk-server/global"
+	"walk-server/middleware"
 	"walk-server/model"
 	"walk-server/service/adminService"
 	"walk-server/service/teamService"
@@ -32,8 +33,11 @@ func GetTeam(c *gin.Context) {
 	if team == nil || err != nil {
 		utility.ResponseError(c, "服务错误")
 		return
-	} else if team.Route != user.Route || team.Point+1 != user.Point {
-		utility.ResponseError(c, "权限不足")
+	}
+
+	b := middleware.CheckRoute(user, team)
+	if !b {
+		utility.ResponseError(c, "管理员权限不足")
 		return
 	}
 
@@ -77,17 +81,17 @@ func TeamSM(c *gin.Context) {
 		utility.ResponseError(c, "参数错误")
 		return
 	}
+
 	user, err := adminService.GetAdminByJWT(c)
-	if user == nil {
-		utility.ResponseError(c, "服务错误")
-		return
-	}
 	team, err := teamService.GetTeamByID(postForm.TeamID)
 	if team == nil || err != nil {
 		utility.ResponseError(c, "服务错误")
 		return
-	} else if team.Route != user.Route || team.Point+1 != user.Point {
-		utility.ResponseError(c, "权限不足")
+	}
+
+	b := middleware.CheckRoute(user, team)
+	if !b {
+		utility.ResponseError(c, "管理员权限不足")
 		return
 	}
 
@@ -110,16 +114,15 @@ func UpdateTeam(c *gin.Context) {
 		return
 	}
 	user, err := adminService.GetAdminByJWT(c)
-	if user == nil {
-		utility.ResponseError(c, "服务错误")
-		return
-	}
 	team, err := teamService.GetTeamByID(postForm.TeamID)
 	if team == nil || err != nil {
 		utility.ResponseError(c, "服务错误")
 		return
-	} else if team.Route != user.Route || team.Point+1 != user.Point {
-		utility.ResponseError(c, "权限不足")
+	}
+
+	b := middleware.CheckRoute(user, team)
+	if !b {
+		utility.ResponseError(c, "管理员权限不足")
 		return
 	}
 

@@ -3,6 +3,7 @@ package admin
 import (
 	"github.com/gin-gonic/gin"
 	"walk-server/global"
+	"walk-server/middleware"
 	"walk-server/model"
 	"walk-server/service/adminService"
 	"walk-server/service/userService"
@@ -23,10 +24,6 @@ func UserSM(c *gin.Context) {
 	}
 
 	user, err := adminService.GetAdminByJWT(c)
-	if user == nil {
-		utility.ResponseError(c, "管理员错误")
-		return
-	}
 
 	jwtToken := postForm.Jwt
 	jwtToken = jwtToken[7:]
@@ -46,8 +43,10 @@ func UserSM(c *gin.Context) {
 	var team model.Team
 	global.DB.Where("id = ?", person.TeamId).Take(&team)
 
-	if team.Route != user.Route || team.Point+1 != user.Point {
+	b := middleware.CheckRoute(user, &team)
+	if !b {
 		utility.ResponseError(c, "管理员权限不足")
+		return
 	}
 
 	if team.Status != 5 {
@@ -88,10 +87,6 @@ func UserSD(c *gin.Context) {
 	}
 
 	user, err := adminService.GetAdminByJWT(c)
-	if user == nil {
-		utility.ResponseError(c, "管理员错误")
-		return
-	}
 
 	// 获取个人信息
 	person, err := model.GetPerson(postForm.UserID)
@@ -103,8 +98,10 @@ func UserSD(c *gin.Context) {
 	var team model.Team
 	global.DB.Where("id = ?", person.TeamId).Take(&team)
 
-	if team.Route != user.Route || team.Point+1 != user.Point {
+	b := middleware.CheckRoute(user, &team)
+	if !b {
 		utility.ResponseError(c, "管理员权限不足")
+		return
 	}
 
 	if team.Status != 5 {

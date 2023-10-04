@@ -168,11 +168,10 @@ func UpdateTeam(c *gin.Context) {
 					userService.Update(p)
 				}
 			}
-			flagNum := team.StartNum / 2
-			if flagNum > num {
-				team.Status = 3
-			} else {
+			if (team.StartNum+1)/2 <= num {
 				team.Status = 4
+			} else {
+				team.Status = 3
 			}
 			teamService.Update(*team)
 			utility.ResponseSuccess(c, gin.H{

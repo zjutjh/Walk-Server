@@ -56,16 +56,19 @@ func GetTeam(c *gin.Context) {
 		})
 	}
 	utility.ResponseSuccess(c, gin.H{
-		"id":          TeamID,
-		"name":        team.Name,
-		"route":       team.Route,
-		"password":    team.Password,
-		"allow_match": team.AllowMatch,
-		"slogan":      team.Slogan,
-		"point":       team.Point,
-		"status":      team.Status,
-		"start_num":   team.StartNum,
-		"member":      memberData,
+		"team": gin.H{
+			"id":          TeamID,
+			"name":        team.Name,
+			"route":       team.Route,
+			"password":    team.Password,
+			"allow_match": team.AllowMatch,
+			"slogan":      team.Slogan,
+			"point":       team.Point,
+			"status":      team.Status,
+			"start_num":   team.StartNum,
+		},
+		"admin":  user,
+		"member": memberData,
 	})
 }
 

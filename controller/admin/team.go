@@ -25,10 +25,6 @@ func GetTeam(c *gin.Context) {
 		return
 	}
 	user, err := adminService.GetAdminByJWT(c)
-	if user == nil {
-		utility.ResponseError(c, "服务错误")
-		return
-	}
 	team, err := teamService.GetTeamByID(uint(TeamID))
 	if team == nil || err != nil {
 		utility.ResponseError(c, "服务错误")
@@ -68,6 +64,7 @@ func GetTeam(c *gin.Context) {
 		"slogan":      team.Slogan,
 		"point":       team.Point,
 		"status":      team.Status,
+		"start_num":   team.StartNum,
 		"member":      memberData,
 	})
 }

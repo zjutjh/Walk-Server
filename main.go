@@ -15,6 +15,7 @@ func main() {
 	initial.DBInit()     // 初始化数据库
 	initial.RedisInit()  // 初始化Redis
 	initial.LimitInit()  // 初始化令牌桶
+	initial.ConstantInit()
 	wechat.WeChatInit()
 
 	// 如果配置文件中开启了调试模式

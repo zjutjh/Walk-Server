@@ -58,7 +58,7 @@ func CreateTeam(context *gin.Context) {
 		Captain:    person.OpenId,
 		Route:      createTeamData.Route,
 		Slogan:     createTeamData.Slogan,
-		Point:      0,
+		Point:      -1,
 		StartNum:   0,
 		Status:     1,
 	}

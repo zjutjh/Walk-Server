@@ -163,7 +163,7 @@ func UpdateTeam(c *gin.Context) {
 	team.Point++
 
 	switch team.Point {
-	case constant.PointMap[team.Route]:
+	case int8(constant.PointMap[team.Route]):
 		{
 			for _, p := range persons {
 				if p.WalkStatus == 3 {
@@ -182,7 +182,7 @@ func UpdateTeam(c *gin.Context) {
 			})
 			return
 		}
-	case 1:
+	case 0:
 		{
 			team.StartNum = num
 			teamService.Update(*team)

@@ -70,7 +70,9 @@ func UserSM(c *gin.Context) {
 	}
 	userService.Update(*person)
 
-	utility.ResponseSuccess(c, nil)
+	utility.ResponseSuccess(c, gin.H{
+		"openId": person.OpenId,
+	})
 }
 
 type UserSDForm struct {

@@ -4,7 +4,6 @@ import (
 	"walk-server/controller/admin"
 	"walk-server/controller/basic"
 	"walk-server/controller/message"
-	"walk-server/controller/poster"
 	"walk-server/controller/register"
 	"walk-server/controller/team"
 	"walk-server/controller/user"
@@ -67,10 +66,10 @@ func MountRoutes(router *gin.Engine) {
 		}
 
 		// 海报相关的 API
-		picApi := api.Group("/poster", middleware.IsRegistered)
-		{
-			picApi.GET("/get", poster.GetPoster) // 获取海报
-		}
+		// picApi := api.Group("/poster", middleware.IsRegistered)
+		// {
+		// 	picApi.GET("/get", poster.GetPoster) // 获取海报
+		// }
 
 		admin2 := api.Group("/admin")
 		{

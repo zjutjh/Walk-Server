@@ -171,7 +171,7 @@ func UpdateTeam(c *gin.Context) {
 					userService.Update(p)
 				}
 			}
-			if (team.StartNum+1)/2 <= num {
+			if (team.StartNum+1)/2 <= num && uint((len(persons)+1)/2) <= team.StartNum {
 				team.Status = 4
 			} else {
 				team.Status = 3
@@ -185,7 +185,6 @@ func UpdateTeam(c *gin.Context) {
 	case 0:
 		{
 			team.StartNum = num
-			teamService.Update(*team)
 		}
 	}
 	for _, p := range persons {

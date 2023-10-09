@@ -1,17 +1,18 @@
 package admin
 
 import (
-	"github.com/gin-gonic/gin"
 	"walk-server/global"
 	"walk-server/middleware"
 	"walk-server/model"
 	"walk-server/service/adminService"
 	"walk-server/service/userService"
 	"walk-server/utility"
+
+	"github.com/gin-gonic/gin"
 )
 
 type UserSMForm struct {
-	Jwt        string `json:"user_jwt" binding:"required"`
+	Jwt        string `json:"jwt" binding:"required"`
 	WalkStatus uint   `json:"walk_status" binding:"required"`
 }
 

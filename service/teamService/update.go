@@ -6,5 +6,5 @@ import (
 )
 
 func Update(a model.Team) {
-	global.DB.Updates(&a)
+	global.DB.Save(&a)
 }

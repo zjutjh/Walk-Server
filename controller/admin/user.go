@@ -55,7 +55,7 @@ func UserSM(c *gin.Context) {
 		return
 	}
 
-	if person.WalkStatus == 4 || person.WalkStatus == 5 {
+	if person.WalkStatus == 5 {
 		utility.ResponseError(c, "成员已结束毅行")
 		return
 	}
@@ -112,7 +112,7 @@ func UserSD(c *gin.Context) {
 		return
 	}
 
-	if person.WalkStatus == 4 || person.WalkStatus == 5 {
+	if person.WalkStatus == 5 {
 		utility.ResponseError(c, "成员已结束毅行")
 		return
 	}

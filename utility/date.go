@@ -30,7 +30,7 @@ func CanOpenApi() bool {
 		return false
 	}
 
-	if time.Now().Hour() >= 8 {
+	if time.Now().Hour() >= 6 {
 		return true
 	} else {
 		return false

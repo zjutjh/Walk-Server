@@ -71,16 +71,17 @@ func MountRoutes(router *gin.Engine) {
 		// 	picApi.GET("/get", poster.GetPoster) // 获取海报
 		// }
 
-		admin2 := api.Group("/admin")
-		{
-			admin2.POST("/auth", admin.AuthByPassword)
-			admin2.POST("/auth/auto", admin.WeChatLogin)
-			admin2.POST("/auth/without", admin.AuthWithoutCode)
-			admin2.POST("/user/sd", middleware.CheckAdmin, admin.UserSD)
-			admin2.POST("/user/sm", middleware.CheckAdmin, admin.UserSM)
-			admin2.POST("/team/sm", middleware.CheckAdmin, admin.TeamSM)
-			admin2.POST("/team/out", middleware.CheckAdmin, admin.UpdateTeam)
-			admin2.GET("/team/status", middleware.CheckAdmin, admin.GetTeam)
-		}
+	}
+
+	adminApi := router.Group("/api/v1/admin")
+	{
+		adminApi.POST("/auth", admin.AuthByPassword)
+		adminApi.POST("/auth/auto", admin.WeChatLogin)
+		adminApi.POST("/auth/without", admin.AuthWithoutCode)
+		adminApi.POST("/user/sd", middleware.CheckAdmin, admin.UserSD)
+		adminApi.POST("/user/sm", middleware.CheckAdmin, admin.UserSM)
+		adminApi.POST("/team/sm", middleware.CheckAdmin, admin.TeamSM)
+		adminApi.POST("/team/out", middleware.CheckAdmin, admin.UpdateTeam)
+		adminApi.GET("/team/status", middleware.CheckAdmin, admin.GetTeam)
 	}
 }

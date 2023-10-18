@@ -13,7 +13,7 @@ import (
 )
 
 func MountRoutes(router *gin.Engine) {
-	api := router.Group("/api/v1")
+	api := router.Group("/api/v1", middleware.TokenRateLimiter, middleware.PerRateLimiter)
 	{
 		if !gin.IsDebugging() {
 			api.Use(middleware.TimeValidity)
@@ -41,9 +41,9 @@ func MountRoutes(router *gin.Engine) {
 		teamApi := api.Group("/team", middleware.IsRegistered)
 		{
 			if gin.IsDebugging() {
-				teamApi.GET("/submit", middleware.TokenRateLimiter, team.SubmitTeam) // 提交团队
+				teamApi.GET("/submit", team.SubmitTeam) // 提交团队
 			} else {
-				teamApi.GET("/submit", middleware.TokenRateLimiter, middleware.PerRateLimiter, middleware.IsExpired, middleware.CanSubmit, team.SubmitTeam) // 提交团队
+				teamApi.GET("/submit", middleware.IsExpired, middleware.CanSubmit, team.SubmitTeam) // 提交团队
 			}
 
 			teamApi.GET("/info", team.GetTeamInfo)                              // 获取团队信息

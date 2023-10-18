@@ -12,12 +12,11 @@ import (
 	"os/signal"
 	"time"
 	"walk-server/global"
-	"walk-server/utility/initial"
 
 	"github.com/gin-gonic/gin"
 )
 
-//StartServer start server with specific port
+// StartServer start server with specific port
 func StartServer(router *gin.Engine, port string) {
 	var srv *http.Server
 
@@ -52,7 +51,6 @@ func StartServer(router *gin.Engine, port string) {
 
 // IsDebugMode 获取服务器是否在调试模式
 func IsDebugMode() bool {
-	initial.ConfigInit()
 	return global.Config.GetBool("server.debug")
 }
 
@@ -61,6 +59,5 @@ func NeedDB() bool {
 	if !IsDebugMode() { // 不是调试模式一定要数据库
 		return true
 	}
-	initial.ConfigInit()
 	return global.Config.GetBool("database.need")
 }

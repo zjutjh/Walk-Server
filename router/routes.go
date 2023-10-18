@@ -24,26 +24,26 @@ func MountRoutes(router *gin.Engine) {
 		api.GET("/login", basic.Login) // 微信服务器的回调地址
 
 		// Register
-		registerApi := api.Group("/register", middleware.RegisterJWTValidity)
+		registerApi := api.Group("/register", middleware.RegisterJWTValidity, middleware.PerRateLimiter)
 		{
 			registerApi.POST("/student", middleware.IsExpired, register.StudentRegister) // 在校生报名地址
 			registerApi.POST("/teacher", middleware.IsExpired, register.TeacherRegister) // 教职工报名地址
 		}
 
 		// User
-		userApi := api.Group("/user", middleware.IsRegistered)
+		userApi := api.Group("/user", middleware.IsRegistered, middleware.PerRateLimiter)
 		{
 			userApi.GET("/info", user.GetInfo)                             // 获取用户信息
 			userApi.POST("/modify", middleware.IsExpired, user.ModifyInfo) // 修改用户信息
 		}
 
 		// Team
-		teamApi := api.Group("/team", middleware.IsRegistered)
+		teamApi := api.Group("/team", middleware.IsRegistered, middleware.PerRateLimiter)
 		{
 			if gin.IsDebugging() {
 				teamApi.GET("/submit", team.SubmitTeam) // 提交团队
 			} else {
-				teamApi.GET("/submit", middleware.PerRateLimiter, middleware.IsExpired, middleware.CanSubmit, team.SubmitTeam) // 提交团队
+				teamApi.GET("/submit", middleware.IsExpired, middleware.CanSubmit, team.SubmitTeam) // 提交团队
 			}
 
 			teamApi.GET("/info", team.GetTeamInfo)                              // 获取团队信息
@@ -59,7 +59,7 @@ func MountRoutes(router *gin.Engine) {
 		}
 
 		// 事件相关的 API
-		messageApi := api.Group("/message", middleware.IsRegistered)
+		messageApi := api.Group("/message", middleware.IsRegistered, middleware.PerRateLimiter)
 		{
 			messageApi.GET("/list", message.ListMessage)                            // 获取所有的消息
 			messageApi.POST("/delete", middleware.IsExpired, message.DeleteMessage) // 读了消息以后删除消息
@@ -73,7 +73,7 @@ func MountRoutes(router *gin.Engine) {
 
 	}
 
-	adminApi := router.Group("/api/v1/admin")
+	adminApi := router.Group("/api/v1/admin", middleware.TokenRateLimiter)
 	{
 		adminApi.POST("/auth", admin.AuthByPassword)
 		adminApi.POST("/auth/auto", admin.WeChatLogin)

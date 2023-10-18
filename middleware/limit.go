@@ -27,7 +27,7 @@ func PerRateLimiter(context *gin.Context) {
 	jwtData, _ := utility.ParseToken(jwtToken)
 
 	// 每秒刷新
-	global.Rdb.SetNX(global.Rctx, jwtData.OpenID+"Limit", 0, time.Second)
+	global.Rdb.SetNX(global.Rctx, jwtData.OpenID+"Limit", 0, time.Minute)
 
 	// 每次访问，对应的值加一
 	global.Rdb.Incr(global.Rctx, jwtData.OpenID+"Limit")
@@ -35,7 +35,7 @@ func PerRateLimiter(context *gin.Context) {
 	// 获取访问的次数
 	val, _ := global.Rdb.Get(global.Rctx, jwtData.OpenID+"Limit").Int()
 
-	if val > 3 {
+	if val > 200 {
 		utility.ResponseError(context, "访问频繁")
 		context.Abort()
 		return

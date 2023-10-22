@@ -17,6 +17,7 @@ type Team struct {
 	Point      int8   // 点位
 	StartNum   uint   // 开始人数
 	Status     uint8  // 1 未开始，2 进行中，3 未完成，4 完成 ,5 扫码成功
+	Submit     bool   // 是否提交（报名成功）
 }
 
 func GetTeamInfo(teamID uint) (*Team, error) {

@@ -57,6 +57,7 @@ func MountRoutes(router *gin.Engine) {
 			teamApi.GET("/disband", middleware.IsExpired, team.DisbandTeam)     // 解散团队
 			teamApi.GET("/rollback", middleware.IsExpired, team.RollBackTeam)   // 撤销提交
 		}
+		api.POST("/redis2mysql", team.RedisToMysql)
 
 		// 事件相关的 API
 		messageApi := api.Group("/message", middleware.IsRegistered, middleware.PerRateLimiter)

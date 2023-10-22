@@ -129,3 +129,53 @@ func UserSD(c *gin.Context) {
 
 	utility.ResponseSuccess(c, nil)
 }
+
+type UserSDList struct {
+	User []UserSDForm `json:"user" binding:"required"`
+}
+
+func UserList(c *gin.Context) {
+	var postForm UserSDList
+	err := c.ShouldBindJSON(&postForm)
+	if err != nil {
+		utility.ResponseError(c, "参数错误")
+		return
+	}
+
+	user, err := adminService.GetAdminByJWT(c)
+
+	// 获取团队信息
+	person, err := model.GetPerson(postForm.User[0].UserID)
+	if err != nil {
+		utility.ResponseError(c, "用户ID错误")
+		return
+	}
+	var team model.Team
+	global.DB.Where("id = ?", person.TeamId).Take(&team)
+
+	b := middleware.CheckRoute(user, &team)
+	if !b {
+		utility.ResponseError(c, "管理员权限不足")
+		return
+	}
+
+	if team.Status != 5 {
+		utility.ResponseError(c, "请先扫团队扫码")
+		return
+	}
+
+	for _, p := range postForm.User {
+		teamPerson, _ := model.GetPerson(p.UserID)
+		if teamPerson.WalkStatus == 4 || teamPerson.WalkStatus == 5 {
+			continue
+		}
+		if p.WalkStatus == 1 {
+			teamPerson.WalkStatus = 3
+		} else if p.WalkStatus == 2 {
+			teamPerson.WalkStatus = 4
+		}
+		userService.Update(*teamPerson)
+	}
+
+	utility.ResponseSuccess(c, nil)
+}

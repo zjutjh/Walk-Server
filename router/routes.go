@@ -80,6 +80,7 @@ func MountRoutes(router *gin.Engine) {
 		adminApi.POST("/auth/without", admin.AuthWithoutCode)
 		adminApi.POST("/user/sd", middleware.CheckAdmin, admin.UserSD)
 		adminApi.POST("/user/sm", middleware.CheckAdmin, admin.UserSM)
+		adminApi.POST("/user/list", middleware.CheckAdmin, admin.UserList)
 		adminApi.POST("/team/sm", middleware.CheckAdmin, admin.TeamSM)
 		adminApi.POST("/team/out", middleware.CheckAdmin, admin.UpdateTeam)
 		adminApi.GET("/team/status", middleware.CheckAdmin, admin.GetTeam)

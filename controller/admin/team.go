@@ -153,6 +153,7 @@ func UpdateTeam(c *gin.Context) {
 
 	if num == 0 {
 		team.Status = 3
+		team.Point = int8(constant.PointMap[team.Route])
 		teamService.Update(*team)
 		utility.ResponseSuccess(c, gin.H{
 			"progress_num": 0,
@@ -160,7 +161,7 @@ func UpdateTeam(c *gin.Context) {
 		return
 	}
 
-	team.Point++
+	team.Point = user.Point
 
 	switch team.Point {
 	case int8(constant.PointMap[team.Route]):
@@ -199,4 +200,26 @@ func UpdateTeam(c *gin.Context) {
 		"progress_num": num,
 	})
 	return
+}
+
+// GetDetail 获取pf的点位信息
+func GetDetail(c *gin.Context) {
+	pfHalf := constant.PointMap[2]
+	pfAll := constant.PointMap[3]
+	all := make([]int64, pfAll+2)
+	half := make([]int64, pfHalf+2)
+	for i := -1; i <= int(pfAll); i++ {
+		var count int64
+		global.DB.Model(&model.Team{}).Where(map[string]interface{}{"route": 3, "point": i}).Count(&count)
+		all[i+1] = count
+	}
+	for i := -1; i <= int(pfHalf); i++ {
+		var count int64
+		global.DB.Model(&model.Team{}).Where(map[string]interface{}{"route": 2, "point": i}).Count(&count)
+		half[i+1] = count
+	}
+	utility.ResponseSuccess(c, gin.H{
+		"all":  all,
+		"half": half,
+	})
 }

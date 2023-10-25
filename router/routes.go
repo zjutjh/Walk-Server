@@ -85,6 +85,6 @@ func MountRoutes(router *gin.Engine) {
 		adminApi.POST("/team/sm", middleware.CheckAdmin, admin.TeamSM)
 		adminApi.POST("/team/out", middleware.CheckAdmin, admin.UpdateTeam)
 		adminApi.GET("/team/status", middleware.CheckAdmin, admin.GetTeam)
-		adminApi.GET("/pf", admin.GetDetail)
 	}
+	router.GET("/api/v1/api/admin/pf", middleware.TokenRateLimiter, admin.GetDetail)
 }

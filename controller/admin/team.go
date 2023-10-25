@@ -209,15 +209,37 @@ func GetDetail(c *gin.Context) {
 	all := make([]int64, pfAll+2)
 	half := make([]int64, pfHalf+2)
 	for i := -1; i <= int(pfAll); i++ {
-		var count int64
-		global.DB.Model(&model.Team{}).Where(map[string]interface{}{"route": 3, "point": i}).Count(&count)
-		all[i+1] = count
+		var team []model.Team
+		global.DB.Model(&model.Team{}).Where(map[string]interface{}{"route": 3, "point": i, "submit": true}).Find(&team)
+		for _, t := range team {
+			var persons []model.Person
+			global.DB.Where("team_id = ?", t.ID).Find(&persons)
+			for _, p := range persons {
+				if p.WalkStatus == 4 || p.WalkStatus == 5 {
+					all[pfAll]++
+				} else {
+					all[i+1]++
+				}
+			}
+		}
 	}
+
 	for i := -1; i <= int(pfHalf); i++ {
-		var count int64
-		global.DB.Model(&model.Team{}).Where(map[string]interface{}{"route": 2, "point": i}).Count(&count)
-		half[i+1] = count
+		var team []model.Team
+		global.DB.Model(&model.Team{}).Where(map[string]interface{}{"route": 2, "point": i, "submit": true}).Find(&team)
+		for _, t := range team {
+			var persons []model.Person
+			global.DB.Where("team_id = ?", t.ID).Find(&persons)
+			for _, p := range persons {
+				if p.WalkStatus == 4 || p.WalkStatus == 5 {
+					half[pfHalf+1]++
+				} else {
+					half[i+1]++
+				}
+			}
+		}
 	}
+
 	utility.ResponseSuccess(c, gin.H{
 		"all":  all,
 		"half": half,

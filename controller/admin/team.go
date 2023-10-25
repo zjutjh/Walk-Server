@@ -216,7 +216,7 @@ func GetDetail(c *gin.Context) {
 			global.DB.Where("team_id = ?", t.ID).Find(&persons)
 			for _, p := range persons {
 				if p.WalkStatus == 4 || p.WalkStatus == 5 {
-					all[pfAll]++
+					all[pfAll+1]++
 				} else {
 					all[i+1]++
 				}

@@ -202,46 +202,40 @@ func UpdateTeam(c *gin.Context) {
 	return
 }
 
+type Result struct {
+	Count int
+	Point int
+}
+
 // GetDetail 获取pf的点位信息
 func GetDetail(c *gin.Context) {
-	pfHalf := constant.PointMap[2]
-	pfAll := constant.PointMap[3]
-	all := make([]int64, pfAll+2)
-	half := make([]int64, pfHalf+2)
-	for i := -1; i <= int(pfAll); i++ {
-		var team []model.Team
-		global.DB.Model(&model.Team{}).Where(map[string]interface{}{"route": 3, "point": i, "submit": true}).Find(&team)
-		for _, t := range team {
-			var persons []model.Person
-			global.DB.Where("team_id = ?", t.ID).Find(&persons)
-			for _, p := range persons {
-				if p.WalkStatus == 4 || p.WalkStatus == 5 {
-					all[pfAll+1]++
-				} else {
-					all[i+1]++
-				}
-			}
-		}
-	}
 
-	for i := -1; i <= int(pfHalf); i++ {
-		var team []model.Team
-		global.DB.Model(&model.Team{}).Where(map[string]interface{}{"route": 2, "point": i, "submit": true}).Find(&team)
-		for _, t := range team {
-			var persons []model.Person
-			global.DB.Where("team_id = ?", t.ID).Find(&persons)
-			for _, p := range persons {
-				if p.WalkStatus == 4 || p.WalkStatus == 5 {
-					half[pfHalf+1]++
-				} else {
-					half[i+1]++
-				}
-			}
-		}
-	}
+	var ansAll = make([]int64, constant.PointMap[3]+1)
+	var ansHalf = make([]int64, constant.PointMap[2]+1)
+	var all []int64
+	var half []int64
+
+	global.DB.Raw("SELECT  count(*) as count from  people, teams where people.team_id = teams.id and teams.route = ? and (people.walk_status=3||people.walk_status=2)group by teams.point order by point;", 3).Scan(&all)
+	global.DB.Raw("SELECT  count(*) as count from  people, teams where people.team_id = teams.id and teams.route = ? and (people.walk_status=3||people.walk_status=2)group by teams.point order by point;", 2).Scan(&half)
+	copy(ansHalf[1:], half)
+	copy(ansAll[1:], all)
+
+	var allStart int64
+	var halfStart int64
+
+	global.DB.Raw("SELECT  count(*) as count  from  people, teams where people.team_id = teams.id and teams.route = ? and people.walk_status=1", 3).Scan(&allStart)
+	global.DB.Raw("SELECT  count(*) as count  from  people, teams where people.team_id = teams.id and teams.route = ? and people.walk_status=1", 2).Scan(&halfStart)
+
+	ansAll[0] = allStart
+	ansHalf[0] = halfStart
+
+	global.DB.Raw("SELECT  count(*) as count  from  people, teams where people.team_id = teams.id and teams.route = ? and (people.walk_status=4||people.walk_status=5)", 3).Scan(&allStart)
+	global.DB.Raw("SELECT  count(*) as count  from  people, teams where people.team_id = teams.id and teams.route = ? and (people.walk_status=4||people.walk_status=5)", 2).Scan(&halfStart)
+	ansAll = append(ansAll, allStart)
+	ansHalf = append(ansHalf, halfStart)
 
 	utility.ResponseSuccess(c, gin.H{
-		"all":  all,
-		"half": half,
+		"all":  ansAll,
+		"half": ansHalf,
 	})
 }

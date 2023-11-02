@@ -211,26 +211,26 @@ type Result struct {
 func GetDetail(c *gin.Context) {
 
 	var ansAll = make([]int64, constant.PointMap[3]+1)
-	var ansHalf = make([]int64, constant.PointMap[2]+1)
+	var ansHalf = make([]int64, constant.PointMap[2]+2)
 	var all []int64
 	var half []int64
 
-	global.DB.Raw("SELECT  count(*) as count from  people, teams where people.team_id = teams.id and teams.route = ? and (people.walk_status=3||people.walk_status=2)group by teams.point order by point;", 3).Scan(&all)
-	global.DB.Raw("SELECT  count(*) as count from  people, teams where people.team_id = teams.id and teams.route = ? and (people.walk_status=3||people.walk_status=2)group by teams.point order by point;", 2).Scan(&half)
+	global.DB.Raw("SELECT  count(*) as count from  people, teams where people.team_id = teams.id and (teams.route = 2||teams.route = 3) and (people.walk_status=3||people.walk_status=2)group by teams.point order by point;").Scan(&all)
+	//global.DB.Raw("SELECT  count(*) as count from  people, teams where people.team_id = teams.id and teams.route = ? and (people.walk_status=3||people.walk_status=2)group by teams.point order by point;", 2).Scan(&half)
 	copy(ansHalf[1:], half)
 	copy(ansAll[1:], all)
 
 	var allStart int64
 	var halfStart int64
 
-	global.DB.Raw("SELECT  count(*) as count  from  people, teams where people.team_id = teams.id and teams.route = ? and people.walk_status=1", 3).Scan(&allStart)
-	global.DB.Raw("SELECT  count(*) as count  from  people, teams where people.team_id = teams.id and teams.route = ? and people.walk_status=1", 2).Scan(&halfStart)
+	global.DB.Raw("SELECT  count(*) as count  from  people, teams where people.team_id = teams.id and (teams.route = 2||teams.route = 3) and people.walk_status=1").Scan(&allStart)
+	//global.DB.Raw("SELECT  count(*) as count  from  people, teams where people.team_id = teams.id and teams.route = ? and people.walk_status=1", 2).Scan(&halfStart)
 
 	ansAll[0] = allStart
 	ansHalf[0] = halfStart
 
-	global.DB.Raw("SELECT  count(*) as count  from  people, teams where people.team_id = teams.id and teams.route = ? and (people.walk_status=4||people.walk_status=5)", 3).Scan(&allStart)
-	global.DB.Raw("SELECT  count(*) as count  from  people, teams where people.team_id = teams.id and teams.route = ? and (people.walk_status=4||people.walk_status=5)", 2).Scan(&halfStart)
+	global.DB.Raw("SELECT  count(*) as count  from  people, teams where people.team_id = teams.id and (teams.route = 2||teams.route = 3) and (people.walk_status=4||people.walk_status=5)").Scan(&allStart)
+	//global.DB.Raw("SELECT  count(*) as count  from  people, teams where people.team_id = teams.id and teams.route = ? and (people.walk_status=4||people.walk_status=5)", 2).Scan(&halfStart)
 	ansAll = append(ansAll, allStart)
 	ansHalf = append(ansHalf, halfStart)
 

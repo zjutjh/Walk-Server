@@ -1,7 +1,7 @@
 package admin
 
 import (
-	"github.com/gin-gonic/gin"
+	"fmt"
 	"strconv"
 	"walk-server/constant"
 	"walk-server/global"
@@ -11,6 +11,9 @@ import (
 	"walk-server/service/teamService"
 	"walk-server/service/userService"
 	"walk-server/utility"
+
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type TeamForm struct {
@@ -24,7 +27,7 @@ func GetTeam(c *gin.Context) {
 		utility.ResponseError(c, "参数错误")
 		return
 	}
-	user, err := adminService.GetAdminByJWT(c)
+	user, _ := adminService.GetAdminByJWT(c)
 	team, err := teamService.GetTeamByID(uint(TeamID))
 	if team == nil || err != nil {
 		utility.ResponseError(c, "服务错误")
@@ -72,48 +75,22 @@ func GetTeam(c *gin.Context) {
 	})
 }
 
-// TeamSM 团队扫码
-func TeamSM(c *gin.Context) {
-	var postForm TeamForm
-	err := c.ShouldBindJSON(&postForm)
-
-	if err != nil {
-		utility.ResponseError(c, "参数错误")
-		return
-	}
-
-	user, err := adminService.GetAdminByJWT(c)
-	team, err := teamService.GetTeamByID(postForm.TeamID)
-	if team == nil || err != nil {
-		utility.ResponseError(c, "服务错误")
-		return
-	}
-
-	b := middleware.CheckRoute(user, team)
-	if !b {
-		utility.ResponseError(c, "管理员权限不足")
-		return
-	}
-
-	if team.Status == 3 || team.Status == 4 {
-		utility.ResponseError(c, "团队已结束毅行")
-		return
-	}
-
-	team.Status = 5
-	teamService.Update(*team)
-	utility.ResponseSuccess(c, nil)
+type BindTeamForm struct {
+	TeamID uint   `json:"team_id" binding:"required"`
+	Type   uint   `json:"type" binding:"required,eq=2"`
+	Code   string `json:"code" binding:"required"`
 }
 
-func UpdateTeam(c *gin.Context) {
-	var postForm TeamForm
+func BindTeam(c *gin.Context) {
+	var postForm BindTeamForm
 	err := c.ShouldBindJSON(&postForm)
 
 	if err != nil {
 		utility.ResponseError(c, "参数错误")
 		return
 	}
-	user, err := adminService.GetAdminByJWT(c)
+
+	user, _ := adminService.GetAdminByJWT(c)
 	team, err := teamService.GetTeamByID(postForm.TeamID)
 	if team == nil || err != nil {
 		utility.ResponseError(c, "服务错误")
@@ -126,15 +103,18 @@ func UpdateTeam(c *gin.Context) {
 		return
 	}
 
-	if team.Status != 5 {
-		utility.ResponseError(c, "团队未扫码")
+	_, err = teamService.GetTeamByCode(postForm.Code)
+	if err == nil {
+		utility.ResponseError(c, "二维码已绑定")
+		return
+	} else if err != gorm.ErrRecordNotFound {
+		utility.ResponseError(c, "服务错误")
 		return
 	}
 	var persons []model.Person
 	global.DB.Where("team_id = ?", team.ID).Find(&persons)
 	flag := true
-	var num uint
-	num = 0
+	num := uint(0)
 	for _, p := range persons {
 		if p.WalkStatus != 3 && p.WalkStatus != 4 {
 			flag = false
@@ -147,8 +127,73 @@ func UpdateTeam(c *gin.Context) {
 	}
 
 	if !flag {
-		utility.ResponseError(c, "还有成员未扫码")
+		utility.ResponseError(c, "还有成员未确认状态")
 		return
+	}
+
+	if (team.Num+1)/2 > uint8(num) {
+		utility.ResponseError(c, "团队人数不足，无法绑定")
+		return
+	}
+
+	team.Code = postForm.Code
+	team.Status = 5
+	team.StartNum = num
+	teamService.Update(*team)
+	utility.ResponseSuccess(c, nil)
+}
+
+type TeamStatusForm struct {
+	CodeType uint   `json:"code_type" binding:"required"` //1团队码2签到码
+	Content  string `json:"content" binding:"required"`   //团队码为team_id，签到码为code
+}
+
+func UpdateTeamStatus(c *gin.Context) {
+	var postForm TeamStatusForm
+	err := c.ShouldBindJSON(&postForm)
+
+	if err != nil {
+		utility.ResponseError(c, "参数错误")
+		return
+	}
+
+	user, _ := adminService.GetAdminByJWT(c)
+	var team *model.Team
+	if postForm.CodeType == 1 {
+		teamID, convErr := strconv.ParseUint(postForm.Content, 10, 32)
+		if convErr != nil {
+			utility.ResponseError(c, "参数错误")
+			return
+		}
+		team, err = teamService.GetTeamByID(uint(teamID))
+	} else if postForm.CodeType == 2 {
+		team, err = teamService.GetTeamByCode(postForm.Content)
+	} else {
+		utility.ResponseError(c, "参数错误")
+		return
+	}
+
+	if team == nil || err != nil {
+		utility.ResponseError(c, "队伍查找失败")
+		return
+	}
+
+	b := middleware.CheckRoute(user, team)
+	if !b {
+		utility.ResponseError(c, "管理员权限不足")
+		return
+	}
+	if team.Status != 5 && team.Status != 2 {
+		utility.ResponseError(c, "团队未扫码")
+		return
+	}
+	var persons []model.Person
+	global.DB.Where("team_id = ?", team.ID).Find(&persons)
+	num := uint(0)
+	for _, p := range persons {
+		if p.WalkStatus == 3 || p.WalkStatus == 2 {
+			num++
+		}
 	}
 
 	if num == 0 {
@@ -163,31 +208,21 @@ func UpdateTeam(c *gin.Context) {
 
 	team.Point = user.Point
 
-	switch team.Point {
-	case int8(constant.PointMap[team.Route]):
-		{
-			for _, p := range persons {
-				if p.WalkStatus == 3 {
-					p.WalkStatus = 5
-					userService.Update(p)
-				}
+	if team.Point == int8(constant.PointMap[team.Route]) {
+		for _, p := range persons {
+			if p.WalkStatus == 2 {
+				p.WalkStatus = 5
+				userService.Update(p)
 			}
-			if (team.StartNum+1)/2 <= num && uint((len(persons)+1)/2) <= team.StartNum {
-				team.Status = 4
-			} else {
-				team.Status = 3
-			}
-			teamService.Update(*team)
-			utility.ResponseSuccess(c, gin.H{
-				"progress_num": 0,
-			})
-			return
 		}
-	case 0:
-		{
-			team.StartNum = num
-		}
+		team.Status = 4
+		teamService.Update(*team)
+		utility.ResponseSuccess(c, gin.H{
+			"progress_num": 0,
+		})
+		return
 	}
+
 	for _, p := range persons {
 		if p.WalkStatus == 3 {
 			p.WalkStatus = 2
@@ -199,43 +234,220 @@ func UpdateTeam(c *gin.Context) {
 	utility.ResponseSuccess(c, gin.H{
 		"progress_num": num,
 	})
-	return
 }
 
-type Result struct {
-	Count int
-	Point int
+type RegroupForm struct {
+	Jwts   []string `json:"jwts" binding:"required"`
+	Secret string   `json:"secret" binding:"required"`
+	Route  uint8    `json:"route" binding:"required"`
 }
 
-// GetDetail 获取pf的点位信息
-func GetDetail(c *gin.Context) {
+func Regroup(c *gin.Context) {
+	var postForm RegroupForm
+	err := c.ShouldBindJSON(&postForm)
 
-	var ansAll = make([]int64, constant.PointMap[3]+1)
-	var ansHalf = make([]int64, constant.PointMap[2]+2)
-	var all []int64
-	var half []int64
+	if err != nil {
+		utility.ResponseError(c, "参数错误")
+		return
+	}
+	if postForm.Secret != global.Config.GetString("server.secret") {
+		utility.ResponseError(c, "密码错误")
+		return
+	}
 
-	global.DB.Raw("SELECT  count(*) as count from  people, teams where people.team_id = teams.id and (teams.route = 2||teams.route = 3) and (people.walk_status=3||people.walk_status=2)group by teams.point order by point;").Scan(&all)
-	//global.DB.Raw("SELECT  count(*) as count from  people, teams where people.team_id = teams.id and teams.route = ? and (people.walk_status=3||people.walk_status=2)group by teams.point order by point;", 2).Scan(&half)
-	copy(ansHalf[1:], half)
-	copy(ansAll[1:], all)
+	var persons []model.Person
+	for _, jwt := range postForm.Jwts {
+		jwtToken := jwt[7:]
+		jwtData, err := utility.ParseToken(jwtToken)
 
-	var allStart int64
-	var halfStart int64
+		if err != nil {
+			utility.ResponseError(c, "扫码错误")
+			return
+		}
 
-	global.DB.Raw("SELECT  count(*) as count  from  people, teams where people.team_id = teams.id and (teams.route = 2||teams.route = 3) and people.walk_status=1").Scan(&allStart)
-	//global.DB.Raw("SELECT  count(*) as count  from  people, teams where people.team_id = teams.id and teams.route = ? and people.walk_status=1", 2).Scan(&halfStart)
+		// 获取个人信息
+		person, err := model.GetPerson(jwtData.OpenID)
 
-	ansAll[0] = allStart
-	ansHalf[0] = halfStart
+		if err != nil {
+			utility.ResponseError(c, "扫码错误")
+			return
+		}
 
-	global.DB.Raw("SELECT  count(*) as count  from  people, teams where people.team_id = teams.id and (teams.route = 2||teams.route = 3) and (people.walk_status=4||people.walk_status=5)").Scan(&allStart)
-	//global.DB.Raw("SELECT  count(*) as count  from  people, teams where people.team_id = teams.id and teams.route = ? and (people.walk_status=4||people.walk_status=5)", 2).Scan(&halfStart)
-	ansAll = append(ansAll, allStart)
-	ansHalf = append(ansHalf, halfStart)
+		// 如果已有队伍则退出
+		if person.TeamId != -1 {
+			_, persons := model.GetPersonsInTeam(person.TeamId)
+			for _, p := range persons {
+				p.TeamId = -1
+				p.Status = 0
+				userService.Update(p)
+			}
+			team, _ := teamService.GetTeamByID(uint(person.TeamId))
+			err = teamService.Delete(*team)
+			if err != nil {
+				utility.ResponseError(c, "服务错误")
+				return
+			}
+		}
+
+		persons = append(persons, *person)
+	}
+
+	// 创建新队伍，第一个人作为队长
+	newTeam := model.Team{
+		Name:       "新队伍",
+		Route:      postForm.Route,
+		Password:   "123456",
+		AllowMatch: true,
+		Slogan:     "新的开始",
+		Point:      0,
+		Status:     1,
+		StartNum:   uint(len(persons)),
+		Num:        uint8(len(persons)),
+		Captain:    persons[0].OpenId,
+		Submit:     true,
+	}
+	teamService.Create(newTeam)
+
+	// 更新每个人的队伍ID
+	for i, person := range persons {
+		person.TeamId = int(newTeam.ID)
+		if i == 0 {
+			person.Status = 2
+		} else {
+			person.Status = 1
+		}
+		userService.Update(person)
+	}
+	global.Rdb.SAdd(global.Rctx, "teams", strconv.Itoa(int(newTeam.ID)))
 
 	utility.ResponseSuccess(c, gin.H{
-		"all":  ansAll,
-		"half": ansHalf,
+		"team_id": newTeam.ID,
+	})
+}
+
+type SubmitTeamForm struct {
+	TeamID uint   `json:"team_id" binding:"required"`
+	Secret string `json:"secret" binding:"required"`
+}
+
+func SubmitTeam(c *gin.Context) {
+	var postForm SubmitTeamForm
+	err := c.ShouldBindJSON(&postForm)
+
+	if err != nil {
+		utility.ResponseError(c, "参数错误")
+		return
+	}
+	if postForm.Secret != global.Config.GetString("server.secret") {
+		utility.ResponseError(c, "密码错误")
+		return
+	}
+	team, err := teamService.GetTeamByID(postForm.TeamID)
+	if team == nil || err != nil {
+		utility.ResponseError(c, "服务错误")
+		return
+	}
+
+	team.Submit = true
+	teamService.Update(*team)
+	global.Rdb.SAdd(global.Rctx, "teams", strconv.Itoa(int(team.ID)))
+	utility.ResponseSuccess(c, nil)
+
+}
+
+type GetDetailForm struct {
+	Secret string `json:"secret" binding:"required"`
+}
+
+// GetDetail 获取全部路线的点位信息
+func GetDetail(c *gin.Context) {
+	var postForm GetDetailForm
+	if err := c.ShouldBindJSON(&postForm); err != nil {
+		utility.ResponseError(c, "参数错误")
+		return
+	}
+	if postForm.Secret != global.Config.GetString("server.secret") {
+		utility.ResponseError(c, "密码错误")
+		return
+	}
+
+	routes := map[string]int{
+		"zh":      1,
+		"pfHalf":  2,
+		"pfAll":   3,
+		"mgsHalf": 4,
+		"mgsAll":  5,
+	}
+
+	resultMap := make(map[string][]int64)
+	for key, route := range routes {
+		resultMap[key] = make([]int64, constant.PointMap[uint8(route)]+3)
+	}
+
+	// 获取各点位人数
+	getPointCounts := func(route int, status []int, team_stuats []int, points []int64) {
+		var pointCounts []struct {
+			Point int64
+			Count int64
+		}
+		global.DB.Model(&model.Person{}).
+			Select("teams.point, count(*) as count").
+			Joins("JOIN teams ON people.team_id = teams.id").
+			Where("teams.route = ? AND people.walk_status IN ? AND teams.status IN ?", route, status, team_stuats).
+			Group("teams.point").
+			Order("teams.point").
+			Scan(&pointCounts)
+		fmt.Println(pointCounts)
+		for _, pointCount := range pointCounts {
+			if pointCount.Point >= 0 && int(pointCount.Point) < int(constant.PointMap[uint8(route)])+1 {
+				points[pointCount.Point+1] = pointCount.Count
+			}
+		}
+
+	}
+
+	// 获取各路线未开始人数
+	getStartCounts := func(route int, points *int64) {
+		global.DB.Model(&model.Person{}).
+			Select("count(*) as count").
+			Joins("JOIN teams ON people.team_id = teams.id").
+			Where("teams.route = ? AND people.walk_status = 1 And teams.submit = 1", route).
+			Pluck("count", points)
+	}
+
+	// 获取各路线已结束和下撤人数
+	appendEndCounts := func(route int, points []int64) {
+		var endCount5, endCount4 int64
+		global.DB.Model(&model.Person{}).
+			Select("count(*) as count").
+			Joins("JOIN teams ON people.team_id = teams.id").
+			Where("teams.route = ? AND people.walk_status = 5", route).
+			Pluck("count", &endCount5)
+		global.DB.Model(&model.Person{}).
+			Select("count(*) as count").
+			Joins("JOIN teams ON people.team_id = teams.id").
+			Where("teams.route = ? AND people.walk_status = 4", route).
+			Pluck("count", &endCount4)
+		points[len(points)-2] = endCount5
+		points[len(points)-1] = endCount4
+	}
+
+	// 状态：进行中、未开始、已结束
+	personStatusInProgress := []int{2, 3}
+	teamStatusInProgress := []int{2, 5}
+
+	for key, route := range routes {
+		getPointCounts(route, personStatusInProgress, teamStatusInProgress, resultMap[key])
+		getStartCounts(route, &resultMap[key][0])
+		appendEndCounts(route, resultMap[key])
+	}
+
+	// 返回结果
+	utility.ResponseSuccess(c, gin.H{
+		"zh":      resultMap["zh"],
+		"pfAll":   resultMap["pfAll"],
+		"pfHalf":  resultMap["pfHalf"],
+		"mgsHalf": resultMap["mgsHalf"],
+		"mgsAll":  resultMap["mgsAll"],
 	})
 }

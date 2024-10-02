@@ -16,8 +16,8 @@ import (
 )
 
 type TeamForm struct {
-	CodeType uint   `json:"code_type" binding:"required,oneof=1 2"` // 1团队码2签到码
-	Content  string `json:"content" binding:"required"`            // 团队码为team_id，签到码为code
+	CodeType uint   `form:"code_type" binding:"required,oneof=1 2"` // 1团队码2签到码
+	Content  string `form:"content" binding:"required"`            // 团队码为team_id，签到码为code
 }
 
 func GetTeam(c *gin.Context) {
@@ -79,6 +79,7 @@ func GetTeam(c *gin.Context) {
 			"point":       team.Point,
 			"status":      team.Status,
 			"start_num":   team.StartNum,
+			"code":        team.Code,
 		},
 		"admin":  user,
 		"member": memberData,

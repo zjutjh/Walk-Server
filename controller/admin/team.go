@@ -22,7 +22,7 @@ type TeamForm struct {
 
 func GetTeam(c *gin.Context) {
 	var postForm TeamForm
-	err := c.ShouldBindJSON(&postForm)
+	err := c.ShouldBindQuery(&postForm)
 	if err != nil {
 		utility.ResponseError(c, "参数错误")
 		return

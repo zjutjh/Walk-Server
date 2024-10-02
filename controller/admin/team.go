@@ -1,7 +1,6 @@
 package admin
 
 import (
-	"fmt"
 	"strconv"
 	"walk-server/constant"
 	"walk-server/global"
@@ -17,18 +16,29 @@ import (
 )
 
 type TeamForm struct {
-	TeamID uint `json:"team_id" binding:"required"`
+	CodeType uint   `json:"code_type" binding:"required,oneof=1 2"` // 1团队码2签到码
+	Content  string `json:"content" binding:"required"`            // 团队码为team_id，签到码为code
 }
 
 func GetTeam(c *gin.Context) {
-	TeamID, err := strconv.Atoi(c.Query("team_id"))
-
+	var postForm TeamForm
+	err := c.ShouldBindJSON(&postForm)
 	if err != nil {
 		utility.ResponseError(c, "参数错误")
 		return
 	}
 	user, _ := adminService.GetAdminByJWT(c)
-	team, err := teamService.GetTeamByID(uint(TeamID))
+	var team *model.Team
+	if postForm.CodeType==1{
+		teamID, convErr := strconv.ParseUint(postForm.Content, 10, 32)
+		if convErr != nil {
+			utility.ResponseError(c, "参数错误")
+			return
+		}
+		team, err = teamService.GetTeamByID(uint(teamID))
+	}else{
+		team, err = teamService.GetTeamByCode(postForm.Content)
+	}
 	if team == nil || err != nil {
 		utility.ResponseError(c, "服务错误")
 		return
@@ -60,7 +70,7 @@ func GetTeam(c *gin.Context) {
 	}
 	utility.ResponseSuccess(c, gin.H{
 		"team": gin.H{
-			"id":          TeamID,
+			"id":          team.ID,
 			"name":        team.Name,
 			"route":       team.Route,
 			"password":    team.Password,
@@ -397,7 +407,7 @@ func GetDetail(c *gin.Context) {
 			Group("teams.point").
 			Order("teams.point").
 			Scan(&pointCounts)
-		fmt.Println(pointCounts)
+
 		for _, pointCount := range pointCounts {
 			if pointCount.Point >= 0 && int(pointCount.Point) < int(constant.PointMap[uint8(route)])+1 {
 				points[pointCount.Point+1] = pointCount.Count

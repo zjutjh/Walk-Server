@@ -12,6 +12,7 @@ import (
 type TeacherRegisterData struct {
 	Name    string `json:"name" binding:"required"`
 	ID      string `json:"id" binding:"required"`
+	StuID   string `json:"stu_id" binding:"required"`
 	Gender  int8   `json:"gender" binding:"required"`
 	Contact struct {
 		QQ     string `json:"qq"`
@@ -35,6 +36,7 @@ func TeacherRegister(context *gin.Context) {
 
 	person := model.Person{
 		OpenId:     jwtData.OpenID,
+		StuId:      postData.StuID,
 		Name:       postData.Name,
 		Gender:     postData.Gender,
 		Campus:     5,
@@ -47,6 +49,7 @@ func TeacherRegister(context *gin.Context) {
 		JoinOp:     5,
 		TeamId:     -1,
 		WalkStatus: 1,
+		Type:       2,
 	}
 
 	result := global.DB.Create(&person)

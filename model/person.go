@@ -24,6 +24,7 @@ type Person struct {
 	CreatedOp  uint8 // 创建团队次数
 	JoinOp     uint8 // 加入团队次数
 	TeamId     int   `gorm:"index;default:-1"`
+	Type       uint8 // 1 学生， 2 教职工
 	WalkStatus uint8 // 1 未开始，2 进行中，3 扫码成功，4 放弃，5 完成
 }
 

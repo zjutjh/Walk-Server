@@ -17,7 +17,7 @@ import (
 
 type TeamForm struct {
 	CodeType uint   `form:"code_type" binding:"required,oneof=1 2"` // 1团队码2签到码
-	Content  string `form:"content" binding:"required"`            // 团队码为team_id，签到码为code
+	Content  string `form:"content" binding:"required"`             // 团队码为team_id，签到码为code
 }
 
 func GetTeam(c *gin.Context) {
@@ -29,14 +29,14 @@ func GetTeam(c *gin.Context) {
 	}
 	user, _ := adminService.GetAdminByJWT(c)
 	var team *model.Team
-	if postForm.CodeType==1{
+	if postForm.CodeType == 1 {
 		teamID, convErr := strconv.ParseUint(postForm.Content, 10, 32)
 		if convErr != nil {
 			utility.ResponseError(c, "参数错误")
 			return
 		}
 		team, err = teamService.GetTeamByID(uint(teamID))
-	}else{
+	} else {
 		team, err = teamService.GetTeamByCode(postForm.Content)
 	}
 	if team == nil || err != nil {
@@ -60,6 +60,7 @@ func GetTeam(c *gin.Context) {
 			"gender":  member.Gender,
 			"open_id": member.OpenId,
 			"campus":  member.Campus,
+			"type":    member.Type,
 			"contact": gin.H{
 				"qq":     member.Qq,
 				"wechat": member.Wechat,

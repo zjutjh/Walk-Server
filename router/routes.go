@@ -76,17 +76,17 @@ func MountRoutes(router *gin.Engine) {
 
 	adminApi := router.Group("/api/v1/admin", middleware.TokenRateLimiter)
 	{
-		adminApi.POST("/auth", admin.AuthByPassword)
-		adminApi.POST("/auth/auto", admin.WeChatLogin)
-		adminApi.POST("/auth/without", admin.AuthWithoutCode)
-		adminApi.GET("/team/status", middleware.CheckAdmin, admin.GetTeam)
-		adminApi.POST("/team/bind", middleware.CheckAdmin, admin.BindTeam)
-		adminApi.POST("/team/update", middleware.CheckAdmin, admin.UpdateTeamStatus)
-		adminApi.POST("/team/user_status", middleware.CheckAdmin, admin.UserStatus)
-		adminApi.POST("/team/secret", middleware.CheckAdmin, admin.BlockWithSecret)
-		adminApi.POST("/team/regroup", middleware.CheckAdmin, admin.Regroup)
-		adminApi.POST("/team/submit", middleware.CheckAdmin, admin.SubmitTeam)
-		adminApi.GET("/detail", admin.GetDetail)
+		adminApi.POST("/auth", admin.AuthByPassword)                                 // 微信登录
+		adminApi.POST("/auth/auto", admin.WeChatLogin)                               // 自动登录
+		adminApi.POST("/auth/without", admin.AuthWithoutCode)                        // 测试登录
+		adminApi.GET("/team/status", middleware.CheckAdmin, admin.GetTeam)           // 获取队伍信息
+		adminApi.POST("/team/bind", middleware.CheckAdmin, admin.BindTeam)           // 绑定队伍
+		adminApi.POST("/team/update", middleware.CheckAdmin, admin.UpdateTeamStatus) // 更新队伍状态
+		adminApi.POST("/team/user_status", middleware.CheckAdmin, admin.UserStatus)  // 更新用户状态
+		adminApi.POST("/team/secret", middleware.CheckAdmin, admin.BlockWithSecret)  // 通过密钥封禁接口
+		adminApi.POST("/team/regroup", middleware.CheckAdmin, admin.Regroup)         // 重新分组
+		adminApi.POST("/team/submit", middleware.CheckAdmin, admin.SubmitTeam)       // 提交团队
+		adminApi.GET("/detail", admin.GetDetail)                                     // 获取路线人员详情
 
 	}
 

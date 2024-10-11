@@ -31,7 +31,7 @@ func RedisInit() {
 	}
 
 	// 初始化每天各路线报名上限
-	for i := 0; i <= 3; i++ { // 枚举天数
+	for i := 0; i <= 2; i++ { // 枚举天数
 		for j := 1; j <= 5; j++ { // 枚举路线编号
 			key := strconv.Itoa(i*10 + j)
 			value := global.Config.GetInt("teamUpperLimit" + "." + strconv.Itoa(i) + "." + strconv.Itoa(j))

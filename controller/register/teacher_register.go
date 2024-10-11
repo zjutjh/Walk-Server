@@ -39,7 +39,6 @@ func TeacherRegister(context *gin.Context) {
 		StuId:      postData.StuID,
 		Name:       postData.Name,
 		Gender:     postData.Gender,
-		Campus:     5,
 		Identity:   postData.ID,
 		Status:     0,
 		Qq:         postData.Contact.QQ,

@@ -8,6 +8,8 @@ GOARCH := amd64
 # Go file
 TARGET := main
 
+FILE := walk2024
+
 # Default target
 all: build
 
@@ -18,7 +20,7 @@ build:
 # Build target
 build-linux:
 	@echo "Building $(TARGET) for $(GOOS)/$(GOARCH)..."
-	GOOS=$(GOOS) GOARCH=$(GOARCH) CGO_ENABLED=$(CGO_ENABLED) go build -o $(TARGET) $(TARGET).go
+	GOOS=$(GOOS) GOARCH=$(GOARCH) CGO_ENABLED=$(CGO_ENABLED) go build -o $(FILE) $(TARGET).go
 
 # Clean up generated files
 clean:

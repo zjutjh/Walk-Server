@@ -368,13 +368,13 @@ func SubmitTeam(c *gin.Context) {
 }
 
 type GetDetailForm struct {
-	Secret string `json:"secret" binding:"required"`
+	Secret string `form:"secret" binding:"required"`
 }
 
 // GetDetail 获取全部路线的点位信息
 func GetDetail(c *gin.Context) {
 	var postForm GetDetailForm
-	if err := c.ShouldBindJSON(&postForm); err != nil {
+	if err := c.ShouldBindQuery(&postForm); err != nil {
 		utility.ResponseError(c, "参数错误")
 		return
 	}

@@ -28,7 +28,6 @@ func UserStatus(c *gin.Context) {
 	user, _ := adminService.GetAdminByJWT(c)
 
 	// 获取个人信息
-
 	person, err := model.GetPerson(postForm.UserID)
 	if err != nil {
 		utility.ResponseError(c, "用户ID错误")
@@ -41,11 +40,6 @@ func UserStatus(c *gin.Context) {
 	b := middleware.CheckRoute(user, &team)
 	if !b {
 		utility.ResponseError(c, "管理员权限不足")
-		return
-	}
-
-	if team.Status != 5 {
-		utility.ResponseError(c, "请先扫团队扫码")
 		return
 	}
 

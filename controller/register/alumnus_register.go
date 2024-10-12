@@ -29,6 +29,10 @@ func AlumnusRegister(context *gin.Context) {
 		utility.ResponseError(context, "信息错误,请检查是否填写有误")
 		return
 	}
+	if user.Type != 3 {
+		utility.ResponseError(context, "信息错误,请检查是否填写有误")
+		return
+	}
 	if user.Tel != postForm.Tel && user.Name != postForm.Name {
 		utility.ResponseError(context, "信息错误,请检查是否填写有误")
 		return

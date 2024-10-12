@@ -19,12 +19,22 @@ func GetTeamByID(id uint) (*model.Team, error) {
 	return &user, nil
 }
 
-
-func  GetTeamByCode(code string) (*model.Team, error) {
+func GetTeamByCode(code string) (*model.Team, error) {
 	user := model.Team{}
 	result := global.DB.Where(
 		&model.Team{
 			Code: code,
+		},
+	).First(&user)
+
+	return &user, result.Error
+}
+
+func GetTeamByCaptain(captainID string) (*model.Team, error) {
+	user := model.Team{}
+	result := global.DB.Where(
+		&model.Team{
+			Captain: captainID,
 		},
 	).First(&user)
 

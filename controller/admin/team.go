@@ -331,9 +331,15 @@ func Regroup(c *gin.Context) {
 	}
 	teamService.Create(newTeam)
 
+	team, err := teamService.GetTeamByCaptain(persons[0].OpenId)
+	if err != nil {
+		utility.ResponseError(c, "服务错误")
+		return
+	}
+
 	// 更新每个人的队伍ID
 	for i, person := range persons {
-		person.TeamId = int(newTeam.ID)
+		person.TeamId = int(team.ID)
 		if i == 0 {
 			person.Status = 2
 		} else {

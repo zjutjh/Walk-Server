@@ -40,7 +40,7 @@ func GetTeam(c *gin.Context) {
 		team, err = teamService.GetTeamByCode(postForm.Content)
 	}
 	if team == nil || err != nil {
-		utility.ResponseError(c, "服务错误")
+		utility.ResponseError(c, "二维码错误，队伍查找失败")
 		return
 	}
 
@@ -105,7 +105,7 @@ func BindTeam(c *gin.Context) {
 	user, _ := adminService.GetAdminByJWT(c)
 	team, err := teamService.GetTeamByID(postForm.TeamID)
 	if team == nil || err != nil {
-		utility.ResponseError(c, "服务错误")
+		utility.ResponseError(c, "队伍查找失败，请重新核对")
 		return
 	}
 
@@ -186,7 +186,7 @@ func UpdateTeamStatus(c *gin.Context) {
 	}
 
 	if team == nil || err != nil {
-		utility.ResponseError(c, "队伍查找失败")
+		utility.ResponseError(c, "队伍查找失败，请重新核对")
 		return
 	}
 
@@ -196,7 +196,7 @@ func UpdateTeamStatus(c *gin.Context) {
 		return
 	}
 	if team.Status != 5 && team.Status != 2 {
-		utility.ResponseError(c, "团队未扫码")
+		utility.ResponseError(c, "团队起点未扫码")
 		return
 	}
 	var persons []model.Person
@@ -268,12 +268,18 @@ func Regroup(c *gin.Context) {
 	}
 
 	var persons []model.Person
+	processedJwts := make(map[string]bool)
 	for _, jwt := range postForm.Jwts {
+		if processedJwts[jwt] {
+			utility.ResponseError(c, "重复扫码,请重新提交")
+		}
+		processedJwts[jwt] = true
+
 		jwtToken := jwt[7:]
 		jwtData, err := utility.ParseToken(jwtToken)
 
 		if err != nil {
-			utility.ResponseError(c, "扫码错误")
+			utility.ResponseError(c, "扫码错误，请重新扫码")
 			return
 		}
 
@@ -281,18 +287,23 @@ func Regroup(c *gin.Context) {
 		person, err := model.GetPerson(jwtData.OpenID)
 
 		if err != nil {
-			utility.ResponseError(c, "扫码错误")
+			utility.ResponseError(c, "扫码错误，请重新扫码")
 			return
 		}
 
 		// 如果已有队伍则退出
 		if person.TeamId != -1 {
-			_, persons := model.GetPersonsInTeam(person.TeamId)
+			captain, persons := model.GetPersonsInTeam(person.TeamId)
 			for _, p := range persons {
 				p.TeamId = -1
 				p.Status = 0
+				p.WalkStatus = 1
 				userService.Update(p)
 			}
+			captain.TeamId = -1
+			captain.Status = 0
+			captain.WalkStatus = 1
+			userService.Update(captain)
 			team, _ := teamService.GetTeamByID(uint(person.TeamId))
 			err = teamService.Delete(*team)
 			if err != nil {
@@ -356,7 +367,7 @@ func SubmitTeam(c *gin.Context) {
 	}
 	team, err := teamService.GetTeamByID(postForm.TeamID)
 	if team == nil || err != nil {
-		utility.ResponseError(c, "服务错误")
+		utility.ResponseError(c, "队伍查找失败，请重新核对")
 		return
 	}
 

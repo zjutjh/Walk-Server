@@ -26,6 +26,7 @@ func GetInfo(context *gin.Context) {
 		"create_op": person.CreatedOp,
 		"join_op":   person.JoinOp,
 		"team_id":   person.TeamId,
+		"type":      person.Type,
 		"contact": gin.H{
 			"qq":     person.Qq,
 			"wechat": person.Wechat,

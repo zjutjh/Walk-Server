@@ -1,7 +1,7 @@
 package wechat
 
 import (
-	wechat "github.com/silenceper/wechat/v2"
+	"github.com/silenceper/wechat/v2"
 	"github.com/silenceper/wechat/v2/cache"
 	miniConfig "github.com/silenceper/wechat/v2/miniprogram/config"
 	"log"

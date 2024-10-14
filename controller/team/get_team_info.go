@@ -36,6 +36,7 @@ func GetTeamInfo(context *gin.Context) {
 		"gender":  captain.Gender,
 		"campus":  captain.Campus,
 		"open_id": captain.OpenId,
+		"type":    captain.Type,
 		"contact": gin.H{
 			"qq":     captain.Qq,
 			"wechat": captain.Wechat,
@@ -50,6 +51,7 @@ func GetTeamInfo(context *gin.Context) {
 			"gender":  member.Gender,
 			"open_id": member.OpenId,
 			"campus":  member.Campus,
+			"type":    member.Type,
 			"contact": gin.H{
 				"qq":     member.Qq,
 				"wechat": member.Wechat,

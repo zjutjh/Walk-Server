@@ -4,6 +4,7 @@ import (
 	"walk-server/controller/admin"
 	"walk-server/controller/basic"
 	"walk-server/controller/message"
+	"walk-server/controller/poster"
 	"walk-server/controller/register"
 	"walk-server/controller/team"
 	"walk-server/controller/user"
@@ -28,6 +29,7 @@ func MountRoutes(router *gin.Engine) {
 		{
 			registerApi.POST("/student", middleware.IsExpired, register.StudentRegister) // 在校生报名地址
 			registerApi.POST("/teacher", middleware.IsExpired, register.TeacherRegister) // 教职工报名地址
+			registerApi.POST("/alumnus", register.AlumnusRegister)                       // 校友报名地址
 		}
 
 		// User
@@ -67,24 +69,26 @@ func MountRoutes(router *gin.Engine) {
 		}
 
 		// 海报相关的 API
-		// picApi := api.Group("/poster", middleware.IsRegistered)
-		// {
-		// 	picApi.GET("/get", poster.GetPoster) // 获取海报
-		// }
-
+		picApi := api.Group("/poster", middleware.IsRegistered)
+		{
+			picApi.GET("/get", poster.GetPoster) // 获取海报
+		}
 	}
 
 	adminApi := router.Group("/api/v1/admin", middleware.TokenRateLimiter)
 	{
-		adminApi.POST("/auth", admin.AuthByPassword)
-		adminApi.POST("/auth/auto", admin.WeChatLogin)
-		adminApi.POST("/auth/without", admin.AuthWithoutCode)
-		adminApi.POST("/user/sd", middleware.CheckAdmin, admin.UserSD)
-		adminApi.POST("/user/sm", middleware.CheckAdmin, admin.UserSM)
-		adminApi.POST("/user/list", middleware.CheckAdmin, admin.UserList)
-		adminApi.POST("/team/sm", middleware.CheckAdmin, admin.TeamSM)
-		adminApi.POST("/team/out", middleware.CheckAdmin, admin.UpdateTeam)
-		adminApi.GET("/team/status", middleware.CheckAdmin, admin.GetTeam)
+		adminApi.POST("/auth", admin.AuthByPassword)                                 // 微信登录
+		adminApi.POST("/auth/auto", admin.WeChatLogin)                               // 自动登录
+		adminApi.POST("/auth/without", admin.AuthWithoutCode)                        // 测试登录
+		adminApi.GET("/team/status", middleware.CheckAdmin, admin.GetTeam)           // 获取队伍信息
+		adminApi.POST("/team/bind", middleware.CheckAdmin, admin.BindTeam)           // 绑定队伍
+		adminApi.POST("/team/update", middleware.CheckAdmin, admin.UpdateTeamStatus) // 更新队伍状态
+		adminApi.POST("/team/user_status", middleware.CheckAdmin, admin.UserStatus)  // 更新用户状态
+		adminApi.POST("/team/secret", middleware.CheckAdmin, admin.BlockWithSecret)  // 通过密钥封禁接口
+		adminApi.POST("/team/regroup", middleware.CheckAdmin, admin.Regroup)         // 重新分组
+		adminApi.POST("/team/submit", middleware.CheckAdmin, admin.SubmitTeam)       // 提交团队
+		adminApi.GET("/detail", admin.GetDetail)                                     // 获取路线人员详情
+
 	}
-	router.GET("/api/v1/api/admin/pf", middleware.TokenRateLimiter, admin.GetDetail)
+
 }

@@ -20,7 +20,7 @@ func GenerateStandardJwt(jwtData *JwtData) (string, error) {
 	claims := jwtData
 	claims.StandardClaims = jwt.StandardClaims{
 		// 过期时间
-		ExpiresAt: time.Now().Add(48 * time.Hour).Unix(), // 设置 2 天后过期
+		ExpiresAt: time.Now().Add(168 * time.Hour).Unix(), // 设置 7 天后过期
 		// 指定token发行人
 		Issuer: "JHWL",
 	}

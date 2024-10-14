@@ -58,23 +58,35 @@ func SubmitTeam(context *gin.Context) {
 		return
 	}
 
-	teamID := strconv.Itoa(int(team.ID))
-	dailyRoute := utility.GetCurrentDate()*10 + team.Route
-	dailyRouteKey := strconv.Itoa(int(dailyRoute))
-	// 运行Lua脚本
-	n, err := submit.Run(global.Rctx, global.Rdb, []string{teamID, dailyRouteKey}).Result()
-	if err != nil {
-		utility.ResponseError(context, "系统异常，请重试")
-		return
-	}
+	if person.Type == 1 {
+		teamID := strconv.Itoa(int(team.ID))
+		dailyRoute := utility.GetCurrentDate()*10 + team.Route
+		dailyRouteKey := strconv.Itoa(int(dailyRoute))
+		// 运行Lua脚本
+		n, err := submit.Run(global.Rctx, global.Rdb, []string{teamID, dailyRouteKey}).Result()
+		if err != nil {
+			utility.ResponseError(context, "系统异常，请重试")
+			return
+		}
 
-	if n.(int64) == 1 {
-		utility.ResponseError(context, "队伍已提交")
-		return
-	} else if n.(int64) == 2 {
-		utility.ResponseError(context, "队伍数量已经到达上限，无法提交")
-		return
+		if n.(int64) == 1 {
+			utility.ResponseError(context, "队伍已提交")
+			return
+		} else if n.(int64) == 2 {
+			utility.ResponseError(context, "队伍数量已经到达上限，无法提交")
+			return
+		}
+	} else {
+		result, err := global.Rdb.SAdd(global.Rctx, "teams", strconv.Itoa(int(team.ID))).Result()
+		if err != nil {
+			utility.ResponseError(context, "系统异常，请重试")
+			return
+		}
+		// 如果 result 为 0，表示重复提交
+		if result == 0 {
+			utility.ResponseError(context, "队伍已提交")
+			return
+		}
 	}
-
 	utility.ResponseSuccess(context, nil)
 }

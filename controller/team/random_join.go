@@ -59,6 +59,11 @@ func RandomJoin(context *gin.Context) {
 	// 获取这个团队原来的队长和队员
 	captain, members := model.GetPersonsInTeam(int(team.ID))
 
+	if captain.Type == 1 && person.Type == 2 {
+		utility.ResponseError(context, "您是教师，无法加入学生队伍")
+		return
+	}
+
 	err = global.DB.Transaction(func(tx *gorm.DB) error {
 		// 队伍成员数量加一
 		if err := tx.Model(&team).Update("num", team.Num+1).Error; err != nil {

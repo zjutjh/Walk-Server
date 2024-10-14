@@ -52,6 +52,7 @@ func StudentRegister(context *gin.Context) {
 		JoinOp:     5,
 		TeamId:     -1,
 		WalkStatus: 1,
+		Type:       1,
 	}
 
 	result := global.DB.Create(&person)

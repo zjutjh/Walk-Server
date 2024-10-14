@@ -130,3 +130,21 @@ func AuthWithoutCode(c *gin.Context) {
 		"jwt":   jwtToken,
 	})
 }
+
+type BlockWithSecretForm struct {
+	Secret string `json:"secret" binding:"required"`
+}
+
+func BlockWithSecret(c *gin.Context) {
+	var postForm BlockWithSecretForm
+	err := c.ShouldBindJSON(&postForm)
+	if err != nil {
+		utility.ResponseError(c, "参数错误")
+		return
+	}
+	if postForm.Secret != global.Config.GetString("server.secret") {
+		utility.ResponseError(c, "密码错误")
+		return
+	}
+	utility.ResponseSuccess(c, nil)
+}

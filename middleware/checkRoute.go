@@ -2,6 +2,7 @@ package middleware
 
 import "walk-server/model"
 
+// CheckRoute 检查管理员权限
 func CheckRoute(admin *model.Admin, team *model.Team) bool {
 	if team.Route == admin.Route {
 		return true

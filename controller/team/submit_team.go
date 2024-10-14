@@ -77,10 +77,14 @@ func SubmitTeam(context *gin.Context) {
 			return
 		}
 	} else {
-		teamID := strconv.Itoa(int(team.ID))
-		teamSubmitted, _ := global.Rdb.SIsMember(global.Rctx, "teams", teamID).Result()
-		if teamSubmitted {
-			utility.ResponseError(context, "该队伍已提交，无法加入")
+		result, err := global.Rdb.SAdd(global.Rctx, "teams", strconv.Itoa(int(team.ID))).Result()
+		if err != nil {
+			utility.ResponseError(context, "系统异常，请重试")
+			return
+		}
+		// 如果 result 为 0，表示重复提交
+		if result == 0 {
+			utility.ResponseError(context, "队伍已提交")
 			return
 		}
 	}

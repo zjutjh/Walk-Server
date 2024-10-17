@@ -242,21 +242,6 @@ func UpdateTeamStatus(c *gin.Context) {
 		team.Point = user.Point
 	}
 
-	if team.Point == int8(constant.PointMap[team.Route]) {
-		for _, p := range persons {
-			if p.WalkStatus == 2 {
-				p.WalkStatus = 5
-				userService.Update(p)
-			}
-		}
-		team.Status = 4
-		teamService.Update(*team)
-		utility.ResponseSuccess(c, gin.H{
-			"progress_num": 0,
-		})
-		return
-	}
-
 	for _, p := range persons {
 		if p.WalkStatus == 3 {
 			p.WalkStatus = 2
@@ -268,6 +253,72 @@ func UpdateTeamStatus(c *gin.Context) {
 	utility.ResponseSuccess(c, gin.H{
 		"progress_num": num,
 	})
+}
+
+type PostDestinationForm struct {
+	TeamID uint `json:"team_id" binding:"required"`
+	Status uint `json:"status" binding:"required,oneof=1 2"`
+}
+
+func PostDestination(c *gin.Context) {
+	var postForm PostDestinationForm
+	err := c.ShouldBindJSON(&postForm)
+
+	if err != nil {
+		utility.ResponseError(c, "参数错误")
+		return
+	}
+
+	user, _ := adminService.GetAdminByJWT(c)
+	team, err := teamService.GetTeamByID(postForm.TeamID)
+	if team == nil || err != nil {
+		utility.ResponseError(c, "队伍查找失败，请重新核对")
+		return
+	}
+
+	b := middleware.CheckRoute(user, team)
+	if !b {
+		utility.ResponseError(c, "该队伍为其他路线")
+		return
+	}
+
+	var persons []model.Person
+	global.DB.Where("team_id = ?", team.ID).Find(&persons)
+	num := uint(0)
+	for _, p := range persons {
+		if p.WalkStatus == 3 || p.WalkStatus == 2 {
+			num++
+		}
+	}
+
+	if num == 0 {
+		team.Status = 3
+		team.Point = int8(constant.PointMap[team.Route])
+		teamService.Update(*team)
+		utility.ResponseSuccess(c, nil)
+		return
+	}
+
+	team.Point = int8(constant.PointMap[team.Route])
+
+	if postForm.Status == 1 {
+		for _, p := range persons {
+			if p.WalkStatus == 2 || p.WalkStatus == 3 {
+				p.WalkStatus = 5
+				userService.Update(p)
+			}
+		}
+		team.Status = 4
+		teamService.Update(*team)
+		utility.ResponseSuccess(c, nil)
+		return
+	} else {
+		team.Status = 3
+		team.Point = int8(constant.PointMap[team.Route])
+		teamService.Update(*team)
+		utility.ResponseSuccess(c, nil)
+		return
+	}
 }
 
 type RegroupForm struct {

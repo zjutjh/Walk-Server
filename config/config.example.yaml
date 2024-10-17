@@ -9,7 +9,8 @@ server:
   secret:  # 管理端高级功能的密码
 
 frontend:
-  url: "" # 前端域名 注：需要加 http/https
+  url: "" # 正式环境前端域名 注：需要加 http/https
+  #url: "http://localhost:3000" # 前端测试域名 注：需要加 http/https
 
 database:
   host: "127.0.0.1"

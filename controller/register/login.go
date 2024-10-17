@@ -2,6 +2,7 @@ package register
 
 import (
 	"github.com/gin-gonic/gin"
+	"walk-server/service/teamService"
 	"walk-server/service/userService"
 	"walk-server/utility"
 )
@@ -33,7 +34,17 @@ func Login(context *gin.Context) {
 		utility.ResponseError(context, "信息错误,请检查是否填写有误")
 		return
 	}
-	user.OpenId = jwtData.OpenID
-	userService.Update(*user)
+	err = userService.Set(jwtData.OpenID, *user)
+	if err != nil {
+		utility.ResponseError(context, "微信已绑定")
+		return
+	}
+	if user.Status == 2 {
+		err = teamService.UpdateCaptain(user.TeamId, user.OpenId)
+		if err != nil {
+			utility.ResponseError(context, "更新队长失败")
+			return
+		}
+	}
 	utility.ResponseSuccess(context, nil)
 }

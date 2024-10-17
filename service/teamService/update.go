@@ -16,3 +16,7 @@ func Delete(a model.Team) error {
 func Create(a model.Team) {
 	global.DB.Create(&a)
 }
+
+func UpdateCaptain(teamID int, openID string) error {
+	return global.DB.Exec("UPDATE teams SET captain = ? WHERE id = ?", openID, teamID).Error
+}

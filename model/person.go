@@ -69,6 +69,16 @@ func UpdatePerson(encOpenID string, person *Person) {
 	global.DB.Where(&Person{OpenId: encOpenID}).Save(person)
 }
 
+func SetPerson(encOpenID string, person *Person) error {
+	// 如果缓存中存在这个数据, 先更新缓存
+	if _, err := global.Rdb.Get(global.Rctx, encOpenID).Result(); err == nil {
+		global.Rdb.Set(global.Rctx, encOpenID, person, 20*time.Minute)
+	}
+
+	// 更新数据库中的数据
+	return global.DB.Exec("UPDATE people SET open_id = ? WHERE open_id = ?", encOpenID, person.OpenId).Error
+}
+
 // 事务中更新
 func TxUpdatePerson(tx *gorm.DB, person *Person) error {
 	// 如果缓存中存在这个数据, 先更新缓存

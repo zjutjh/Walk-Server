@@ -14,6 +14,7 @@ import (
 )
 
 func MountRoutes(router *gin.Engine) {
+	router.POST("/api/v1/redis2mysql", middleware.TokenRateLimiter, team.RedisToMysql) // 从 Redis 中导入数据到 MySQL
 	api := router.Group("/api/v1", middleware.TokenRateLimiter)
 	{
 		if !gin.IsDebugging() {
@@ -59,7 +60,6 @@ func MountRoutes(router *gin.Engine) {
 			teamApi.GET("/disband", middleware.IsExpired, team.DisbandTeam)     // 解散团队
 			teamApi.GET("/rollback", middleware.IsExpired, team.RollBackTeam)   // 撤销提交
 		}
-		api.POST("/redis2mysql", team.RedisToMysql)
 
 		// 事件相关的 API
 		messageApi := api.Group("/message", middleware.IsRegistered, middleware.PerRateLimiter)

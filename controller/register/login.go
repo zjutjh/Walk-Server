@@ -6,18 +6,18 @@ import (
 	"walk-server/utility"
 )
 
-type AlumnusRegisterData struct {
+type LoginData struct {
 	Name string `json:"name" binding:"required"`
 	ID   string `json:"id" binding:"required"`
 	Tel  string `json:"tel" binding:"required"`
 }
 
-func AlumnusRegister(context *gin.Context) {
+func Login(context *gin.Context) {
 	// 获取 openID
 	jwtToken := context.GetHeader("Authorization")[7:]
 	jwtData, _ := utility.ParseToken(jwtToken) // 中间件校验过是否合法了
 
-	var postForm AlumnusRegisterData
+	var postForm LoginData
 	err := context.ShouldBindJSON(&postForm)
 
 	if err != nil {
@@ -26,10 +26,6 @@ func AlumnusRegister(context *gin.Context) {
 	}
 	user, err := userService.GetUserByID(postForm.ID)
 	if err != nil {
-		utility.ResponseError(context, "信息错误,请检查是否填写有误")
-		return
-	}
-	if user.Type != 3 {
 		utility.ResponseError(context, "信息错误,请检查是否填写有误")
 		return
 	}

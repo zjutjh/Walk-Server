@@ -30,7 +30,7 @@ func MountRoutes(router *gin.Engine) {
 		{
 			registerApi.POST("/student", middleware.IsExpired, register.StudentRegister) // 在校生报名地址
 			registerApi.POST("/teacher", middleware.IsExpired, register.TeacherRegister) // 教职工报名地址
-			registerApi.POST("/alumnus", register.AlumnusRegister)                       // 校友报名地址
+			registerApi.POST("/alumnus", register.Login)                                 // 导入成员登录地址
 		}
 
 		// User

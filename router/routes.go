@@ -88,6 +88,7 @@ func MountRoutes(router *gin.Engine) {
 		adminApi.POST("/team/regroup", middleware.CheckAdmin, admin.Regroup)         // 重新分组
 		adminApi.POST("/team/submit", middleware.CheckAdmin, admin.SubmitTeam)       // 提交团队
 		adminApi.GET("/detail", admin.GetDetail)                                     // 获取路线人员详情
+		adminApi.GET("/submit", admin.GetSubmitDetail)                               // 获取报名人员列表
 
 	}
 

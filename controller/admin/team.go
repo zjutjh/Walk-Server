@@ -502,3 +502,149 @@ func GetDetail(c *gin.Context) {
 		"mgsAll":  resultMap["mgsAll"],
 	})
 }
+
+type Result struct {
+	Route    string
+	TeamType string
+	TeamNum  int64
+	TotalNum int64
+}
+
+// 定义结果类型
+type Results struct {
+	Zh      []Result `json:"zh"`
+	PfHalf  []Result `json:"pfHalf"`
+	PfAll   []Result `json:"pfAll"`
+	MgsHalf []Result `json:"mgsHalf"`
+	MgsAll  []Result `json:"mgsAll"`
+}
+
+// GetSubmitDetail 获取已提交队伍信息
+func GetSubmitDetail(c *gin.Context) {
+	var postForm GetDetailForm
+	if err := c.ShouldBindQuery(&postForm); err != nil {
+		utility.ResponseError(c, "参数错误")
+		return
+	}
+	if postForm.Secret != global.Config.GetString("server.secret") {
+		utility.ResponseError(c, "密码错误")
+		return
+	}
+
+	// 创建结果集合
+	var results Results
+	submit := 1
+
+	// 定义路线和队伍类型的映射
+	routes := []struct {
+		Name  string
+		Route int
+	}{
+		{"朝晖", 1},
+		{"屏峰半程", 2},
+		{"屏峰全程", 3},
+		{"莫干山半程", 4},
+		{"莫干山全程", 5},
+	}
+
+	teamTypes := []struct {
+		Type    int
+		Name    string
+		IsMixed bool // 是否为师生队
+	}{
+		{1, "学生队", false},
+		{2, "教师队", false},
+		{2, "师生队", true},
+	}
+
+	// 获取各个路线的队伍数据
+	for _, r := range routes {
+		for _, t := range teamTypes {
+			teamCount, totalCount := getTeamStats(r.Route, submit, t.Type, t.IsMixed)
+
+			switch r.Name {
+			case "朝晖":
+				results.Zh = append(results.Zh, Result{
+					Route:    r.Name,
+					TeamType: t.Name,
+					TeamNum:  teamCount,
+					TotalNum: totalCount,
+				})
+			case "屏峰半程":
+				results.PfHalf = append(results.PfHalf, Result{
+					Route:    r.Name,
+					TeamType: t.Name,
+					TeamNum:  teamCount,
+					TotalNum: totalCount,
+				})
+			case "屏峰全程":
+				results.PfAll = append(results.PfAll, Result{
+					Route:    r.Name,
+					TeamType: t.Name,
+					TeamNum:  teamCount,
+					TotalNum: totalCount,
+				})
+			case "莫干山半程":
+				results.MgsHalf = append(results.MgsHalf, Result{
+					Route:    r.Name,
+					TeamType: t.Name,
+					TeamNum:  teamCount,
+					TotalNum: totalCount,
+				})
+			case "莫干山全程":
+				results.MgsAll = append(results.MgsAll, Result{
+					Route:    r.Name,
+					TeamType: t.Name,
+					TeamNum:  teamCount,
+					TotalNum: totalCount,
+				})
+			}
+		}
+	}
+
+	// 返回结果
+	utility.ResponseSuccess(c, gin.H{"results": results})
+}
+
+// 定义一个函数用于统计队伍数量和总人数
+func getTeamStats(route int, submit int, captainType int, hasStudent bool) (int64, int64) {
+	var teamCount int64
+	var totalCount int64
+
+	// 基础查询
+	teamQuery := global.DB.Model(&model.Team{}).
+		Joins("JOIN people AS captain ON captain.open_id = teams.captain").
+		Where("teams.route = ? AND teams.submit = ?", route, submit).
+		Where("captain.type = ?", captainType)
+
+	// 根据是否有学生的条件进行筛选
+	if captainType == 2 {
+		if hasStudent {
+			teamQuery = teamQuery.Where("EXISTS (SELECT 1 FROM people WHERE people.team_id = teams.id AND people.type = 1)")
+		} else {
+			teamQuery = teamQuery.Where("NOT EXISTS (SELECT 1 FROM people WHERE people.team_id = teams.id AND people.type = 1)")
+		}
+	}
+
+	// 统计队伍数量
+	teamQuery.Count(&teamCount)
+
+	// 统计总人数
+	totalQuery := global.DB.Model(&model.Person{}).
+		Joins("JOIN teams ON people.team_id = teams.id").
+		Joins("JOIN people AS captain ON captain.open_id = teams.captain").
+		Where("teams.route = ? AND teams.submit = ?", route, submit).
+		Where("captain.type = ?", captainType)
+
+	if captainType == 2 {
+		if hasStudent {
+			totalQuery = totalQuery.Where("EXISTS (SELECT 1 FROM people WHERE people.team_id = teams.id AND people.type = 1)")
+		} else {
+			totalQuery = totalQuery.Where("NOT EXISTS (SELECT 1 FROM people WHERE people.team_id = teams.id AND people.type = 1)")
+		}
+	}
+
+	totalQuery.Count(&totalCount)
+
+	return teamCount, totalCount
+}

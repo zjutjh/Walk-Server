@@ -30,7 +30,7 @@ func UserStatus(c *gin.Context) {
 	// 获取个人信息
 	person, err := model.GetPerson(postForm.UserID)
 	if err != nil {
-		utility.ResponseError(c, "用户ID错误")
+		utility.ResponseError(c, "扫码错误，查找用户失败，请再次核对")
 		return
 	}
 
@@ -39,7 +39,7 @@ func UserStatus(c *gin.Context) {
 	// 管理员只能管理自己所在的校区
 	b := middleware.CheckRoute(user, &team)
 	if !b {
-		utility.ResponseError(c, "管理员权限不足")
+		utility.ResponseError(c, "该队伍为其他路线")
 		return
 	}
 

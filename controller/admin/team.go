@@ -46,7 +46,7 @@ func GetTeam(c *gin.Context) {
 
 	b := middleware.CheckRoute(user, team)
 	if !b {
-		utility.ResponseError(c, "管理员权限不足")
+		utility.ResponseError(c, "该队伍为其他路线")
 		return
 	}
 
@@ -111,7 +111,7 @@ func BindTeam(c *gin.Context) {
 
 	b := middleware.CheckRoute(user, team)
 	if !b {
-		utility.ResponseError(c, "管理员权限不足")
+		utility.ResponseError(c, "该队伍为其他路线")
 		return
 	}
 
@@ -192,7 +192,7 @@ func UpdateTeamStatus(c *gin.Context) {
 
 	b := middleware.CheckRoute(user, team)
 	if !b {
-		utility.ResponseError(c, "管理员权限不足")
+		utility.ResponseError(c, "该队伍为其他路线")
 		return
 	}
 	if team.Status != 5 && team.Status != 2 {
@@ -218,7 +218,29 @@ func UpdateTeamStatus(c *gin.Context) {
 		return
 	}
 
-	team.Point = user.Point
+	// 各路线点位签到逻辑设置
+	switch team.Route {
+	case 5:
+		switch {
+		case team.Point == 1 && (user.Point == 2 || user.Point == 6):
+			team.Point = 2
+		case team.Point == 4 && (user.Point == 2 || user.Point == 6):
+			team.Point = 6
+		default:
+			team.Point = user.Point
+		}
+	case 2:
+		if user.Point > 2 {
+			team.Point = user.Point - 2
+		}
+	case 3:
+		if user.Route == 2 {
+			utility.ResponseError(c, "该队伍为其他路线")
+			return
+		}
+	default:
+		team.Point = user.Point
+	}
 
 	if team.Point == int8(constant.PointMap[team.Route]) {
 		for _, p := range persons {

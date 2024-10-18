@@ -18,5 +18,5 @@ func Create(a model.Team) {
 }
 
 func UpdateCaptain(teamID int, openID string) error {
-	return global.DB.Exec("UPDATE teams SET captain = ? WHERE id = ?", openID, teamID).Error
+	return global.DB.Model(&model.Team{}).Where("id = ?", teamID).Update("captain", openID).Error
 }

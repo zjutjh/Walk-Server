@@ -40,7 +40,7 @@ func Login(context *gin.Context) {
 		return
 	}
 	if user.Status == 2 {
-		err = teamService.UpdateCaptain(user.TeamId, user.OpenId)
+		err = teamService.UpdateCaptain(user.TeamId, jwtData.OpenID)
 		if err != nil {
 			utility.ResponseError(context, "更新队长失败")
 			return

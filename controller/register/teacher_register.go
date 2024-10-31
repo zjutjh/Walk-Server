@@ -34,6 +34,13 @@ func TeacherRegister(context *gin.Context) {
 		return
 	}
 
+	var user model.Person
+	result := global.DB.Where("identity = ? Or tel = ?", postData.ID, postData.Contact.Tel).Take(&user)
+	if result.RowsAffected != 0 {
+		utility.ResponseError(context, "您已经注册过了，请到登录页面登录")
+		return
+	}
+
 	person := model.Person{
 		OpenId:     jwtData.OpenID,
 		StuId:      postData.StuID,
@@ -51,7 +58,7 @@ func TeacherRegister(context *gin.Context) {
 		Type:       2,
 	}
 
-	result := global.DB.Create(&person)
+	result = global.DB.Create(&person)
 	if result.RowsAffected == 0 {
 		utility.ResponseError(context, "报名失败，请重试")
 	} else {

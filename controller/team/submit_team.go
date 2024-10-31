@@ -59,6 +59,10 @@ func SubmitTeam(context *gin.Context) {
 	}
 
 	if person.Type == 1 {
+		if team.Submit != true {
+			utility.ResponseError(context, "队伍提交失败，等待后续补报")
+			return
+		}
 		teamID := strconv.Itoa(int(team.ID))
 		dailyRoute := utility.GetCurrentDate()*10 + team.Route
 		dailyRouteKey := strconv.Itoa(int(dailyRoute))

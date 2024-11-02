@@ -59,6 +59,7 @@ func MountRoutes(router *gin.Engine) {
 			teamApi.GET("/remove", middleware.IsExpired, team.RemoveMember)                       // 移除队员
 			teamApi.GET("/disband", middleware.IsExpired, middleware.Intercept, team.DisbandTeam) // 解散团队
 			teamApi.GET("/rollback", middleware.IsExpired, team.RollBackTeam)                     // 撤销提交
+			teamApi.POST("/captain", middleware.IsExpired, team.ChangeCaptain)                    // 更换队长
 		}
 
 		// 事件相关的 API

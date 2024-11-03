@@ -2,6 +2,7 @@ package team
 
 import (
 	"github.com/gin-gonic/gin"
+	"strconv"
 	"walk-server/global"
 	"walk-server/model"
 	"walk-server/utility"
@@ -39,6 +40,14 @@ func ChangeCaptain(context *gin.Context) {
 		return
 	}
 
+	// 判断队伍是否提交
+	teamID := strconv.Itoa(int(team.ID))
+	teamSubmitted, _ := global.Rdb.SIsMember(global.Rctx, "teams", teamID).Result()
+	if teamSubmitted {
+		utility.ResponseError(context, "该队伍已经提交，无法修改")
+		return
+	}
+
 	// 获取请求参数
 	var data request
 	err := context.ShouldBindJSON(&data)
@@ -58,6 +67,12 @@ func ChangeCaptain(context *gin.Context) {
 	if newCaptain.TeamId != person.TeamId {
 		utility.ResponseError(context, "不在队伍中")
 		return
+	}
+
+	if person.Type != 1 && newCaptain.Type == 1 {
+		utility.ResponseError(context, "无法将队长移交给学生")
+		return
+
 	}
 
 	// 更换队长

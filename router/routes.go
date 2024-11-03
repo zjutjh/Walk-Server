@@ -53,7 +53,7 @@ func MountRoutes(router *gin.Engine) {
 			teamApi.POST("/random-list", team.GetRandomList)                                      // 随机获取开放随机组队的团队列表
 			teamApi.POST("/random-join", middleware.IsExpired, team.RandomJoin)                   // 通过随机列表加入团队
 			teamApi.POST("/create", middleware.IsExpired, middleware.Intercept, team.CreateTeam)  // 创建团队
-			teamApi.POST("/update", middleware.IsExpired, middleware.Intercept, team.UpdateTeam)  // 修改队伍信息
+			teamApi.POST("/update", middleware.IsExpired, team.UpdateTeam)                        // 修改队伍信息
 			teamApi.POST("/join", middleware.IsExpired, team.JoinTeam)                            // 加入团队
 			teamApi.GET("/leave", middleware.IsExpired, team.LeaveTeam)                           // 离开团队
 			teamApi.GET("/remove", middleware.IsExpired, team.RemoveMember)                       // 移除队员

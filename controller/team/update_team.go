@@ -53,7 +53,7 @@ func UpdateTeam(context *gin.Context) {
 		return
 	}
 	team.Name = updateTeamData.Name
-	team.Route = updateTeamData.Route
+	//team.Route = updateTeamData.Route
 	team.Password = updateTeamData.Password
 	team.AllowMatch = *updateTeamData.AllowMatch
 	team.Slogan = updateTeamData.Slogan

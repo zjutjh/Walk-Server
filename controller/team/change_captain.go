@@ -2,6 +2,7 @@ package team
 
 import (
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 	"strconv"
 	"walk-server/global"
 	"walk-server/model"
@@ -65,7 +66,7 @@ func ChangeCaptain(context *gin.Context) {
 
 	// 判断新队长是否在队伍中
 	if newCaptain.TeamId != person.TeamId {
-		utility.ResponseError(context, "不在队伍中")
+		utility.ResponseError(context, "该用户不在队伍中")
 		return
 	}
 
@@ -75,15 +76,28 @@ func ChangeCaptain(context *gin.Context) {
 
 	}
 
-	// 更换队长
-	team.Captain = newCaptain.OpenId
-	global.DB.Save(&team)
+	err = global.DB.Transaction(func(tx *gorm.DB) error {
+		// 更换队长
+		team.Captain = newCaptain.OpenId
+		tx.Save(&team)
 
-	person.Status = 1
-	model.UpdatePerson(jwtData.OpenID, person)
+		person.Status = 1
+		err := model.TxUpdatePerson(tx, person)
+		if err != nil {
+			return err
+		}
 
-	newCaptain.Status = 2
-	model.UpdatePerson(data.OpenID, newCaptain)
+		newCaptain.Status = 2
+		err = model.TxUpdatePerson(tx, newCaptain)
+		if err != nil {
+			return err
+		}
 
+		return nil
+	})
+	if err != nil {
+		utility.ResponseError(context, "服务异常，请重试")
+		return
+	}
 	utility.ResponseSuccess(context, nil)
 }

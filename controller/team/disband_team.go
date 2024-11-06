@@ -36,6 +36,11 @@ func DisbandTeam(context *gin.Context) {
 		return
 	}
 
+	if team.Submit == true {
+		utility.ResponseError(context, "该队伍已有提交资格，无法解散")
+		return
+	}
+
 	// 查找团队所有用户
 	captain, members := model.GetPersonsInTeam(int(team.ID))
 

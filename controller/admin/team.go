@@ -2,6 +2,7 @@ package admin
 
 import (
 	"strconv"
+	"time"
 	"walk-server/constant"
 	"walk-server/global"
 	"walk-server/middleware"
@@ -152,6 +153,7 @@ func BindTeam(c *gin.Context) {
 	team.Point = 0
 	team.Status = 5
 	team.StartNum = num
+	team.Time = time.Now()
 	teamService.Update(*team)
 	utility.ResponseSuccess(c, nil)
 }
@@ -250,6 +252,7 @@ func UpdateTeamStatus(c *gin.Context) {
 			userService.Update(p)
 		}
 	}
+	team.Time = time.Now()
 	team.Status = 2
 	teamService.Update(*team)
 	utility.ResponseSuccess(c, gin.H{
@@ -307,6 +310,7 @@ func PostDestination(c *gin.Context) {
 	}
 
 	team.Point = int8(constant.PointMap[team.Route])
+	team.Time = time.Now()
 
 	if postForm.Status == 1 {
 		for _, p := range persons {

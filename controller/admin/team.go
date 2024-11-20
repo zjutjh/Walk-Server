@@ -149,6 +149,7 @@ func BindTeam(c *gin.Context) {
 	}
 
 	team.Code = postForm.Code
+	team.Point = 0
 	team.Status = 5
 	team.StartNum = num
 	teamService.Update(*team)
@@ -230,13 +231,14 @@ func UpdateTeamStatus(c *gin.Context) {
 			team.Point = user.Point
 		}
 	case 2:
+		if user.Route == 3 && (user.Point == 2 || user.Point == 3 || user.Point == 4) {
+			utility.ResponseError(c, "该队伍为半程路线")
+			return
+		}
 		if user.Point > 2 {
 			team.Point = user.Point - 2
-		}
-	case 3:
-		if user.Route == 2 {
-			utility.ResponseError(c, "该队伍为其他路线")
-			return
+		} else {
+			team.Point = user.Point
 		}
 	default:
 		team.Point = user.Point
@@ -289,6 +291,11 @@ func PostDestination(c *gin.Context) {
 		if p.WalkStatus == 3 || p.WalkStatus == 2 {
 			num++
 		}
+	}
+
+	if team.Status == 4 || team.Status == 3 {
+		utility.ResponseError(c, "队伍状态已确认，有疑问请咨询管理员")
+		return
 	}
 
 	if num == 0 {
@@ -606,6 +613,7 @@ func GetSubmitDetail(c *gin.Context) {
 		{1, "学生队", false},
 		{2, "教师队", false},
 		{2, "师生队", true},
+		{3, "校友队", false},
 	}
 
 	// 获取各个路线的队伍数据

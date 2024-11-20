@@ -223,10 +223,10 @@ func UpdateTeamStatus(c *gin.Context) {
 	switch team.Route {
 	case 5:
 		switch {
-		case team.Point == 1 && (user.Point == 2 || user.Point == 6):
+		case team.Point == 1 && (user.Point == 2 || user.Point == 5):
 			team.Point = 2
-		case team.Point == 4 && (user.Point == 2 || user.Point == 6):
-			team.Point = 6
+		case team.Point == 4 && (user.Point == 2 || user.Point == 5):
+			team.Point = 5
 		default:
 			team.Point = user.Point
 		}
@@ -321,7 +321,6 @@ func PostDestination(c *gin.Context) {
 		return
 	} else {
 		team.Status = 3
-		team.Point = int8(constant.PointMap[team.Route])
 		teamService.Update(*team)
 		utility.ResponseSuccess(c, nil)
 		return

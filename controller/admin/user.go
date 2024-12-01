@@ -1,6 +1,7 @@
 package admin
 
 import (
+	"errors"
 	"walk-server/global"
 	"walk-server/middleware"
 	"walk-server/model"
@@ -11,171 +12,88 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type UserSMForm struct {
-	Jwt        string `json:"jwt" binding:"required"`
-	WalkStatus uint   `json:"walk_status" binding:"required"`
+type UserStatusForm struct {
+	UserID string `json:"user_id" binding:"required"`
+	Status int    `json:"status" binding:"required,oneof=1 2"`
 }
 
-func UserSM(c *gin.Context) {
-	var postForm UserSMForm
-	err := c.ShouldBindJSON(&postForm)
-	if err != nil {
-		utility.ResponseError(c, "参数错误")
-		return
-	}
-
-	user, err := adminService.GetAdminByJWT(c)
-
-	jwtToken := postForm.Jwt
-	jwtToken = jwtToken[7:]
-	jwtData, err := utility.ParseToken(jwtToken)
-
-	if err != nil {
-		utility.ResponseError(c, "扫码错误")
-	}
-
-	// 获取个人信息
-	person, err := model.GetPerson(jwtData.OpenID)
-
-	if err != nil {
-		utility.ResponseError(c, "扫码错误")
-	}
-
-	var team model.Team
-	global.DB.Where("id = ?", person.TeamId).Take(&team)
-
-	b := middleware.CheckRoute(user, &team)
-	if !b {
-		utility.ResponseError(c, "管理员权限不足")
-		return
-	}
-
-	if team.Status != 5 {
-		utility.ResponseError(c, "请先扫团队扫码")
-		return
-	}
-
-	if person.WalkStatus == 5 {
-		utility.ResponseError(c, "成员已结束毅行")
-		return
-	}
-
-	if postForm.WalkStatus == 1 {
-		person.WalkStatus = 3
-	} else if postForm.WalkStatus == 2 {
-		person.WalkStatus = 4
-	} else {
-		utility.ResponseError(c, "参数错误")
-		return
-	}
-	userService.Update(*person)
-
-	utility.ResponseSuccess(c, gin.H{
-		"openId": person.OpenId,
-	})
+type UserStatusList struct {
+	List []UserStatusForm `json:"list" binding:"required"`
 }
 
-type UserSDForm struct {
-	UserID     string `json:"user_id" binding:"required"`
-	WalkStatus uint   `json:"walk_status" binding:"required"`
-}
-
-// UserSD 手动输入userID
-func UserSD(c *gin.Context) {
-	var postForm UserSDForm
-	err := c.ShouldBindJSON(&postForm)
-	if err != nil {
+// UserStatus handles user status updates
+func UserStatus(c *gin.Context) {
+	var postForm UserStatusList
+	if err := c.ShouldBindJSON(&postForm); err != nil {
 		utility.ResponseError(c, "参数错误")
 		return
 	}
 
-	user, err := adminService.GetAdminByJWT(c)
+	// 获取管理员信息
+	user, _ := adminService.GetAdminByJWT(c)
 
-	// 获取个人信息
-	person, err := model.GetPerson(postForm.UserID)
+	// 批量获取用户和队伍信息
+	users, teams, err := getUsersAndTeams(postForm.List)
 	if err != nil {
-		utility.ResponseError(c, "用户ID错误")
+		utility.ResponseError(c, err.Error())
 		return
 	}
 
-	var team model.Team
-	global.DB.Where("id = ?", person.TeamId).Take(&team)
+	// 验证用户权限
+	for _, person := range users {
+		team, exists := teams[person.TeamId]
+		if !exists {
+			utility.ResponseError(c, "队伍信息获取失败")
+			return
+		}
 
-	b := middleware.CheckRoute(user, &team)
-	if !b {
-		utility.ResponseError(c, "管理员权限不足")
-		return
+		// 管理员只能管理自己所在的校区
+		if !middleware.CheckRoute(user, &team) {
+			utility.ResponseError(c, "该队伍为其他路线")
+			return
+		}
+
+		// 验证毅行状态
+		if person.WalkStatus == 5 {
+			utility.ResponseError(c, "成员已结束毅行")
+			return
+		}
 	}
 
-	if team.Status != 5 {
-		utility.ResponseError(c, "请先扫团队扫码")
-		return
+	// 更新用户状态
+	for _, form := range postForm.List {
+		person := users[form.UserID]
+		if form.Status == 1 {
+			person.WalkStatus = 3
+		} else {
+			person.WalkStatus = 4
+		}
+		userService.Update(*person)
 	}
-
-	if person.WalkStatus == 5 {
-		utility.ResponseError(c, "成员已结束毅行")
-		return
-	}
-
-	if postForm.WalkStatus == 1 {
-		person.WalkStatus = 3
-	} else if postForm.WalkStatus == 2 {
-		person.WalkStatus = 4
-	} else {
-		utility.ResponseError(c, "参数错误")
-		return
-	}
-	userService.Update(*person)
 
 	utility.ResponseSuccess(c, nil)
 }
 
-type UserSDList struct {
-	User []UserSDForm `json:"user" binding:"required"`
-}
+// getUsersAndTeams retrieves user and team data for the given user IDs
+func getUsersAndTeams(forms []UserStatusForm) (map[string]*model.Person, map[int]model.Team, error) {
+	userMap := make(map[string]*model.Person)
+	teamMap := make(map[int]model.Team)
 
-func UserList(c *gin.Context) {
-	var postForm UserSDList
-	err := c.ShouldBindJSON(&postForm)
-	if err != nil {
-		utility.ResponseError(c, "参数错误")
-		return
-	}
-
-	user, err := adminService.GetAdminByJWT(c)
-
-	// 获取团队信息
-	person, err := model.GetPerson(postForm.User[0].UserID)
-	if err != nil {
-		utility.ResponseError(c, "用户ID错误")
-		return
-	}
-	var team model.Team
-	global.DB.Where("id = ?", person.TeamId).Take(&team)
-
-	b := middleware.CheckRoute(user, &team)
-	if !b {
-		utility.ResponseError(c, "管理员权限不足")
-		return
-	}
-
-	if team.Status != 5 {
-		utility.ResponseError(c, "请先扫团队扫码")
-		return
-	}
-
-	for _, p := range postForm.User {
-		teamPerson, _ := model.GetPerson(p.UserID)
-		if teamPerson.WalkStatus == 4 || teamPerson.WalkStatus == 5 {
-			continue
+	for _, form := range forms {
+		person, err := model.GetPerson(form.UserID)
+		if err != nil {
+			return nil, nil, errors.New("扫码错误，查找用户失败，请再次核对")
 		}
-		if p.WalkStatus == 1 {
-			teamPerson.WalkStatus = 3
-		} else if p.WalkStatus == 2 {
-			teamPerson.WalkStatus = 4
+		userMap[form.UserID] = person
+
+		if _, exists := teamMap[person.TeamId]; !exists {
+			var team model.Team
+			if err := global.DB.Where("id = ?", person.TeamId).Take(&team).Error; err != nil {
+				return nil, nil, errors.New("队伍信息获取失败")
+			}
+			teamMap[person.TeamId] = team
 		}
-		userService.Update(*teamPerson)
 	}
 
-	utility.ResponseSuccess(c, nil)
+	return userMap, teamMap, nil
 }

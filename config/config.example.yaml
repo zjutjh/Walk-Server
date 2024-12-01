@@ -1,14 +1,16 @@
 server:
-  wechatAPPID: "" # 公众号开发者ID（AppID） 切记不可泄漏
+  wechatAPPID: "" # 公众号开发者ID（AppID） 切记不可泄漏，个人服务号没有权限使用网页授权，需要使用服务号
   wechatSecret: "" # 公众号开发者密码（AppSecret） 切记不可泄漏
-  wechatRedirect: "" # 回调链接的地址（即授权后重定向的uri） 注：需要加 http/https
-  JWTSecret: "" # JWT 加密密钥
-  AESSecret: "" # AES 加密密钥
-  port: "8888"
+  wechatRedirect: "" # 回调链接的地址（即授权后重定向的login接口uri） 注：需要加 http/https 
+  JWTSecret: "" # JWT 加密密钥，长度不限
+  AESSecret: "" # AES 加密密钥，长度为16位
+  port: ""
   debug: true # 这个设置大多数情况下无法热更新 修改了这个配置后请重启服务器
+  secret:  # 管理端高级功能的密码
 
 frontend:
-  url: "" # 前端域名 注：需要加 http/https
+  url: "" # 正式环境前端域名 注：需要加 http/https
+  #url: "http://localhost:3000" # 前端测试域名 注：需要加 http/https
 
 database:
   host: "127.0.0.1"
@@ -23,8 +25,8 @@ redis:
   password: ""
   db: 0
 
-startDate: "2021-11-01 00:00:00"  # 报名开始的日期
-expiredDate: "2021-11-10 00:00:00" # 报名结束的日期
+startDate: "2024-10-08 00:00:00"  # 报名开始的日期
+expiredDate: "2024-10-18 00:00:00" # 报名结束的日期
 
 teamUpperLimit: # 每天的团队上限
   0: # 第一天
@@ -45,12 +47,7 @@ teamUpperLimit: # 每天的团队上限
     3: 66
     4: 75
     5: 25
-  3: # 第四天
-    1: 150
-    2: 120
-    3: 99
-    4: 100
-    5: 50
+
 
 QPS: 5000 # 任意一秒内最多可以接受的并发量
 wechat: # 微信小程序相关配置 (切记不能泄漏）
@@ -64,3 +61,4 @@ number:
   PF_All:
   MGS_Half:
   MGS_All:
+

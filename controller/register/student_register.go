@@ -36,6 +36,13 @@ func StudentRegister(context *gin.Context) {
 		return
 	}
 
+	var user model.Person
+	result := global.DB.Where("identity = ? Or tel = ?", postData.ID, postData.Contact.Tel).Take(&user)
+	if result.RowsAffected != 0 {
+		utility.ResponseError(context, "您已经注册过了，请到登录页面登录")
+		return
+	}
+
 	person := model.Person{
 		OpenId:     jwtData.OpenID,
 		Name:       postData.Name,
@@ -52,9 +59,10 @@ func StudentRegister(context *gin.Context) {
 		JoinOp:     5,
 		TeamId:     -1,
 		WalkStatus: 1,
+		Type:       1,
 	}
 
-	result := global.DB.Create(&person)
+	result = global.DB.Create(&person)
 	if result.RowsAffected == 0 {
 		utility.ResponseError(context, "报名失败，请重试")
 	} else {

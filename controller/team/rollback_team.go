@@ -37,9 +37,11 @@ func RollBackTeam(context *gin.Context) {
 
 	// 删除队伍的提交状态
 	global.Rdb.SRem(global.Rctx, "teams", teamID)
-	dailyRoute := utility.GetCurrentDate()*10 + team.Route
-	dailyRouteKey := strconv.Itoa(int(dailyRoute))
-	global.Rdb.Incr(global.Rctx, dailyRouteKey)
-
+	var dailyRouteKey string
+	if person.Type == 1 {
+		dailyRoute := utility.GetCurrentDate()*10 + team.Route
+		dailyRouteKey = strconv.Itoa(int(dailyRoute))
+		global.Rdb.Incr(global.Rctx, dailyRouteKey)
+	}
 	utility.ResponseSuccess(context, nil)
 }

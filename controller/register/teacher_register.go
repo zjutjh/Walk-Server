@@ -12,6 +12,7 @@ import (
 type TeacherRegisterData struct {
 	Name    string `json:"name" binding:"required"`
 	ID      string `json:"id" binding:"required"`
+	StuID   string `json:"stu_id" binding:"required"`
 	Gender  int8   `json:"gender" binding:"required"`
 	Contact struct {
 		QQ     string `json:"qq"`
@@ -33,11 +34,18 @@ func TeacherRegister(context *gin.Context) {
 		return
 	}
 
+	var user model.Person
+	result := global.DB.Where("identity = ? Or tel = ?", postData.ID, postData.Contact.Tel).Take(&user)
+	if result.RowsAffected != 0 {
+		utility.ResponseError(context, "您已经注册过了，请到登录页面登录")
+		return
+	}
+
 	person := model.Person{
 		OpenId:     jwtData.OpenID,
+		StuId:      postData.StuID,
 		Name:       postData.Name,
 		Gender:     postData.Gender,
-		Campus:     5,
 		Identity:   postData.ID,
 		Status:     0,
 		Qq:         postData.Contact.QQ,
@@ -47,9 +55,10 @@ func TeacherRegister(context *gin.Context) {
 		JoinOp:     5,
 		TeamId:     -1,
 		WalkStatus: 1,
+		Type:       2,
 	}
 
-	result := global.DB.Create(&person)
+	result = global.DB.Create(&person)
 	if result.RowsAffected == 0 {
 		utility.ResponseError(context, "报名失败，请重试")
 	} else {

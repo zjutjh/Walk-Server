@@ -11,7 +11,7 @@ import (
 // TimeValidity Require implement ... Check if in open time
 func TimeValidity(ctx *gin.Context) {
 	if !utility.CanOpenApi() {
-		utility.ResponseError(ctx, "time error")
+		utility.ResponseError(ctx, "还没到开放时间，不能访问哦")
 		ctx.Abort()
 		return
 	}

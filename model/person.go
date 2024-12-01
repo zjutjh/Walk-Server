@@ -24,6 +24,7 @@ type Person struct {
 	CreatedOp  uint8 // 创建团队次数
 	JoinOp     uint8 // 加入团队次数
 	TeamId     int   `gorm:"index;default:-1"`
+	Type       uint8 // 1 学生， 2 教职工
 	WalkStatus uint8 // 1 未开始，2 进行中，3 扫码成功，4 放弃，5 完成
 }
 
@@ -66,6 +67,16 @@ func UpdatePerson(encOpenID string, person *Person) {
 
 	// 更新数据库中的数据
 	global.DB.Where(&Person{OpenId: encOpenID}).Save(person)
+}
+
+func SetPerson(encOpenID string, person *Person) error {
+	// 如果缓存中存在这个数据, 先更新缓存
+	if _, err := global.Rdb.Get(global.Rctx, encOpenID).Result(); err == nil {
+		global.Rdb.Set(global.Rctx, encOpenID, person, 20*time.Minute)
+	}
+
+	// 更新数据库中的数据
+	return global.DB.Exec("UPDATE people SET open_id = ? WHERE open_id = ?", encOpenID, person.OpenId).Error
 }
 
 // 事务中更新

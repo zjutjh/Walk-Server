@@ -3,13 +3,14 @@ package basic
 import (
 	"errors"
 	"fmt"
-	"gorm.io/gorm"
 	"net/http"
 	"net/url"
 	"strings"
 	"walk-server/global"
 	"walk-server/service/userService"
 	"walk-server/utility"
+
+	"gorm.io/gorm"
 
 	"github.com/gin-gonic/gin"
 )
@@ -23,11 +24,14 @@ func Login(ctx *gin.Context) {
 		return
 	}
 	// 获取用户的 open id
-	openID, err := utility.GetOpenID(code)
+	oauth := global.OfficialAccount.OAuth
+	user, err := oauth.UserFromCode(code)
 	if err != nil {
 		utility.ResponseError(ctx, "open ID 错误，请重新打开网页重试")
 		return
-	} else if openID == "" {
+	}
+	openID := user.GetOpenID()
+	if openID == "" {
 		utility.ResponseError(ctx, "请在微信中打开")
 		return
 	}

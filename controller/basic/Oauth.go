@@ -2,16 +2,24 @@ package basic
 
 import (
 	"net/http"
-	"net/url"
 	"walk-server/global"
+	"walk-server/utility"
 
 	"github.com/gin-gonic/gin"
 )
 
 func Oauth(ctx *gin.Context) {
-	redirectUrl := "https://open.weixin.qq.com/connect/oauth2/authorize?appid=" +
-		global.Config.GetString("server.wechatAPPID") +
-		"&redirect_uri=" + url.QueryEscape(global.Config.GetString("server.wechatRedirect")) +
-		"&response_type=code&scope=snsapi_userinfo&state=STATE#wechat_redirect"
+	oauth := global.OfficialAccount.OAuth
+	redirectURI := global.Config.GetString("server.wechatRedirect")
+
+	redirectUrl, err := oauth.Scopes([]string{"snsapi_userinfo"}).
+		WithState("STATE").
+		Redirect(redirectURI)
+
+	if err != nil {
+		utility.ResponseError(ctx, "生成授权链接失败")
+		return
+	}
+
 	ctx.Redirect(http.StatusTemporaryRedirect, redirectUrl)
 }

@@ -2,14 +2,15 @@ package admin
 
 import (
 	"errors"
-	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 	"log"
 	"strconv"
 	"walk-server/constant"
 	"walk-server/global"
 	"walk-server/service/adminService"
 	"walk-server/utility"
+
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type autoLoginForm struct {
@@ -62,7 +63,7 @@ func AuthByPassword(c *gin.Context) {
 	}
 
 	if user.WechatOpenID == "" {
-		session, err := global.MiniProgram.GetAuth().Code2Session(postForm.Code)
+		session, err := global.MiniProgram.Auth.Session(global.Wctx, postForm.Code)
 		if err != nil {
 			utility.ResponseError(c, "OpenID错误")
 			return
@@ -96,7 +97,7 @@ func WeChatLogin(c *gin.Context) {
 		return
 	}
 
-	session, err := global.MiniProgram.GetAuth().Code2Session(postForm.Code)
+	session, err := global.MiniProgram.Auth.Session(global.Wctx, postForm.Code)
 	if err != nil {
 		log.Println(err)
 		utility.ResponseError(c, "服务错误")

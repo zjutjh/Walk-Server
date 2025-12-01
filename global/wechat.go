@@ -2,10 +2,13 @@ package global
 
 import (
 	"context"
-	"github.com/silenceper/wechat/v2/miniprogram"
+
+	"github.com/ArtisanCloud/PowerWeChat/v3/src/miniProgram"
+	"github.com/ArtisanCloud/PowerWeChat/v3/src/officialAccount"
 )
 
 var (
-	MiniProgram *miniprogram.MiniProgram
-	Wctx        = context.Background()
+	MiniProgram     *miniProgram.MiniProgram
+	OfficialAccount *officialAccount.OfficialAccount
+	Wctx            = context.Background()
 )

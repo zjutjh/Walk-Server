@@ -1,11 +1,11 @@
 package wechat
 
 import (
-	"github.com/silenceper/wechat/v2"
-	"github.com/silenceper/wechat/v2/cache"
-	miniConfig "github.com/silenceper/wechat/v2/miniprogram/config"
 	"log"
 	"walk-server/global"
+
+	"github.com/zjutjh/mygo/wechat/miniprogram"
+	"github.com/zjutjh/mygo/wechat/officialAccount"
 )
 
 type driver string
@@ -18,24 +18,30 @@ const (
 func WeChatInit() {
 	config := getConfigs()
 
-	wc := wechat.NewWechat()
-	var wcCache cache.Cache
-	switch config.Driver {
-	case string(Redis):
-		wcCache = setRedis(wcCache)
-		break
-	case string(Memory):
-		wcCache = cache.NewMemory()
-		break
-	default:
-		log.Fatal("ConfigError")
-	}
-
-	cfg := &miniConfig.Config{
-		AppID:     config.AppId,
+	// Initialize MiniProgram
+	var err error
+	global.MiniProgram, err = miniprogram.New(miniprogram.Config{
+		AppId:     config.AppId,
 		AppSecret: config.AppSecret,
-		Cache:     wcCache,
+		Driver:    config.Driver,
+	})
+	if err != nil {
+		log.Fatalf("Failed to initialize MiniProgram: %v", err)
 	}
 
-	global.MiniProgram = wc.GetMiniProgram(cfg)
+	// Initialize OfficialAccount
+	// Read Official Account config
+	oaAppID := global.Config.GetString("server.wechatAPPID")
+	oaSecret := global.Config.GetString("server.wechatSecret")
+
+	global.OfficialAccount, err = officialAccount.New(officialAccount.Config{
+		AppID:  oaAppID,
+		Secret: oaSecret,
+		Token:  global.Config.GetString("server.wechatToken"),
+		AESKey: global.Config.GetString("server.wechatEncodingAESKey"),
+		Driver: config.Driver,
+	})
+	if err != nil {
+		log.Fatalf("Failed to initialize OfficialAccount: %v", err)
+	}
 }

@@ -2,65 +2,63 @@ package utility
 
 import (
 	"errors"
-	"fmt"
-	"log"
 	"walk-server/global"
 	"walk-server/model"
 
-	"github.com/go-resty/resty/v2"
+	"github.com/ArtisanCloud/PowerWeChat/v3/src/kernel/messages"
 )
 
 // SendMessageToMembers 队长将消息发给队员
-func SendMessageToMembers(message string, captain model.Person, members []model.Person) {
+func SendMessageToMembers(msg string, captain model.Person, members []model.Person) {
 	var messages []model.Message
 
 	for _, member := range members {
 		messages = append(messages, model.Message{
 			SenderOpenId:   captain.OpenId,
 			ReceiverOpenId: member.OpenId,
-			Message:        message,
+			Message:        msg,
 		})
 
-		SendMessageWithWechat(message, member.OpenId)
+		SendMessageWithWechat(msg, member.OpenId)
 	}
 
 	model.InsertMessages(&messages)
 }
 
 // SendMessageToTeam 系统发送消息给所有的队员
-func SendMessageToTeam(message string, captain model.Person, members []model.Person) {
+func SendMessageToTeam(msg string, captain model.Person, members []model.Person) {
 	var messages []model.Message
 
 	// 添加发给队长的消息
 	messages = append(messages, model.Message{
-		Message:        message,
+		Message:        msg,
 		SenderOpenId:   "",
 		ReceiverOpenId: captain.OpenId,
 	})
-	SendMessageWithWechat(message, captain.OpenId)
+	SendMessageWithWechat(msg, captain.OpenId)
 
 	for _, member := range members {
 		messages = append(messages, model.Message{
-			Message:        message,
+			Message:        msg,
 			SenderOpenId:   "",
 			ReceiverOpenId: member.OpenId,
 		})
 
-		SendMessageWithWechat(message, member.OpenId)
+		SendMessageWithWechat(msg, member.OpenId)
 	}
 
 	model.InsertMessages(&messages)
 }
 
 // SendMessage 人和人发送消息
-func SendMessage(message string, sender *model.Person, receiver *model.Person) {
+func SendMessage(msg string, sender *model.Person, receiver *model.Person) {
 	if sender == nil { // 系统消息
-		model.InsertMessage(message, "", receiver.OpenId)
+		model.InsertMessage(msg, "", receiver.OpenId)
 	} else {
-		model.InsertMessage(message, sender.OpenId, receiver.OpenId)
+		model.InsertMessage(msg, sender.OpenId, receiver.OpenId)
 	}
 
-	SendMessageWithWechat(message, receiver.OpenId)
+	SendMessageWithWechat(msg, receiver.OpenId)
 }
 
 func DeleteMessage(id uint, jwtData *JwtData) error {
@@ -75,33 +73,15 @@ func DeleteMessage(id uint, jwtData *JwtData) error {
 	return nil
 }
 
-func SendMessageWithWechat(message string, receiverEncOpenID string) {
-	var accessToken string
-	var err error
-	wechatAPPID := global.Config.GetString("server.wechatAPPID")
-	wechatSecret := global.Config.GetString("server.wechatSecret")
-	accessToken, err = GetAccessToken(wechatAPPID, wechatSecret)
-
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
+func SendMessageWithWechat(msg string, receiverEncOpenID string) {
 	// 解密 open ID
 	aesKey := global.Config.GetString("server.AESSecret")
 	receiverOpenID := AesDecrypt(receiverEncOpenID, aesKey)
 
-	client := resty.New()
-	resp, err := client.R().SetBody(map[string]interface{}{
-		"touser":  receiverOpenID,
-		"msgtype": "text",
-		"text": map[string]interface{}{
-			"content": message + "\n---\n因为微信的限制，请回复'收到'以确保后续消息的正常接收",
-		},
-	}).Post("https://api.weixin.qq.com/cgi-bin/message/custom/send?access_token=" + accessToken)
+	text := messages.NewText(msg + "\n---\n因为微信的限制，请回复'收到'以确保后续消息的正常接收")
+	_, err := global.OfficialAccount.CustomerService.Message(global.Wctx, text).SetTo(receiverOpenID).Send(global.Wctx)
 
-	if IsDebugMode() {
-		fmt.Println(string(resp.Body()))
-		fmt.Println(err)
+	if err != nil {
+		// log.Println(err) // Optional logging
 	}
 }

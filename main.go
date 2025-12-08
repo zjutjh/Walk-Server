@@ -1,33 +1,42 @@
 package main
 
 import (
-	"walk-server/global"
-	"walk-server/router"
-	"walk-server/utility"
-	"walk-server/utility/initial"
-	"walk-server/utility/initial/wechat"
+	"sync"
 
-	"github.com/gin-gonic/gin"
+	"github.com/spf13/cobra"
+	"github.com/zjutjh/mygo/foundation/command"
+	"github.com/zjutjh/mygo/foundation/crontab"
+	"github.com/zjutjh/mygo/foundation/httpserver"
+
+	"app/register"
 )
 
 func main() {
-	initial.ConfigInit() // 读取配置
-	initial.DBInit()     // 初始化数据库
-	initial.RedisInit()  // 初始化Redis
-	initial.LimitInit()  // 初始化令牌桶
-	wechat.WeChatInit()
+	command.Execute(
+		register.Boot,    // 应用引导注册器
+		register.Command, // 应用命令注册器
+		// httpserver.CommandRegister(register.Route), // 默认注入HTTP Server注册器
+		func(cmd *cobra.Command, args []string) error {
+			wg := &sync.WaitGroup{}
 
-	// 如果配置文件中开启了调试模式
-	if !utility.IsDebugMode() {
-		gin.SetMode(gin.ReleaseMode)
-	}
+			// 启动HTTP Server
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				httpserver.StartHTTPServer(register.Route)
+			}()
 
-	// 初始化路由
-	r := initial.RouterInit()
-	r.Static("/file", "./file")
-	//r.Use(middleware.Time())
-	router.MountRoutes(r)
+			// 启动HTTP Server伴生定时任务
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				crontab.Run(register.CronWithHTTPServer)
+			}()
 
-	// 启动服务器
-	utility.StartServer(r, ":"+global.Config.GetString("server.port"))
+			// 如有需要 可以额外启动其他服务
+
+			wg.Wait()
+			return nil
+		},
+	)
 }

@@ -10,7 +10,6 @@ import (
 	"github.com/zjutjh/mygo/swagger"
 
 	"app/api"
-	"app/api/poster"
 	"app/api/register"
 	"app/api/team"
 	"app/api/user"
@@ -61,13 +60,6 @@ func Route(router *gin.Engine) {
 			tm.POST("/random-join", team.JoinRandomHandler())
 			tm.POST("/captain", team.TransferCaptainHandler())
 			tm.POST("/add", team.AddMemberHandler())
-		}
-
-		// Poster
-		pst := r.Group("/poster")
-		pst.Use(middleware.Auth(true))
-		{
-			pst.GET("/get", poster.GetPosterHandler())
 		}
 	}
 }

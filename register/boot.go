@@ -6,10 +6,12 @@ import (
 	"github.com/zjutjh/mygo/config"
 	"github.com/zjutjh/mygo/feishu"
 	"github.com/zjutjh/mygo/foundation/kernel"
+	"github.com/zjutjh/mygo/jwt"
 	"github.com/zjutjh/mygo/kit"
 	"github.com/zjutjh/mygo/ndb"
 	"github.com/zjutjh/mygo/nesty"
 	"github.com/zjutjh/mygo/nlog"
+	"github.com/zjutjh/mygo/wechat/officialAccount"
 
 	"app/comm"
 	"app/register/generate"
@@ -24,9 +26,11 @@ func Boot() kernel.BootList {
 
 		// Client引导器
 		ndb.Boot(), // DB
+		jwt.Boot(), // JWT
 		// nedis.Boot(), // Redis
 		nesty.Boot(), // HTTP Client
 		// wechat.Boot(), // WeChat
+		officialAccount.Boot(), // 微信公众号
 
 		// 业务引导器
 		BizConfBoot(),

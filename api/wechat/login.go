@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/samber/do"
 	"github.com/zjutjh/mygo/foundation/reply"
+	"github.com/zjutjh/mygo/jwt"
 )
 
 // LoginHandler handles the OAuth callback and login
@@ -26,8 +27,16 @@ func LoginHandler() gin.HandlerFunc {
 			return
 		}
 
-		// TODO: Implement your login logic here (e.g., create user, generate token)
+		token, err := jwt.Pick().GenerateToken(user.GetOpenID())
+		if err != nil {
+			reply.Fail(c, comm.CodeUnknownError)
+			return
+		}
 
-		reply.Success(c, user)
+		reply.Success(c, gin.H{
+			"token":   token,
+			"open_id": user.GetOpenID(),
+			"user":    user,
+		})
 	}
 }

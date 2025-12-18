@@ -28,3 +28,7 @@ var (
 
 // 业务错误码 从 30000 开始
 var ()
+
+func WithMsg(code kit.Code, msg string) kit.Code {
+	return kit.NewCode(code.Code, msg)
+}

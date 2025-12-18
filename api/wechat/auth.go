@@ -3,10 +3,10 @@ package wechat
 import (
 	"app/comm"
 
-	"github.com/ArtisanCloud/PowerWeChat/v3/src/miniProgram"
 	"github.com/gin-gonic/gin"
-	"github.com/samber/do"
 	"github.com/zjutjh/mygo/foundation/reply"
+	"github.com/zjutjh/mygo/jwt"
+	oa "github.com/zjutjh/mygo/wechat/officialAccount"
 )
 
 // MiniProgramLoginHandler handles the Mini Program login
@@ -18,15 +18,23 @@ func MiniProgramLoginHandler() gin.HandlerFunc {
 			return
 		}
 
-		miniProgram := do.MustInvoke[*miniProgram.MiniProgram](nil)
-		session, err := miniProgram.Auth.Session(c.Request.Context(), code)
+		officialAccount := oa.Pick()
+		user, err := officialAccount.OAuth.UserFromCode(code)
 		if err != nil {
 			reply.Fail(c, comm.CodeThirdServiceError)
 			return
 		}
 
-		// TODO: Implement your login logic here (e.g., create user, generate token)
+		token, err := jwt.Pick().GenerateToken(user.GetOpenID())
+		if err != nil {
+			reply.Fail(c, comm.CodeUnknownError)
+			return
+		}
 
-		reply.Success(c, session)
+		reply.Success(c, gin.H{
+			"token":   token,
+			"open_id": user.GetOpenID(),
+			"user":    user,
+		})
 	}
 }

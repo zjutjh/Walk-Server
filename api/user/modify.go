@@ -2,13 +2,10 @@ package user
 
 import (
 	"app/comm"
-	"app/dao/model"
-	"errors"
+	"app/dao/repo"
 
 	"github.com/gin-gonic/gin"
 	"github.com/zjutjh/mygo/foundation/reply"
-	"github.com/zjutjh/mygo/ndb"
-	"gorm.io/gorm"
 )
 
 type ModifyInfoRequest struct {
@@ -36,15 +33,14 @@ func ModifyInfoHandler() gin.HandlerFunc {
 			return
 		}
 
-		db := ndb.Pick()
-		var person model.Person
-		err := db.Where("open_id = ?", openID).First(&person).Error
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			reply.Fail(c, comm.CodeDataNotFound)
-			return
-		}
+		personRepo := repo.NewPersonRepo()
+		person, err := personRepo.FindByOpenId(c.Request.Context(), openID)
 		if err != nil {
 			reply.Fail(c, comm.CodeDatabaseError)
+			return
+		}
+		if person == nil {
+			reply.Fail(c, comm.CodeDataNotFound)
 			return
 		}
 
@@ -55,7 +51,8 @@ func ModifyInfoHandler() gin.HandlerFunc {
 		person.Wechat = req.Contact.Wechat
 		person.Tel = req.Contact.Tel
 
-		if err := db.Save(&person).Error; err != nil {
+		// 更新用户
+		if err := personRepo.Update(c.Request.Context(), nil, person); err != nil {
 			reply.Fail(c, comm.CodeDatabaseError)
 			return
 		}

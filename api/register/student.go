@@ -3,12 +3,10 @@ package register
 import (
 	"app/comm"
 	"app/dao/model"
-	"errors"
+	"app/dao/repo"
 
 	"github.com/gin-gonic/gin"
 	"github.com/zjutjh/mygo/foundation/reply"
-	"github.com/zjutjh/mygo/ndb"
-	"gorm.io/gorm"
 )
 
 type StudentRegisterRequest struct {
@@ -32,39 +30,38 @@ func StudentRegisterHandler() gin.HandlerFunc {
 			return
 		}
 
-		// TODO: Verify student info with external service (WeJH-SDK) if needed
-		// For now, we assume it's valid or skip verification as we don't have the SDK setup here fully
-
-		db := ndb.Pick()
-		var person model.Person
-		err := db.Where("stu_id = ?", req.StuID).First(&person).Error
-		if err == nil {
-			reply.Fail(c, comm.WithMsg(comm.CodeDataConflict, "该学号已报名"))
-			return
-		}
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
+		personRepo := repo.NewPersonRepo()
+		person, err := personRepo.FindByStuId(c.Request.Context(), req.StuID)
+		if err != nil {
 			reply.Fail(c, comm.CodeDatabaseError)
 			return
 		}
+		if person != nil {
+			reply.Fail(c, comm.WithMsg(comm.CodeDataConflict, comm.MsgStudentAlreadyRegistered))
+			return
+		}
 
-		// Create new person
+		openID := c.GetString("uid")
+		if openID == "" {
+			reply.Fail(c, comm.CodeNotLoggedIn)
+			return
+		}
+
+		// 创建新用户
 		newPerson := model.Person{
 			StuId:    req.StuID,
-			Name:     req.StuID, // Name might need to be fetched or passed
+			Name:     req.StuID, // Name 暂用学号代替，后续可能需要获取或传递
 			Identity: req.ID,
 			Campus:   req.Campus,
 			College:  req.College,
-			Type:     1, // Student
+			Type:     comm.PersonTypeStudent,
 			Qq:       req.Contact.QQ,
 			Wechat:   req.Contact.Wechat,
 			Tel:      req.Contact.Tel,
-			// Password? The model doesn't have password field in my definition,
-			// but the request has it. Maybe it's for verification?
-			// In main branch, Person model doesn't seem to have password either,
-			// maybe it's stored elsewhere or used for verification.
+			OpenId:   openID,
 		}
 
-		if err := db.Create(&newPerson).Error; err != nil {
+		if err := personRepo.Create(c.Request.Context(), nil, &newPerson); err != nil {
 			reply.Fail(c, comm.CodeDatabaseError)
 			return
 		}

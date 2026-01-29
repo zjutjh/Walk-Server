@@ -24,12 +24,20 @@ func Route(router *gin.Engine) {
 		routeBase(r, router)
 
 		// 注册业务逻辑接口
-		r.GET("/wechat/oauth", wechat.OauthHandler())
-		r.GET("/wechat/login", wechat.LoginHandler())
-		r.POST("/wechat/message", wechat.SendMessageHandler())
-		r.GET("/wechat/miniprogram/login", wechat.MiniProgramLoginHandler())
+		wx := r.Group("/wechat")
+		{
+			wx.GET("/oauth", wechat.OauthHandler())
+			wx.GET("/login", wechat.LoginHandler())
+			wx.GET("/miniprogram/login", wechat.MiniProgramLoginHandler())
 
-		// Register
+			wxAuth := wx.Group("")
+			wxAuth.Use(middleware.Auth(true))
+			{
+				wxAuth.POST("/message", wechat.SendMessageHandler())
+			}
+		}
+
+		// Register - 报名
 		reg := r.Group("/register")
 		reg.Use(middleware.Auth(true))
 		{
@@ -37,7 +45,7 @@ func Route(router *gin.Engine) {
 			reg.POST("/teacher", register.TeacherRegisterHandler())
 		}
 
-		// User
+		// User - 用户相关
 		usr := r.Group("/user")
 		usr.Use(middleware.Auth(true))
 		{
@@ -45,7 +53,7 @@ func Route(router *gin.Engine) {
 			usr.POST("/modify", user.ModifyInfoHandler())
 		}
 
-		// Team
+		// Team - 队伍相关
 		tm := r.Group("/team")
 		tm.Use(middleware.Auth(true))
 		{

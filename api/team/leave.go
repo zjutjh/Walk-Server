@@ -2,11 +2,10 @@ package team
 
 import (
 	"app/comm"
-	"app/dao/model"
+	"app/dao/repo"
 
 	"github.com/gin-gonic/gin"
 	"github.com/zjutjh/mygo/foundation/reply"
-	"github.com/zjutjh/mygo/ndb"
 	"gorm.io/gorm"
 )
 
@@ -18,9 +17,15 @@ func LeaveTeamHandler() gin.HandlerFunc {
 			return
 		}
 
-		db := ndb.Pick()
-		var person model.Person
-		if err := db.Where("open_id = ?", openID).First(&person).Error; err != nil {
+		personRepo := repo.NewPersonRepo()
+		teamRepo := repo.NewTeamRepo()
+
+		person, err := personRepo.FindByOpenId(c.Request.Context(), openID)
+		if err != nil {
+			reply.Fail(c, comm.CodeDatabaseError)
+			return
+		}
+		if person == nil {
 			reply.Fail(c, comm.CodeDataNotFound)
 			return
 		}
@@ -30,27 +35,27 @@ func LeaveTeamHandler() gin.HandlerFunc {
 			return
 		}
 
-		if person.Status == 2 {
+		if person.Status == comm.PersonStatusCaptain {
 			reply.Fail(c, comm.WithMsg(comm.CodePermissionDenied, "队长不能退出队伍，请先解散或转让队长"))
 			return
 		}
 
-		err := db.Transaction(func(tx *gorm.DB) error {
-			// Update person
+		err = teamRepo.Transaction(c.Request.Context(), func(tx *gorm.DB) error {
+			// 更新人员信息
 			oldTeamID := person.TeamId
 			person.TeamId = 0
-			person.Status = 0
-			if err := tx.Save(&person).Error; err != nil {
+			person.Status = comm.PersonStatusNone
+			if err := personRepo.Update(c.Request.Context(), tx, person); err != nil {
 				return err
 			}
 
-			// Update team count
-			var team model.Team
-			if err := tx.First(&team, oldTeamID).Error; err != nil {
+			// 更新队伍人数
+			team, err := teamRepo.FindById(c.Request.Context(), oldTeamID)
+			if err != nil {
 				return err
 			}
 			team.Num--
-			if err := tx.Save(&team).Error; err != nil {
+			if err := teamRepo.Update(c.Request.Context(), tx, team); err != nil {
 				return err
 			}
 			return nil

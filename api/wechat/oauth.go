@@ -3,10 +3,9 @@ package wechat
 import (
 	"app/comm"
 
-	"github.com/ArtisanCloud/PowerWeChat/v3/src/officialAccount"
 	"github.com/gin-gonic/gin"
-	"github.com/samber/do"
 	"github.com/zjutjh/mygo/foundation/reply"
+	oa "github.com/zjutjh/mygo/wechat/officialAccount"
 )
 
 // OauthHandler handles the OAuth redirect
@@ -18,8 +17,8 @@ func OauthHandler() gin.HandlerFunc {
 			return
 		}
 
-		oa := do.MustInvoke[*officialAccount.OfficialAccount](nil)
-		oauth := oa.OAuth
+		officialAccount := oa.Pick()
+		oauth := officialAccount.OAuth
 		redirectURL, err := oauth.Scopes([]string{"snsapi_userinfo"}).Redirect(callbackURL)
 		if err != nil {
 			reply.Fail(c, comm.CodeThirdServiceError)

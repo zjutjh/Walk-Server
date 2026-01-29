@@ -2,11 +2,10 @@ package team
 
 import (
 	"app/comm"
-	"app/dao/model"
+	"app/dao/repo"
 
 	"github.com/gin-gonic/gin"
 	"github.com/zjutjh/mygo/foundation/reply"
-	"github.com/zjutjh/mygo/ndb"
 )
 
 func GetTeamInfoHandler() gin.HandlerFunc {
@@ -17,9 +16,15 @@ func GetTeamInfoHandler() gin.HandlerFunc {
 			return
 		}
 
-		db := ndb.Pick()
-		var person model.Person
-		if err := db.Where("open_id = ?", openID).First(&person).Error; err != nil {
+		personRepo := repo.NewPersonRepo()
+		teamRepo := repo.NewTeamRepo()
+
+		person, err := personRepo.FindByOpenId(c.Request.Context(), openID)
+		if err != nil {
+			reply.Fail(c, comm.CodeDatabaseError)
+			return
+		}
+		if person == nil {
 			reply.Fail(c, comm.CodeDataNotFound)
 			return
 		}
@@ -29,19 +34,23 @@ func GetTeamInfoHandler() gin.HandlerFunc {
 			return
 		}
 
-		var team model.Team
-		if err := db.First(&team, person.TeamId).Error; err != nil {
+		team, err := teamRepo.FindById(c.Request.Context(), person.TeamId)
+		if err != nil {
+			reply.Fail(c, comm.CodeDatabaseError)
+			return
+		}
+		if team == nil {
 			reply.Fail(c, comm.CodeDataNotFound)
 			return
 		}
 
-		var members []model.Person
-		if err := db.Where("team_id = ?", team.ID).Find(&members).Error; err != nil {
+		members, err := personRepo.FindByTeamId(c.Request.Context(), team.ID)
+		if err != nil {
 			reply.Fail(c, comm.CodeDatabaseError)
 			return
 		}
 
-		// Construct response similar to main branch
+		// 构建与主分支类似的响应
 		var memberData []gin.H
 		for _, m := range members {
 			memberData = append(memberData, gin.H{

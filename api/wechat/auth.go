@@ -9,7 +9,7 @@ import (
 	oa "github.com/zjutjh/mygo/wechat/officialAccount"
 )
 
-// MiniProgramLoginHandler handles the Mini Program login
+// MiniProgramLoginHandler 处理小程序登录
 func MiniProgramLoginHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		code := c.Query("code")

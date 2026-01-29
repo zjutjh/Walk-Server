@@ -4,13 +4,12 @@ import (
 	"app/comm"
 
 	"github.com/ArtisanCloud/PowerWeChat/v3/src/kernel/messages"
-	"github.com/ArtisanCloud/PowerWeChat/v3/src/officialAccount"
 	"github.com/gin-gonic/gin"
-	"github.com/samber/do"
 	"github.com/zjutjh/mygo/foundation/reply"
+	oa "github.com/zjutjh/mygo/wechat/officialAccount"
 )
 
-// SendMessageHandler sends a message to a user
+// SendMessageHandler 发送模板消息给用户
 func SendMessageHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req struct {
@@ -22,9 +21,9 @@ func SendMessageHandler() gin.HandlerFunc {
 			return
 		}
 
-		oa := do.MustInvoke[*officialAccount.OfficialAccount](nil)
+		officialAccount := oa.Pick()
 		msg := messages.NewText(req.Content)
-		messenger := oa.CustomerService.Message(c.Request.Context(), msg)
+		messenger := officialAccount.CustomerService.Message(c.Request.Context(), msg)
 		messenger.To = req.OpenID
 		_, err := messenger.Send(c.Request.Context())
 		if err != nil {

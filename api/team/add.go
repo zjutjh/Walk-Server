@@ -2,11 +2,10 @@ package team
 
 import (
 	"app/comm"
-	"app/dao/model"
+	"app/dao/repo"
 
 	"github.com/gin-gonic/gin"
 	"github.com/zjutjh/mygo/foundation/reply"
-	"github.com/zjutjh/mygo/ndb"
 	"gorm.io/gorm"
 )
 
@@ -28,9 +27,15 @@ func AddMemberHandler() gin.HandlerFunc {
 			return
 		}
 
-		db := ndb.Pick()
-		var captain model.Person
-		if err := db.Where("open_id = ?", openID).First(&captain).Error; err != nil {
+		personRepo := repo.NewPersonRepo()
+		teamRepo := repo.NewTeamRepo()
+
+		captain, err := personRepo.FindByOpenId(c.Request.Context(), openID)
+		if err != nil {
+			reply.Fail(c, comm.CodeDatabaseError)
+			return
+		}
+		if captain == nil {
 			reply.Fail(c, comm.CodeDataNotFound)
 			return
 		}
@@ -40,13 +45,17 @@ func AddMemberHandler() gin.HandlerFunc {
 			return
 		}
 
-		if captain.Status != 2 {
+		if captain.Status != comm.PersonStatusCaptain {
 			reply.Fail(c, comm.WithMsg(comm.CodePermissionDenied, "只有队长可以添加队员"))
 			return
 		}
 
-		var team model.Team
-		if err := db.First(&team, captain.TeamId).Error; err != nil {
+		team, err := teamRepo.FindById(c.Request.Context(), captain.TeamId)
+		if err != nil {
+			reply.Fail(c, comm.CodeDatabaseError)
+			return
+		}
+		if team == nil {
 			reply.Fail(c, comm.CodeDataNotFound)
 			return
 		}
@@ -56,8 +65,12 @@ func AddMemberHandler() gin.HandlerFunc {
 			return
 		}
 
-		var target model.Person
-		if err := db.Where("stu_id = ?", req.StuID).First(&target).Error; err != nil {
+		target, err := personRepo.FindByStuId(c.Request.Context(), req.StuID)
+		if err != nil {
+			reply.Fail(c, comm.CodeDatabaseError)
+			return
+		}
+		if target == nil {
 			reply.Fail(c, comm.WithMsg(comm.CodeDataNotFound, "该学号未报名"))
 			return
 		}
@@ -67,17 +80,17 @@ func AddMemberHandler() gin.HandlerFunc {
 			return
 		}
 
-		err := db.Transaction(func(tx *gorm.DB) error {
-			// Update target
+		err = teamRepo.Transaction(c.Request.Context(), func(tx *gorm.DB) error {
+			// 更新目标队员
 			target.TeamId = team.ID
-			target.Status = 1 // Member
-			if err := tx.Save(&target).Error; err != nil {
+			target.Status = comm.PersonStatusMember
+			if err := personRepo.Update(c.Request.Context(), tx, target); err != nil {
 				return err
 			}
 
-			// Update team count
+			// 更新队伍人数
 			team.Num++
-			if err := tx.Save(&team).Error; err != nil {
+			if err := teamRepo.Save(c.Request.Context(), tx, team); err != nil {
 				return err
 			}
 			return nil

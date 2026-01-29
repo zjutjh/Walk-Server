@@ -2,20 +2,18 @@ package team
 
 import (
 	"app/comm"
-	"app/dao/model"
+	"app/dao/repo"
 
 	"github.com/gin-gonic/gin"
 	"github.com/zjutjh/mygo/foundation/reply"
-	"github.com/zjutjh/mygo/ndb"
 	"gorm.io/gorm"
 )
 
 func GetRandomListHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		db := ndb.Pick()
-		var teams []model.Team
-		// Find teams that allow match and are not full (assuming max 6)
-		if err := db.Where("allow_match = ? AND num < ?", true, 6).Limit(10).Find(&teams).Error; err != nil {
+		teamRepo := repo.NewTeamRepo()
+		teams, err := teamRepo.GetRandomList(c.Request.Context(), 10)
+		if err != nil {
 			reply.Fail(c, comm.CodeDatabaseError)
 			return
 		}
@@ -25,7 +23,7 @@ func GetRandomListHandler() gin.HandlerFunc {
 }
 
 type JoinRandomRequest struct {
-	TeamID uint `json:"team_id" binding:"required"`
+	TeamID int64 `json:"team_id" binding:"required"`
 }
 
 func JoinRandomHandler() gin.HandlerFunc {
@@ -42,9 +40,15 @@ func JoinRandomHandler() gin.HandlerFunc {
 			return
 		}
 
-		db := ndb.Pick()
-		var person model.Person
-		if err := db.Where("open_id = ?", openID).First(&person).Error; err != nil {
+		personRepo := repo.NewPersonRepo()
+		teamRepo := repo.NewTeamRepo()
+
+		person, err := personRepo.FindByOpenId(c.Request.Context(), openID)
+		if err != nil {
+			reply.Fail(c, comm.CodeDatabaseError)
+			return
+		}
+		if person == nil {
 			reply.Fail(c, comm.CodeDataNotFound)
 			return
 		}
@@ -54,8 +58,12 @@ func JoinRandomHandler() gin.HandlerFunc {
 			return
 		}
 
-		var team model.Team
-		if err := db.First(&team, req.TeamID).Error; err != nil {
+		team, err := teamRepo.FindById(c.Request.Context(), req.TeamID)
+		if err != nil {
+			reply.Fail(c, comm.CodeDatabaseError)
+			return
+		}
+		if team == nil {
 			reply.Fail(c, comm.WithMsg(comm.CodeDataNotFound, "队伍不存在"))
 			return
 		}
@@ -70,25 +78,23 @@ func JoinRandomHandler() gin.HandlerFunc {
 			return
 		}
 
-		err := db.Transaction(func(tx *gorm.DB) error {
-			// Double check lock? For now simple transaction
-			// Re-read team in transaction to ensure consistency?
-			var t model.Team
-			if err := tx.Set("gorm:query_option", "FOR UPDATE").First(&t, req.TeamID).Error; err != nil {
+		err = teamRepo.Transaction(c.Request.Context(), func(tx *gorm.DB) error {
+			t, err := teamRepo.FindByIdForUpdate(c.Request.Context(), tx, req.TeamID)
+			if err != nil {
 				return err
 			}
 			if t.Num >= 6 {
-				return gorm.ErrInvalidData // Use a standard error or custom one
+				return gorm.ErrInvalidData
 			}
 
 			person.TeamId = t.ID
-			person.Status = 1 // Member
-			if err := tx.Save(&person).Error; err != nil {
+			person.Status = comm.PersonStatusMember
+			if err := personRepo.Update(c.Request.Context(), tx, person); err != nil {
 				return err
 			}
 
 			t.Num++
-			if err := tx.Save(&t).Error; err != nil {
+			if err := teamRepo.Save(c.Request.Context(), tx, t); err != nil {
 				return err
 			}
 			return nil

@@ -2,16 +2,15 @@ package team
 
 import (
 	"app/comm"
-	"app/dao/model"
+	"app/dao/repo"
 
 	"github.com/gin-gonic/gin"
 	"github.com/zjutjh/mygo/foundation/reply"
-	"github.com/zjutjh/mygo/ndb"
 	"gorm.io/gorm"
 )
 
 type TransferCaptainRequest struct {
-	MemberID uint `json:"member_id" binding:"required"`
+	MemberID int64 `json:"member_id" binding:"required"`
 }
 
 func TransferCaptainHandler() gin.HandlerFunc {
@@ -28,9 +27,15 @@ func TransferCaptainHandler() gin.HandlerFunc {
 			return
 		}
 
-		db := ndb.Pick()
-		var captain model.Person
-		if err := db.Where("open_id = ?", openID).First(&captain).Error; err != nil {
+		personRepo := repo.NewPersonRepo()
+		teamRepo := repo.NewTeamRepo()
+
+		captain, err := personRepo.FindByOpenId(c.Request.Context(), openID)
+		if err != nil {
+			reply.Fail(c, comm.CodeDatabaseError)
+			return
+		}
+		if captain == nil {
 			reply.Fail(c, comm.CodeDataNotFound)
 			return
 		}
@@ -40,13 +45,17 @@ func TransferCaptainHandler() gin.HandlerFunc {
 			return
 		}
 
-		if captain.Status != 2 {
+		if captain.Status != comm.PersonStatusCaptain {
 			reply.Fail(c, comm.WithMsg(comm.CodePermissionDenied, "只有队长可以转让队长"))
 			return
 		}
 
-		var target model.Person
-		if err := db.First(&target, req.MemberID).Error; err != nil {
+		target, err := personRepo.FindById(c.Request.Context(), req.MemberID)
+		if err != nil {
+			reply.Fail(c, comm.CodeDatabaseError)
+			return
+		}
+		if target == nil {
 			reply.Fail(c, comm.WithMsg(comm.CodeDataNotFound, "队员不存在"))
 			return
 		}
@@ -61,16 +70,16 @@ func TransferCaptainHandler() gin.HandlerFunc {
 			return
 		}
 
-		err := db.Transaction(func(tx *gorm.DB) error {
+		err = teamRepo.Transaction(c.Request.Context(), func(tx *gorm.DB) error {
 			// Old captain -> Member
-			captain.Status = 1
-			if err := tx.Save(&captain).Error; err != nil {
+			captain.Status = comm.PersonStatusMember
+			if err := personRepo.Update(c.Request.Context(), tx, captain); err != nil {
 				return err
 			}
 
 			// New captain -> Captain
-			target.Status = 2
-			if err := tx.Save(&target).Error; err != nil {
+			target.Status = comm.PersonStatusCaptain
+			if err := personRepo.Update(c.Request.Context(), tx, target); err != nil {
 				return err
 			}
 			return nil

@@ -3,12 +3,10 @@ package register
 import (
 	"app/comm"
 	"app/dao/model"
-	"errors"
+	"app/dao/repo"
 
 	"github.com/gin-gonic/gin"
 	"github.com/zjutjh/mygo/foundation/reply"
-	"github.com/zjutjh/mygo/ndb"
-	"gorm.io/gorm"
 )
 
 type TeacherRegisterRequest struct {
@@ -31,15 +29,20 @@ func TeacherRegisterHandler() gin.HandlerFunc {
 			return
 		}
 
-		db := ndb.Pick()
-		var person model.Person
-		err := db.Where("stu_id = ?", req.StuID).First(&person).Error
-		if err == nil {
-			reply.Fail(c, comm.WithMsg(comm.CodeDataConflict, "该工号已报名"))
+		personRepo := repo.NewPersonRepo()
+		person, err := personRepo.FindByStuId(c.Request.Context(), req.StuID)
+		if err != nil {
+			reply.Fail(c, comm.CodeDatabaseError)
 			return
 		}
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			reply.Fail(c, comm.CodeDatabaseError)
+		if person != nil {
+			reply.Fail(c, comm.WithMsg(comm.CodeDataConflict, comm.MsgTeacherAlreadyRegistered))
+			return
+		}
+
+		openID := c.GetString("uid")
+		if openID == "" {
+			reply.Fail(c, comm.CodeNotLoggedIn)
 			return
 		}
 
@@ -47,13 +50,14 @@ func TeacherRegisterHandler() gin.HandlerFunc {
 			StuId:    req.StuID,
 			Identity: req.ID,
 			Campus:   req.Campus,
-			Type:     2, // Teacher
+			Type:     comm.PersonTypeTeacher,
 			Qq:       req.Contact.QQ,
 			Wechat:   req.Contact.Wechat,
 			Tel:      req.Contact.Tel,
+			OpenId:   openID,
 		}
 
-		if err := db.Create(&newPerson).Error; err != nil {
+		if err := personRepo.Create(c.Request.Context(), nil, &newPerson); err != nil {
 			reply.Fail(c, comm.CodeDatabaseError)
 			return
 		}

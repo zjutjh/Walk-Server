@@ -2,11 +2,10 @@ package team
 
 import (
 	"app/comm"
-	"app/dao/model"
+	"app/dao/repo"
 
 	"github.com/gin-gonic/gin"
 	"github.com/zjutjh/mygo/foundation/reply"
-	"github.com/zjutjh/mygo/ndb"
 )
 
 type UpdateTeamRequest struct {
@@ -31,9 +30,15 @@ func UpdateTeamHandler() gin.HandlerFunc {
 			return
 		}
 
-		db := ndb.Pick()
-		var person model.Person
-		if err := db.Where("open_id = ?", openID).First(&person).Error; err != nil {
+		personRepo := repo.NewPersonRepo()
+		teamRepo := repo.NewTeamRepo()
+
+		person, err := personRepo.FindByOpenId(c.Request.Context(), openID)
+		if err != nil {
+			reply.Fail(c, comm.CodeDatabaseError)
+			return
+		}
+		if person == nil {
 			reply.Fail(c, comm.CodeDataNotFound)
 			return
 		}
@@ -43,22 +48,29 @@ func UpdateTeamHandler() gin.HandlerFunc {
 			return
 		}
 
-		if person.Status != 2 {
+		if person.Status != comm.PersonStatusCaptain {
 			reply.Fail(c, comm.WithMsg(comm.CodePermissionDenied, "只有队长可以修改队伍信息"))
 			return
 		}
 
-		var team model.Team
-		if err := db.First(&team, person.TeamId).Error; err != nil {
+		team, err := teamRepo.FindById(c.Request.Context(), person.TeamId)
+		if err != nil {
+			reply.Fail(c, comm.CodeDatabaseError)
+			return
+		}
+		if team == nil {
 			reply.Fail(c, comm.CodeDataNotFound)
 			return
 		}
 
-		// Check name uniqueness if changed
+		// 如果修改了名称，检查名称是否重复
 		if team.Name != req.Name {
-			var count int64
-			db.Model(&model.Team{}).Where("name = ? AND id != ?", req.Name, team.ID).Count(&count)
-			if count > 0 {
+			exists, err := teamRepo.CheckNameExistsExcludingId(c.Request.Context(), req.Name, team.ID)
+			if err != nil {
+				reply.Fail(c, comm.CodeDatabaseError)
+				return
+			}
+			if exists {
 				reply.Fail(c, comm.WithMsg(comm.CodeDataConflict, "队伍名已存在"))
 				return
 			}
@@ -70,7 +82,7 @@ func UpdateTeamHandler() gin.HandlerFunc {
 		team.AllowMatch = *req.AllowMatch
 		team.Password = req.Password
 
-		if err := db.Save(&team).Error; err != nil {
+		if err := teamRepo.Save(c.Request.Context(), nil, team); err != nil {
 			reply.Fail(c, comm.CodeDatabaseError)
 			return
 		}

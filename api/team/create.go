@@ -3,10 +3,10 @@ package team
 import (
 	"app/comm"
 	"app/dao/model"
+	"app/dao/repo"
 
 	"github.com/gin-gonic/gin"
 	"github.com/zjutjh/mygo/foundation/reply"
-	"github.com/zjutjh/mygo/ndb"
 	"gorm.io/gorm"
 )
 
@@ -32,9 +32,15 @@ func CreateTeamHandler() gin.HandlerFunc {
 			return
 		}
 
-		db := ndb.Pick()
-		var person model.Person
-		if err := db.Where("open_id = ?", openID).First(&person).Error; err != nil {
+		personRepo := repo.NewPersonRepo()
+		teamRepo := repo.NewTeamRepo()
+
+		person, err := personRepo.FindByOpenId(c.Request.Context(), openID)
+		if err != nil {
+			reply.Fail(c, comm.CodeDatabaseError)
+			return
+		}
+		if person == nil {
 			reply.Fail(c, comm.CodeDataNotFound)
 			return
 		}
@@ -44,10 +50,13 @@ func CreateTeamHandler() gin.HandlerFunc {
 			return
 		}
 
-		// Check team name unique
-		var count int64
-		db.Model(&model.Team{}).Where("name = ?", req.Name).Count(&count)
-		if count > 0 {
+		// 检查队伍名唯一性
+		exists, err := teamRepo.CheckNameExistsExcludingId(c.Request.Context(), req.Name, 0)
+		if err != nil {
+			reply.Fail(c, comm.CodeDatabaseError)
+			return
+		}
+		if exists {
 			reply.Fail(c, comm.WithMsg(comm.CodeDataConflict, "队伍名已存在"))
 			return
 		}
@@ -59,16 +68,16 @@ func CreateTeamHandler() gin.HandlerFunc {
 			Slogan:     req.Slogan,
 			AllowMatch: *req.AllowMatch,
 			Num:        1,
-			Status:     1, // Assuming 1 is active/created
+			Status:     comm.TeamStatusNormal,
 		}
 
-		err := db.Transaction(func(tx *gorm.DB) error {
-			if err := tx.Create(&team).Error; err != nil {
+		err = teamRepo.Transaction(c.Request.Context(), func(tx *gorm.DB) error {
+			if err := teamRepo.Create(c.Request.Context(), tx, &team); err != nil {
 				return err
 			}
 			person.TeamId = team.ID
-			person.Status = 2 // Captain
-			if err := tx.Save(&person).Error; err != nil {
+			person.Status = comm.PersonStatusCaptain
+			if err := personRepo.Update(c.Request.Context(), tx, person); err != nil {
 				return err
 			}
 			return nil

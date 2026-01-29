@@ -2,11 +2,10 @@ package team
 
 import (
 	"app/comm"
-	"app/dao/model"
+	"app/dao/repo"
 
 	"github.com/gin-gonic/gin"
 	"github.com/zjutjh/mygo/foundation/reply"
-	"github.com/zjutjh/mygo/ndb"
 	"gorm.io/gorm"
 )
 
@@ -18,9 +17,15 @@ func DisbandTeamHandler() gin.HandlerFunc {
 			return
 		}
 
-		db := ndb.Pick()
-		var person model.Person
-		if err := db.Where("open_id = ?", openID).First(&person).Error; err != nil {
+		personRepo := repo.NewPersonRepo()
+		teamRepo := repo.NewTeamRepo()
+
+		person, err := personRepo.FindByOpenId(c.Request.Context(), openID)
+		if err != nil {
+			reply.Fail(c, comm.CodeDatabaseError)
+			return
+		}
+		if person == nil {
 			reply.Fail(c, comm.CodeDataNotFound)
 			return
 		}
@@ -30,19 +35,19 @@ func DisbandTeamHandler() gin.HandlerFunc {
 			return
 		}
 
-		if person.Status != 2 {
+		if person.Status != comm.PersonStatusCaptain {
 			reply.Fail(c, comm.WithMsg(comm.CodePermissionDenied, "只有队长可以解散队伍"))
 			return
 		}
 
-		err := db.Transaction(func(tx *gorm.DB) error {
+		err = teamRepo.Transaction(c.Request.Context(), func(tx *gorm.DB) error {
 			// Reset all members
-			if err := tx.Model(&model.Person{}).Where("team_id = ?", person.TeamId).Updates(map[string]interface{}{"team_id": 0, "status": 0}).Error; err != nil {
+			if err := personRepo.ResetTeamInfo(c.Request.Context(), tx, person.TeamId); err != nil {
 				return err
 			}
 
 			// Delete team
-			if err := tx.Delete(&model.Team{}, person.TeamId).Error; err != nil {
+			if err := teamRepo.Delete(c.Request.Context(), tx, person.TeamId); err != nil {
 				return err
 			}
 

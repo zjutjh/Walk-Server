@@ -2,11 +2,10 @@ package team
 
 import (
 	"app/comm"
-	"app/dao/model"
+	"app/dao/repo"
 
 	"github.com/gin-gonic/gin"
 	"github.com/zjutjh/mygo/foundation/reply"
-	"github.com/zjutjh/mygo/ndb"
 	"gorm.io/gorm"
 )
 
@@ -29,9 +28,15 @@ func JoinTeamHandler() gin.HandlerFunc {
 			return
 		}
 
-		db := ndb.Pick()
-		var person model.Person
-		if err := db.Where("open_id = ?", openID).First(&person).Error; err != nil {
+		personRepo := repo.NewPersonRepo()
+		teamRepo := repo.NewTeamRepo()
+
+		person, err := personRepo.FindByOpenId(c.Request.Context(), openID)
+		if err != nil {
+			reply.Fail(c, comm.CodeDatabaseError)
+			return
+		}
+		if person == nil {
 			reply.Fail(c, comm.CodeDataNotFound)
 			return
 		}
@@ -41,8 +46,12 @@ func JoinTeamHandler() gin.HandlerFunc {
 			return
 		}
 
-		var team model.Team
-		if err := db.First(&team, req.TeamID).Error; err != nil {
+		team, err := teamRepo.FindById(c.Request.Context(), req.TeamID)
+		if err != nil {
+			reply.Fail(c, comm.CodeDatabaseError)
+			return
+		}
+		if team == nil {
 			reply.Fail(c, comm.WithMsg(comm.CodeDataNotFound, "队伍不存在"))
 			return
 		}
@@ -52,20 +61,20 @@ func JoinTeamHandler() gin.HandlerFunc {
 			return
 		}
 
-		// Check team size limit (assuming 6 based on typical rules, or check config)
-		if team.Num >= 6 {
+		// 检查队伍人数限制（假设规则为6人，或者查看配置）
+		if team.Num >= comm.MaxTeamMember {
 			reply.Fail(c, comm.WithMsg(comm.CodeDataConflict, "队伍已满"))
 			return
 		}
 
-		err := db.Transaction(func(tx *gorm.DB) error {
+		err = teamRepo.Transaction(c.Request.Context(), func(tx *gorm.DB) error {
 			person.TeamId = team.ID
-			person.Status = 1 // Member
-			if err := tx.Save(&person).Error; err != nil {
+			person.Status = comm.PersonStatusMember
+			if err := personRepo.Update(c.Request.Context(), tx, person); err != nil {
 				return err
 			}
 			team.Num++
-			if err := tx.Save(&team).Error; err != nil {
+			if err := teamRepo.Update(c.Request.Context(), tx, team); err != nil {
 				return err
 			}
 			return nil

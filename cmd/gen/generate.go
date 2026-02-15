@@ -13,6 +13,15 @@ import (
 
 var tables = []string{
 	"user",
+	"people",
+	"teams",
+	"points",
+	"routes",
+	"route_edges",
+	"admins",
+	"checkins",
+	"wrong_route_records",
+	"withdraw_records",
 }
 
 func main() {

@@ -40,7 +40,7 @@ func AddMemberHandler() gin.HandlerFunc {
 			return
 		}
 
-		if captain.TeamId == 0 {
+		if captain.TeamID == nil || *captain.TeamID <= 0 {
 			reply.Fail(c, comm.WithMsg(comm.CodeDataNotFound, "未加入队伍"))
 			return
 		}
@@ -50,7 +50,7 @@ func AddMemberHandler() gin.HandlerFunc {
 			return
 		}
 
-		team, err := teamRepo.FindById(c.Request.Context(), captain.TeamId)
+		team, err := teamRepo.FindById(c.Request.Context(), *captain.TeamID)
 		if err != nil {
 			reply.Fail(c, comm.CodeDatabaseError)
 			return
@@ -75,14 +75,14 @@ func AddMemberHandler() gin.HandlerFunc {
 			return
 		}
 
-		if target.TeamId != 0 {
+		if target.TeamID != nil && *target.TeamID > 0 {
 			reply.Fail(c, comm.WithMsg(comm.CodeDataConflict, "该同学已加入其他队伍"))
 			return
 		}
 
 		err = teamRepo.Transaction(c.Request.Context(), func(tx *gorm.DB) error {
 			// 更新目标队员
-			target.TeamId = team.ID
+			target.TeamID = &team.ID
 			target.Status = comm.PersonStatusMember
 			if err := personRepo.Update(c.Request.Context(), tx, target); err != nil {
 				return err

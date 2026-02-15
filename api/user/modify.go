@@ -47,8 +47,10 @@ func ModifyInfoHandler() gin.HandlerFunc {
 		person.Campus = req.Campus
 		person.College = req.College
 		person.Identity = req.ID
-		person.Qq = req.Contact.QQ
-		person.Wechat = req.Contact.Wechat
+		qq := req.Contact.QQ
+		wechat := req.Contact.Wechat
+		person.QQ = &qq
+		person.Wechat = &wechat
 		person.Tel = req.Contact.Tel
 
 		// 更新用户

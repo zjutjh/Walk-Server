@@ -11,7 +11,7 @@ import (
 type UpdateTeamRequest struct {
 	Name       string `json:"name" binding:"required"`
 	Slogan     string `json:"slogan"`
-	Route      uint8  `json:"route" binding:"required"`
+	Route      string `json:"route" binding:"required"`
 	AllowMatch *bool  `json:"allow_match" binding:"required"`
 	Password   string `json:"password" binding:"required"`
 }
@@ -43,7 +43,7 @@ func UpdateTeamHandler() gin.HandlerFunc {
 			return
 		}
 
-		if person.TeamId == 0 {
+		if person.TeamID == nil || *person.TeamID <= 0 {
 			reply.Fail(c, comm.WithMsg(comm.CodeDataNotFound, "未加入队伍"))
 			return
 		}
@@ -53,7 +53,7 @@ func UpdateTeamHandler() gin.HandlerFunc {
 			return
 		}
 
-		team, err := teamRepo.FindById(c.Request.Context(), person.TeamId)
+		team, err := teamRepo.FindById(c.Request.Context(), *person.TeamID)
 		if err != nil {
 			reply.Fail(c, comm.CodeDatabaseError)
 			return
@@ -77,7 +77,7 @@ func UpdateTeamHandler() gin.HandlerFunc {
 		}
 
 		team.Name = req.Name
-		team.Slogan = req.Slogan
+		team.Slogan = &req.Slogan
 		team.Route = req.Route
 		team.AllowMatch = *req.AllowMatch
 		team.Password = req.Password

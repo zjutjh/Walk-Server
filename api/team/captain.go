@@ -10,7 +10,7 @@ import (
 )
 
 type TransferCaptainRequest struct {
-	MemberID int64 `json:"member_id" binding:"required"`
+	MemberOpenID string `json:"member_open_id" binding:"required"`
 }
 
 func TransferCaptainHandler() gin.HandlerFunc {
@@ -40,7 +40,7 @@ func TransferCaptainHandler() gin.HandlerFunc {
 			return
 		}
 
-		if captain.TeamId == 0 {
+		if captain.TeamID == nil || *captain.TeamID <= 0 {
 			reply.Fail(c, comm.WithMsg(comm.CodeDataNotFound, "未加入队伍"))
 			return
 		}
@@ -50,7 +50,7 @@ func TransferCaptainHandler() gin.HandlerFunc {
 			return
 		}
 
-		target, err := personRepo.FindById(c.Request.Context(), req.MemberID)
+		target, err := personRepo.FindByOpenId(c.Request.Context(), req.MemberOpenID)
 		if err != nil {
 			reply.Fail(c, comm.CodeDatabaseError)
 			return
@@ -60,12 +60,12 @@ func TransferCaptainHandler() gin.HandlerFunc {
 			return
 		}
 
-		if target.TeamId != captain.TeamId {
+		if target.TeamID == nil || *target.TeamID != *captain.TeamID {
 			reply.Fail(c, comm.WithMsg(comm.CodeDataConflict, "该队员不在你的队伍中"))
 			return
 		}
 
-		if target.ID == captain.ID {
+		if target.OpenID == captain.OpenID {
 			reply.Fail(c, comm.WithMsg(comm.CodePermissionDenied, "不能转让给自己"))
 			return
 		}

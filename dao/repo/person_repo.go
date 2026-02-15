@@ -20,19 +20,6 @@ func NewPersonRepo() *PersonRepo {
 	}
 }
 
-// FindById 根据ID查询
-func (r *PersonRepo) FindById(ctx context.Context, id int64) (*model.Person, error) {
-	var person model.Person
-	err := r.db.WithContext(ctx).First(&person, id).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	return &person, nil
-}
-
 // FindByStuId 根据学号查询
 func (r *PersonRepo) FindByStuId(ctx context.Context, stuId string) (*model.Person, error) {
 	var person model.Person

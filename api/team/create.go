@@ -12,7 +12,7 @@ import (
 
 type CreateTeamRequest struct {
 	Name       string `json:"name" binding:"required"`
-	Route      uint8  `json:"route" binding:"required"`
+	Route      string `json:"route" binding:"required"`
 	Password   string `json:"password" binding:"required"`
 	Slogan     string `json:"slogan" binding:"required"`
 	AllowMatch *bool  `json:"allow_match" binding:"required"`
@@ -45,7 +45,7 @@ func CreateTeamHandler() gin.HandlerFunc {
 			return
 		}
 
-		if person.TeamId != 0 {
+		if person.TeamID != nil && *person.TeamID > 0 {
 			reply.Fail(c, comm.WithMsg(comm.CodeDataConflict, "已有队伍"))
 			return
 		}
@@ -65,17 +65,17 @@ func CreateTeamHandler() gin.HandlerFunc {
 			Name:       req.Name,
 			Route:      req.Route,
 			Password:   req.Password,
-			Slogan:     req.Slogan,
+			Slogan:     &req.Slogan,
 			AllowMatch: *req.AllowMatch,
+			Captain:    openID,
 			Num:        1,
-			Status:     comm.TeamStatusNormal,
 		}
 
 		err = teamRepo.Transaction(c.Request.Context(), func(tx *gorm.DB) error {
 			if err := teamRepo.Create(c.Request.Context(), tx, &team); err != nil {
 				return err
 			}
-			person.TeamId = team.ID
+			person.TeamID = &team.ID
 			person.Status = comm.PersonStatusCaptain
 			if err := personRepo.Update(c.Request.Context(), tx, person); err != nil {
 				return err

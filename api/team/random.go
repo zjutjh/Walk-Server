@@ -53,7 +53,7 @@ func JoinRandomHandler() gin.HandlerFunc {
 			return
 		}
 
-		if person.TeamId != 0 {
+		if person.TeamID != nil && *person.TeamID > 0 {
 			reply.Fail(c, comm.WithMsg(comm.CodeDataConflict, "已加入队伍"))
 			return
 		}
@@ -87,7 +87,7 @@ func JoinRandomHandler() gin.HandlerFunc {
 				return gorm.ErrInvalidData
 			}
 
-			person.TeamId = t.ID
+			person.TeamID = &t.ID
 			person.Status = comm.PersonStatusMember
 			if err := personRepo.Update(c.Request.Context(), tx, person); err != nil {
 				return err

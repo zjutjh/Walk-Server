@@ -46,15 +46,21 @@ func TeacherRegisterHandler() gin.HandlerFunc {
 			return
 		}
 
+		stuID := req.StuID
+		qq := req.Contact.QQ
+		wechat := req.Contact.Wechat
+
 		newPerson := model.Person{
-			StuId:    req.StuID,
+			StuID:    &stuID,
+			Name:     req.StuID,
 			Identity: req.ID,
 			Campus:   req.Campus,
+			College:  "未填写",
 			Type:     comm.PersonTypeTeacher,
-			Qq:       req.Contact.QQ,
-			Wechat:   req.Contact.Wechat,
+			QQ:       &qq,
+			Wechat:   &wechat,
 			Tel:      req.Contact.Tel,
-			OpenId:   openID,
+			OpenID:   openID,
 		}
 
 		if err := personRepo.Create(c.Request.Context(), nil, &newPerson); err != nil {

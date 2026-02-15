@@ -47,18 +47,22 @@ func StudentRegisterHandler() gin.HandlerFunc {
 			return
 		}
 
+		stuID := req.StuID
+		qq := req.Contact.QQ
+		wechat := req.Contact.Wechat
+
 		// 创建新用户
 		newPerson := model.Person{
-			StuId:    req.StuID,
+			StuID:    &stuID,
 			Name:     req.StuID, // Name 暂用学号代替，后续可能需要获取或传递
 			Identity: req.ID,
 			Campus:   req.Campus,
 			College:  req.College,
 			Type:     comm.PersonTypeStudent,
-			Qq:       req.Contact.QQ,
-			Wechat:   req.Contact.Wechat,
+			QQ:       &qq,
+			Wechat:   &wechat,
 			Tel:      req.Contact.Tel,
-			OpenId:   openID,
+			OpenID:   openID,
 		}
 
 		if err := personRepo.Create(c.Request.Context(), nil, &newPerson); err != nil {

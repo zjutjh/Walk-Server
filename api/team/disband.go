@@ -30,7 +30,7 @@ func DisbandTeamHandler() gin.HandlerFunc {
 			return
 		}
 
-		if person.TeamId == 0 {
+		if person.TeamID == nil || *person.TeamID <= 0 {
 			reply.Fail(c, comm.WithMsg(comm.CodeDataNotFound, "未加入队伍"))
 			return
 		}
@@ -41,13 +41,14 @@ func DisbandTeamHandler() gin.HandlerFunc {
 		}
 
 		err = teamRepo.Transaction(c.Request.Context(), func(tx *gorm.DB) error {
+			teamID := *person.TeamID
 			// Reset all members
-			if err := personRepo.ResetTeamInfo(c.Request.Context(), tx, person.TeamId); err != nil {
+			if err := personRepo.ResetTeamInfo(c.Request.Context(), tx, teamID); err != nil {
 				return err
 			}
 
 			// Delete team
-			if err := teamRepo.Delete(c.Request.Context(), tx, person.TeamId); err != nil {
+			if err := teamRepo.Delete(c.Request.Context(), tx, teamID); err != nil {
 				return err
 			}
 

@@ -30,7 +30,7 @@ func LeaveTeamHandler() gin.HandlerFunc {
 			return
 		}
 
-		if person.TeamId == 0 {
+		if person.TeamID == nil || *person.TeamID <= 0 {
 			reply.Fail(c, comm.WithMsg(comm.CodeDataNotFound, "未加入队伍"))
 			return
 		}
@@ -42,8 +42,8 @@ func LeaveTeamHandler() gin.HandlerFunc {
 
 		err = teamRepo.Transaction(c.Request.Context(), func(tx *gorm.DB) error {
 			// 更新人员信息
-			oldTeamID := person.TeamId
-			person.TeamId = 0
+			oldTeamID := *person.TeamID
+			person.TeamID = nil
 			person.Status = comm.PersonStatusNone
 			if err := personRepo.Update(c.Request.Context(), tx, person); err != nil {
 				return err

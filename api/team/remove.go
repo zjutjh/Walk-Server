@@ -10,7 +10,7 @@ import (
 )
 
 type RemoveMemberRequest struct {
-	MemberID int64 `json:"member_id" binding:"required"`
+	MemberOpenID string `json:"member_open_id" binding:"required"`
 }
 
 func RemoveMemberHandler() gin.HandlerFunc {
@@ -40,7 +40,7 @@ func RemoveMemberHandler() gin.HandlerFunc {
 			return
 		}
 
-		if captain.TeamId == 0 {
+		if captain.TeamID == nil || *captain.TeamID <= 0 {
 			reply.Fail(c, comm.WithMsg(comm.CodeDataNotFound, "未加入队伍"))
 			return
 		}
@@ -50,7 +50,7 @@ func RemoveMemberHandler() gin.HandlerFunc {
 			return
 		}
 
-		target, err := personRepo.FindById(c.Request.Context(), req.MemberID)
+		target, err := personRepo.FindByOpenId(c.Request.Context(), req.MemberOpenID)
 		if err != nil {
 			reply.Fail(c, comm.CodeDatabaseError)
 			return
@@ -60,26 +60,26 @@ func RemoveMemberHandler() gin.HandlerFunc {
 			return
 		}
 
-		if target.TeamId != captain.TeamId {
+		if target.TeamID == nil || *target.TeamID != *captain.TeamID {
 			reply.Fail(c, comm.WithMsg(comm.CodeDataConflict, "该队员不在你的队伍中"))
 			return
 		}
 
-		if target.ID == captain.ID {
+		if target.OpenID == captain.OpenID {
 			reply.Fail(c, comm.WithMsg(comm.CodePermissionDenied, "不能移除自己"))
 			return
 		}
 
 		err = teamRepo.Transaction(c.Request.Context(), func(tx *gorm.DB) error {
 			// 更新目标队员
-			target.TeamId = 0
+			target.TeamID = nil
 			target.Status = comm.PersonStatusNone
 			if err := personRepo.Update(c.Request.Context(), tx, target); err != nil {
 				return err
 			}
 
 			// 更新队伍人数
-			team, err := teamRepo.FindById(c.Request.Context(), captain.TeamId)
+			team, err := teamRepo.FindById(c.Request.Context(), *captain.TeamID)
 			if err != nil {
 				return err
 			}

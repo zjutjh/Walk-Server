@@ -29,12 +29,12 @@ func GetTeamInfoHandler() gin.HandlerFunc {
 			return
 		}
 
-		if person.TeamId == 0 {
+		if person.TeamID == nil || *person.TeamID <= 0 {
 			reply.Fail(c, comm.WithMsg(comm.CodeDataNotFound, "未加入队伍"))
 			return
 		}
 
-		team, err := teamRepo.FindById(c.Request.Context(), person.TeamId)
+		team, err := teamRepo.FindById(c.Request.Context(), *person.TeamID)
 		if err != nil {
 			reply.Fail(c, comm.CodeDatabaseError)
 			return
@@ -56,11 +56,11 @@ func GetTeamInfoHandler() gin.HandlerFunc {
 			memberData = append(memberData, gin.H{
 				"name":    m.Name,
 				"gender":  m.Gender,
-				"open_id": m.OpenId,
+				"open_id": m.OpenID,
 				"campus":  m.Campus,
 				"type":    m.Type,
 				"contact": gin.H{
-					"qq":     m.Qq,
+					"qq":     m.QQ,
 					"wechat": m.Wechat,
 					"tel":    m.Tel,
 				},
@@ -69,18 +69,19 @@ func GetTeamInfoHandler() gin.HandlerFunc {
 		}
 
 		reply.Success(c, gin.H{
-			"id":          team.ID,
-			"name":        team.Name,
-			"route":       team.Route,
-			"password":    team.Password,
-			"allow_match": team.AllowMatch,
-			"slogan":      team.Slogan,
-			"point":       team.Point,
-			"status":      team.Status,
-			"start_num":   team.StartNum,
-			"code":        team.Code,
-			"submit":      team.Submit,
-			"members":     memberData,
+			"id":           team.ID,
+			"name":         team.Name,
+			"route":        team.Route,
+			"password":     team.Password,
+			"allow_match":  team.AllowMatch,
+			"slogan":       team.Slogan,
+			"point_id":     team.PointID,
+			"num":          team.Num,
+			"is_departed":  team.IsDeparted,
+			"is_completed": team.IsCompleted,
+			"code":         team.Code,
+			"submit":       team.Submit,
+			"members":      memberData,
 		})
 	}
 }

@@ -9,6 +9,9 @@ import (
 	"github.com/zjutjh/mygo/swagger"
 
 	"app/api"
+	"app/api/dashboard"
+	"app/api/dashboard/stats"
+	"app/api/dashboard/teams"
 )
 
 func Route(router *gin.Engine) {
@@ -20,6 +23,14 @@ func Route(router *gin.Engine) {
 
 		// 注册业务逻辑接口
 
+		r.GET("/dashboard/overview", dashboard.OverviewHandler())
+		r.GET("/dashboard/checkpoint", dashboard.CheckpointHandler())
+		r.GET("/dashboard/segment", dashboard.SegmentHandler())
+		r.GET("/dashboard/teams/filter", teams.FilterHandler())
+		r.GET("/dashboard/team/:team_id", dashboard.TeamHandler())
+		r.GET("/dashboard/stats/route/all", stats.AllHandler())
+		r.GET("/dashboard/stats/route", stats.RouteHandler())
+		r.GET("/dashboard/permission", dashboard.PermissionHandler())
 	}
 }
 

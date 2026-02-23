@@ -1,0 +1,74 @@
+package dashboard
+
+import (
+	"reflect"
+	"runtime"
+
+	"github.com/gin-gonic/gin"
+	"github.com/zjutjh/mygo/foundation/reply"
+	"github.com/zjutjh/mygo/kit"
+	"github.com/zjutjh/mygo/nlog"
+	"github.com/zjutjh/mygo/swagger"
+
+	"app/comm"
+)
+
+// CheckpointHandler API router注册点
+func CheckpointHandler() gin.HandlerFunc {
+	api := CheckpointApi{}
+	swagger.CM[runtime.FuncForPC(reflect.ValueOf(hfCheckpoint).Pointer()).Name()] = api
+	return hfCheckpoint
+}
+
+type CheckpointApi struct {
+	Info     struct{}              `name:"获取点位详情" desc:"获取指定路线上某个点位的详细信息"`
+	Request  CheckpointApiRequest  // API请求参数 (Uri/Header/Query/Body)
+	Response CheckpointApiResponse // API响应数据 (Body中的Data部分)
+}
+
+type CheckpointApiRequest struct {
+	Query struct {
+		PointId string `json:"point_id" desc:"点位编号，请使用全局唯一id，而不是CPn"`
+	}
+}
+
+type CheckpointApiResponse struct {
+	PointId         string `json:"point_id" desc:"点位唯一id"`
+	RouteCode       string `json:"route_code" desc:"所属路线代号"`
+	PassedCount     int    `json:"passed_count" desc:"经过该点位的总人数"`
+	NotArrivedCount int    `json:"not_arrived_count" desc:"未到达该点位的人数"`
+}
+
+// Run Api业务逻辑执行点
+func (c *CheckpointApi) Run(ctx *gin.Context) kit.Code {
+	// TODO: 在此处编写接口业务逻辑
+	return comm.CodeOK
+}
+
+// Init Api初始化 进行参数校验和绑定
+func (c *CheckpointApi) Init(ctx *gin.Context) (err error) {
+	err = ctx.ShouldBindQuery(&c.Request.Query)
+	if err != nil {
+		return err
+	}
+	return err
+}
+
+// hfCheckpoint API执行入口
+func hfCheckpoint(ctx *gin.Context) {
+	api := &CheckpointApi{}
+	err := api.Init(ctx)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("参数绑定校验错误")
+		reply.Fail(ctx, comm.CodeParameterInvalid)
+		return
+	}
+	code := api.Run(ctx)
+	if !ctx.IsAborted() {
+		if code == comm.CodeOK {
+			reply.Success(ctx, api.Response)
+		} else {
+			reply.Fail(ctx, code)
+		}
+	}
+}

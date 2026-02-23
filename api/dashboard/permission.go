@@ -1,0 +1,69 @@
+package dashboard
+
+import (
+	"reflect"
+	"runtime"
+
+	"github.com/gin-gonic/gin"
+	"github.com/zjutjh/mygo/foundation/reply"
+	"github.com/zjutjh/mygo/kit"
+	"github.com/zjutjh/mygo/nlog"
+	"github.com/zjutjh/mygo/swagger"
+
+	"app/comm"
+)
+
+// PermissionHandler API router注册点
+func PermissionHandler() gin.HandlerFunc {
+	api := PermissionApi{}
+	swagger.CM[runtime.FuncForPC(reflect.ValueOf(hfPermission).Pointer()).Name()] = api
+	return hfPermission
+}
+
+type PermissionApi struct {
+	Info     struct{}              `name:"获取当前管理员权限信息" desc:"获取当前登录管理员的权限级别和可访问功能"`
+	Request  PermissionApiRequest  // API请求参数 (Uri/Header/Query/Body)
+	Response PermissionApiResponse // API响应数据 (Body中的Data部分)
+}
+
+type PermissionApiRequest struct {
+}
+
+type PermissionApiResponse struct {
+	AdminId         int    `json:"admin_id" desc:"管理员ID"`
+	Name            string `json:"name" desc:"管理员姓名"`
+	PermissionLevel int    `json:"permission_level" desc:"权限级别（1最高,2负责人,3内部,4外部）"`
+	Campus          string `json:"campus" desc:"负责校区"`
+	RouteCode       string `json:"route_code" desc:"负责的路线（0表示全部）"`
+	Point           string `json:"point" desc:"负责的点位（空表示全部）"`
+}
+
+// Run Api业务逻辑执行点
+func (p *PermissionApi) Run(ctx *gin.Context) kit.Code {
+	// TODO: 在此处编写接口业务逻辑
+	return comm.CodeOK
+}
+
+// Init Api初始化 进行参数校验和绑定
+func (p *PermissionApi) Init(ctx *gin.Context) (err error) {
+	return err
+}
+
+// hfPermission API执行入口
+func hfPermission(ctx *gin.Context) {
+	api := &PermissionApi{}
+	err := api.Init(ctx)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("参数绑定校验错误")
+		reply.Fail(ctx, comm.CodeParameterInvalid)
+		return
+	}
+	code := api.Run(ctx)
+	if !ctx.IsAborted() {
+		if code == comm.CodeOK {
+			reply.Success(ctx, api.Response)
+		} else {
+			reply.Fail(ctx, code)
+		}
+	}
+}

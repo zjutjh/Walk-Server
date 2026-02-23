@@ -43,7 +43,7 @@ type TeamApiRequest struct {
 
 type TeamApiResponse struct {
 	TeamId               int          `json:"team_id" desc:"队伍ID"`
-	RouteCode            string       `json:"route_code" desc:"路线ID"`
+	RouteId              string       `json:"route_id" desc:"路线ID"`
 	Captain              CaptainInfo  `json:"captain" desc:"队长信息"`
 	Members              []MemberInfo `json:"members" desc:"队员信息列表（不包括队长）"`
 	LatestCheckpointId   string       `json:"latest_checkpoint_id" desc:"最新经过点位唯一id"`

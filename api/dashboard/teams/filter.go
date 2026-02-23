@@ -46,7 +46,7 @@ type FilterApiResponse struct {
 type TeamBriefInfo struct {
 	TeamId               string `json:"team_id" desc:"队伍ID"`
 	CaptainPhone         string `json:"captain_phone" desc:"队长联系电话"`
-	RouteCode            string `json:"route_code" desc:"路线ID"`
+	RouteId              string `json:"route_id" desc:"路线ID"`
 	LatestCheckpointId   string `json:"latest_checkpoint_id" desc:"最新经过点位唯一id"`
 	LatestCheckpointTime string `json:"latest_checkpoint_time" desc:"经过点位时间"`
 }

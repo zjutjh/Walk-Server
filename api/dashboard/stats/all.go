@@ -30,8 +30,8 @@ type RouteStatItem struct {
 }
 
 type RouteStats struct {
-	RouteCode string        `json:"route_code" desc:"路线代号"`
-	Stats     RouteStatItem `json:"stats" desc:"统计数据"`
+	RouteId string        `json:"route_id" desc:"路线代号"`
+	Stats   RouteStatItem `json:"stats" desc:"统计数据"`
 }
 
 type AllApi struct {

@@ -44,12 +44,12 @@ type RouteApi struct {
 
 type RouteApiRequest struct {
 	Query struct {
-		Code string `form:"code" desc:"路线代号，如 1 或者 pf-half"`
+		Id string `form:"id" desc:"路线代号，如 1 或者 pf-half"`
 	}
 }
 
 type RouteApiResponse struct {
-	RouteCode       string           `json:"route_code" desc:"路线代号"`
+	RouteId         string           `json:"route_id" desc:"路线代号"`
 	CheckpointStats []CheckpointStat `json:"checkpoint_stats" desc:"经过点位总人数统计"`
 	SegmentStats    []SegmentStat    `json:"segment_stats" desc:"点位间人数统计"`
 	StatusStats     StatusStat       `json:"status_stats" desc:"状态信息统计"`

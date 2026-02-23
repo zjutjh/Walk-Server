@@ -38,7 +38,7 @@ type OverviewApiResponse struct {
 }
 
 type RoutesRes struct {
-	RouteCode  string `json:"route_code" desc:"路线代号 (基于望舒文档，如 1 或者 pf-half"`
+	RouteId    string `json:"route_id" desc:"路线代号 (基于望舒文档，如 1 或者 pf-half"`
 	RegNum     int    `json:"reg_num" desc:"该路线报名人数"`
 	InProgress int    `json:"in_progress" desc:"该路线进行中人数"`
 	Departed   int    `json:"departed" desc:"已经出发人数"`

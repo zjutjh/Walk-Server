@@ -34,7 +34,7 @@ type PermissionApiResponse struct {
 	Name            string `json:"name" desc:"管理员姓名"`
 	PermissionLevel int    `json:"permission_level" desc:"权限级别（1最高,2负责人,3内部,4外部）"`
 	Campus          string `json:"campus" desc:"负责校区"`
-	RouteCode       string `json:"route_code" desc:"负责的路线（0表示全部）"`
+	RouteId         string `json:"route_id" desc:"负责的路线（0表示全部）"`
 	Point           string `json:"point" desc:"负责的点位（空表示全部）"`
 }
 

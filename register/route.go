@@ -27,7 +27,7 @@ func Route(router *gin.Engine) {
 		r.GET("/dashboard/checkpoint", dashboard.CheckpointHandler())
 		r.GET("/dashboard/segment", dashboard.SegmentHandler())
 		r.GET("/dashboard/teams/filter", teams.FilterHandler())
-		r.GET("/dashboard/team/:team_id", dashboard.TeamHandler())
+		r.GET("/dashboard/team/:team_id", teams.TeamHandler())
 		r.GET("/dashboard/stats/route/all", stats.AllHandler())
 		r.GET("/dashboard/stats/route", stats.RouteHandler())
 		r.GET("/dashboard/permission", dashboard.PermissionHandler())

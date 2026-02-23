@@ -4,6 +4,7 @@ go 1.24.7
 
 require (
 	github.com/gin-gonic/gin v1.11.0
+	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/spf13/cobra v1.10.1
 	github.com/zjutjh/mygo v1.6.5

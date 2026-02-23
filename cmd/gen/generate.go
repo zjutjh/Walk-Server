@@ -13,6 +13,14 @@ import (
 
 var tables = []string{
 	"user",
+	"people",
+	"teams",
+	"points",
+	"routes",
+	"route_edges",
+	"admins",
+	"checkins",
+	"wrong_route_records",
 }
 
 func main() {
@@ -35,15 +43,23 @@ func main() {
 	}
 	g.WithDataTypeMap(m)
 
+	// 有软删除的表
+	softDeleteTables := map[string]bool{
+		"user": true,
+	}
+
 	for _, table := range tables {
-		tableName := g.GenerateModel(
-			table,
-			gen.FieldType("deleted_at", "soft_delete.DeletedAt"),
-			gen.FieldGORMTag("deleted_at", func(tag field.GormTag) field.GormTag {
-				return tag.Set("softDelete", "milli")
-			}),
-			gen.FieldJSONTag("deleted_at", "-"),
-		)
+		var opts []gen.ModelOpt
+		if softDeleteTables[table] {
+			opts = append(opts,
+				gen.FieldType("deleted_at", "soft_delete.DeletedAt"),
+				gen.FieldGORMTag("deleted_at", func(tag field.GormTag) field.GormTag {
+					return tag.Set("softDelete", "milli")
+				}),
+				gen.FieldJSONTag("deleted_at", "-"),
+			)
+		}
+		tableName := g.GenerateModel(table, opts...)
 		g.ApplyBasic(tableName)
 	}
 

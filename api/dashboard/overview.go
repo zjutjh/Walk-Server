@@ -28,21 +28,21 @@ type OverviewApi struct {
 
 type OverviewApiRequest struct {
 	Query struct {
-		Campus string `json:"campus" desc:"校区"`
+		Campus string `form:"campus" desc:"校区"`
 	}
 }
 
 type OverviewApiResponse struct {
-	TotalRegNum int       `json:"total_reg_num" desc:"总报名人数"`
+	TotalRegNum int         `json:"total_reg_num" desc:"总报名人数"`
 	Routes      []RoutesRes `json:"routes"`
 }
 
 type RoutesRes struct {
-	RouteCode string   `json:"route_code" desc:"路线代号 (基于望舒文档，如 1 或者 pf-half"`
-	RegNum    int `json:"reg_num" desc:"该路线报名人数"`
-	InProgress int `json:"in_progress" desc:"该路线进行中人数"`
-	Departed int `json:"departed" desc:"已经出发人数"`
-	WrongRoute int `json:"wrong_route" desc:"走错路线人数"`
+	RouteCode  string `json:"route_code" desc:"路线代号 (基于望舒文档，如 1 或者 pf-half"`
+	RegNum     int    `json:"reg_num" desc:"该路线报名人数"`
+	InProgress int    `json:"in_progress" desc:"该路线进行中人数"`
+	Departed   int    `json:"departed" desc:"已经出发人数"`
+	WrongRoute int    `json:"wrong_route" desc:"走错路线人数"`
 }
 
 // Run Api业务逻辑执行点

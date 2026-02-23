@@ -28,7 +28,7 @@ type CheckpointApi struct {
 
 type CheckpointApiRequest struct {
 	Query struct {
-		PointId string `json:"point_id" desc:"点位编号，请使用全局唯一id，而不是CPn"`
+		PointId string `form:"point_id" desc:"点位编号，请使用全局唯一id，而不是CPn"`
 	}
 }
 

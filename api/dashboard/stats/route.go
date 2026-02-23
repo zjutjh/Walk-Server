@@ -44,7 +44,7 @@ type RouteApi struct {
 
 type RouteApiRequest struct {
 	Query struct {
-		Code string `json:"code" desc:"路线代号，如 1 或者 pf-half"`
+		Code string `form:"code" desc:"路线代号，如 1 或者 pf-half"`
 	}
 }
 

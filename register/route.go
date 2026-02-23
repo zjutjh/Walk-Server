@@ -23,14 +23,25 @@ func Route(router *gin.Engine) {
 
 		// 注册业务逻辑接口
 
-		r.GET("/dashboard/overview", dashboard.OverviewHandler())
-		r.GET("/dashboard/checkpoint", dashboard.CheckpointHandler())
-		r.GET("/dashboard/segment", dashboard.SegmentHandler())
-		r.GET("/dashboard/teams/filter", teams.FilterHandler())
-		r.GET("/dashboard/team/:team_id", dashboard.TeamHandler())
-		r.GET("/dashboard/stats/route/all", stats.AllHandler())
-		r.GET("/dashboard/stats/route", stats.RouteHandler())
-		r.GET("/dashboard/permission", dashboard.PermissionHandler())
+		dashboardGroup := r.Group("/dashboard")
+		{
+			dashboardGroup.GET("/overview", dashboard.OverviewHandler())
+			dashboardGroup.GET("/checkpoint", dashboard.CheckpointHandler())
+			dashboardGroup.GET("/segment", dashboard.SegmentHandler())
+			dashboardGroup.GET("/permission", dashboard.PermissionHandler())
+
+			teamGroup := dashboardGroup.Group("/teams")
+			{
+				teamGroup.GET(":team_id", dashboard.TeamHandler())
+				teamGroup.GET("/filter", teams.FilterHandler())
+			}
+
+			statsGroup := dashboardGroup.Group("/stats/route")
+			{
+				statsGroup.GET("/all", stats.AllHandler())
+				statsGroup.GET("", stats.RouteHandler())
+			}
+		}
 	}
 }
 

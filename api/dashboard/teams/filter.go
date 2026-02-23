@@ -28,12 +28,12 @@ type FilterApi struct {
 
 type FilterApiRequest struct {
 	Query struct {
-		ToPointId   string `json:"to_point_id" desc:"结束点位id，全局唯一，不是CPn"`
-		FromPointId string `json:"from_point_id" desc:"起始点位id，合流点一定要给"`
-		Key         string `json:"key" desc:"搜索关键词"`
-		SearchType  string `json:"search_type" desc:"搜索类型（team_id/captain_phone）"`
-		Limit       int    `json:"limit" desc:"返回数量"`
-		Cursor      int    `json:"cursor" desc:"指针"`
+		ToPointId   string `form:"to_point_id" desc:"结束点位id，全局唯一，不是CPn"`
+		FromPointId string `form:"from_point_id" desc:"起始点位id，合流点一定要给"`
+		Key         string `form:"key" desc:"搜索关键词"`
+		SearchType  string `form:"search_type" desc:"搜索类型（team_id/captain_phone）"`
+		Limit       int    `form:"limit" desc:"返回数量"`
+		Cursor      int    `form:"cursor" desc:"指针"`
 	}
 }
 

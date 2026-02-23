@@ -28,8 +28,8 @@ type SegmentApi struct {
 
 type SegmentApiRequest struct {
 	Query struct {
-		ToPointId   string `json:"to_point_id" desc:"结束点位id，全局唯一，不是CPn"`
-		FromPointId string `json:"from_point_id" desc:"起始点位id，合流点一定要给"`
+		ToPointId   string `form:"to_point_id" desc:"结束点位id，全局唯一，不是CPn"`
+		FromPointId string `form:"from_point_id" desc:"起始点位id，合流点一定要给"`
 	}
 }
 

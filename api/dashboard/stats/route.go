@@ -25,11 +25,6 @@ type CheckpointStat struct {
 	PassedCount int    `json:"passed_count" desc:"经过该点位的总人数"`
 }
 
-type SegmentStat struct {
-	SegmentRange string `json:"segment_range" desc:"路段id范围，如CP1-CP2"`
-	PeopleCount  int    `json:"people_count" desc:"该路段上的人数"`
-}
-
 type StatusStat struct {
 	TotalRegistration int `json:"total_registration" desc:"总报名人数"`
 	WrongRoute        int `json:"wrong_route" desc:"走错路线人数"`
@@ -44,14 +39,12 @@ type RouteApi struct {
 
 type RouteApiRequest struct {
 	Query struct {
-		Id string `form:"id" desc:"路线代号，如 1 或者 pf-half"`
+		Id string `form:"id" desc:"路线代号，如pf-half"`
 	}
 }
 
 type RouteApiResponse struct {
-	RouteId         string           `json:"route_id" desc:"路线代号"`
 	CheckpointStats []CheckpointStat `json:"checkpoint_stats" desc:"经过点位总人数统计"`
-	SegmentStats    []SegmentStat    `json:"segment_stats" desc:"点位间人数统计"`
 	StatusStats     StatusStat       `json:"status_stats" desc:"状态信息统计"`
 }
 

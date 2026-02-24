@@ -8,7 +8,6 @@ import (
 	"github.com/zjutjh/mygo/middleware/cors"
 	"github.com/zjutjh/mygo/swagger"
 
-	"app/api"
 	"app/api/dashboard"
 	"app/api/dashboard/stats"
 	"app/api/dashboard/teams"
@@ -32,15 +31,12 @@ func Route(router *gin.Engine) {
 
 			teamGroup := dashboardGroup.Group("/teams")
 			{
-				teamGroup.GET(":team_id", dashboard.TeamHandler())
+				teamGroup.GET("/:team_id", teams.TeamHandler())
 				teamGroup.GET("/filter", teams.FilterHandler())
 			}
 
-			statsGroup := dashboardGroup.Group("/stats/route")
-			{
-				statsGroup.GET("/all", stats.AllHandler())
-				statsGroup.GET("", stats.RouteHandler())
-			}
+			dashboardGroup.GET("/stats/route/all", stats.AllHandler())
+			dashboardGroup.GET("/stats/route", stats.RouteHandler())
 		}
 	}
 }
@@ -56,5 +52,5 @@ func routeBase(r *gin.RouterGroup, router *gin.Engine) {
 	}
 
 	// 健康检查
-	r.GET("/health", api.HealthHandler())
+	//r.GET("/health", api.HealthHandler())
 }

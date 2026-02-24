@@ -21,7 +21,7 @@ func FilterHandler() gin.HandlerFunc {
 }
 
 type FilterApi struct {
-	Info     struct{}          `name:"筛选队伍" desc:"搜索队伍和获取指定路段上的队伍列表合并接口，按最新更新时间排序"`
+	Info     struct{}          `name:"筛选队伍" desc:"搜索队伍和获取指定路段上的队伍列表合并接口，按最新更新时间排序 \n key和topointid不可同时为空"`
 	Request  FilterApiRequest  // API请求参数 (Uri/Header/Query/Body)
 	Response FilterApiResponse // API响应数据 (Body中的Data部分)
 }
@@ -31,7 +31,7 @@ type FilterApiRequest struct {
 		ToPointId   string `form:"to_point_id" desc:"结束点位id，全局唯一，不是CPn"`
 		FromPointId string `form:"from_point_id" desc:"起始点位id，合流点一定要给"`
 		Key         string `form:"key" desc:"搜索关键词"`
-		SearchType  string `form:"search_type" desc:"搜索类型（team_id/captain_phone）"`
+		SearchType  string `form:"search_type" desc:"搜索类型（team_id/captain_phone/captain_name）"`
 		Limit       int    `form:"limit" desc:"返回数量"`
 		Cursor      int    `form:"cursor" desc:"指针"`
 	}
@@ -39,7 +39,8 @@ type FilterApiRequest struct {
 
 type FilterApiResponse struct {
 	SegmentRange string          `json:"segment_range" desc:"点位范围，如CP1-CP2"`
-	TotalCount   int             `json:"total_count" desc:"获取到的总队伍数"`
+	TotalCount   int             `json:"total_count" desc:"满足要求的总队伍数"`
+	NextCursor   int             `json:"next_cursor" desc:"下一页游标，为0则表示无更多数据"`
 	Teams        []TeamBriefInfo `json:"teams" desc:"队伍列表"`
 }
 

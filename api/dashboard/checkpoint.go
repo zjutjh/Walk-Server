@@ -33,8 +33,6 @@ type CheckpointApiRequest struct {
 }
 
 type CheckpointApiResponse struct {
-	PointId         string `json:"point_id" desc:"点位唯一id"`
-	RouteId         string `json:"route_id" desc:"所属路线代号"`
 	PassedCount     int    `json:"passed_count" desc:"经过该点位的总人数"`
 	NotArrivedCount int    `json:"not_arrived_count" desc:"未到达该点位的人数"`
 }

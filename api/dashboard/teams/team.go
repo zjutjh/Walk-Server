@@ -26,13 +26,14 @@ type CaptainInfo struct {
 }
 
 type MemberInfo struct {
-	Index int    `json:"index" desc:"成员序号(保留)"`
-	Name  string `json:"name" desc:"成员姓名"`
-	Phone string `json:"phone" desc:"联系电话"`
+	Index     int    `json:"index" desc:"成员序号(保留)"`
+	Name      string `json:"name" desc:"成员姓名"`
+	Phone     string `json:"phone" desc:"联系电话"`
+	IsCaptain bool   `json:"is_captain" desc:"是否为队长"`
 }
 
 type TeamApi struct {
-	Info     struct{}        `name:"获取队伍详细信息" desc:"获取指定队伍的完整详细信息，包括所有队员"`
+	Info     struct{}        `name:"获取队伍详细信息" desc:"获取指定队伍的完整详细信息，包括队长和所有队员"`
 	Request  TeamApiRequest  // API请求参数 (Uri/Header/Query/Body)
 	Response TeamApiResponse // API响应数据 (Body中的Data部分)
 }
@@ -46,8 +47,7 @@ type TeamApiRequest struct {
 type TeamApiResponse struct {
 	TeamId               int          `json:"team_id" desc:"队伍ID"`
 	RouteId              string       `json:"route_id" desc:"路线ID"`
-	Captain              CaptainInfo  `json:"captain" desc:"队长信息"`
-	Members              []MemberInfo `json:"members" desc:"队员信息列表（不包括队长）"`
+	Members              []MemberInfo `json:"members" desc:"队员信息列表"`
 	LatestCheckpointId   string       `json:"latest_checkpoint_id" desc:"最新经过点位唯一id"`
 	LatestCheckpointTime string       `json:"latest_checkpoint_time" desc:"经过点位时间"`
 }

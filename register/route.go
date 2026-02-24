@@ -39,7 +39,7 @@ func Route(router *gin.Engine) {
 			statsGroup := dashboardGroup.Group("/stats/route")
 			{
 				statsGroup.GET("/all", stats.AllHandler())
-				statsGroup.GET("", stats.RouteHandler())
+				statsGroup.GET("/", stats.RouteHandler())
 			}
 		}
 	}

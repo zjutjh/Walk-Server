@@ -31,10 +31,10 @@ type PermissionApiRequest struct {
 
 type PermissionApiResponse struct {
 	Name            string `json:"name" desc:"管理员姓名"`
-	PermissionLevel int    `json:"permission_level" desc:"权限级别（1最高,2负责人,3内部,4外部）"`
+	Permission string   `json:"permission" desc:"权限级别(super最高权限,manager负责人权限,internal内部权限,external外部权限)"`
 	Campus          string `json:"campus" desc:"负责校区"`
-	RouteId         string `json:"route_id" desc:"负责的路线"`
-	Point           string `json:"point" desc:"负责的点位"`
+	RouteId         string `json:"route_id" desc:"负责的路线id"`
+	PointId           string `json:"point_id" desc:"负责的点位id"`
 }
 
 // Run Api业务逻辑执行点

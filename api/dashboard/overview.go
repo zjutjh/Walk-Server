@@ -40,7 +40,7 @@ type RoutesRes struct {
 	RouteId    string `json:"route_id" desc:"路线代号 (基于望舒文档，如 1 或者 pf-half"`
 	RegNum     int    `json:"reg_num" desc:"该路线报名人数"`
 	InProgress int    `json:"in_progress" desc:"该路线进行中人数"`
-	Uneparted  int    `json:"uneparted" desc:"未到场人数"`
+	NotPresent int    `json:"not_present" desc:"未到场人数"`
 	WrongRoute int    `json:"wrong_route" desc:"走错路线人数"`
 }
 

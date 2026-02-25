@@ -26,7 +26,7 @@ type CheckpointStat struct {
 }
 
 type StatusStat struct {
-	TotalRegistration int `json:"total_registration" desc:"总报名人数"`
+	TotalReg int `json:"total_reg" desc:"总报名人数"`
 	WrongRoute        int `json:"wrong_route" desc:"走错路线人数"`
 	Withdrawn         int `json:"withdrawn" desc:"下撤人数"`
 }

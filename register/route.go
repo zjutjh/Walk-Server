@@ -32,7 +32,6 @@ func Route(router *gin.Engine) {
 			teamGroup := dashboardGroup.Group("/teams")
 			{
 				teamGroup.GET("/:team_id", teams.TeamHandler())
-				teamGroup.GET("/:team_id", teams.TeamHandler())
 				teamGroup.GET("/filter", teams.FilterHandler())
 			}
 

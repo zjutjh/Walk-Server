@@ -34,8 +34,8 @@ func RegisterAlumnusHandler() gin.HandlerFunc {
 
 type RegisterCommonRequest struct {
 	Name     string `json:"name" binding:"required"`
-	Gender   int8   `json:"gender" binding:"required"`
-	Campus   uint8  `json:"campus" binding:"required"`
+	Gender   string `json:"gender" binding:"required" desc:"字符串枚举: male|female"`
+	Campus   string `json:"campus" binding:"required" desc:"字符串枚举: chaohui|pingfeng|moganshan"`
 	StuID    string `json:"stu_id"`
 	Identity string `json:"identity" binding:"required"`
 	QQ       string `json:"qq"`
@@ -87,6 +87,16 @@ func (h *RegisterAlumnusApi) Run(ctx *gin.Context) kit.Code {
 }
 
 func doRegister(ctx *gin.Context, req RegisterCommonRequest, personType uint8) kit.Code {
+	gender, ok := parseGender(req.Gender)
+	if !ok {
+		return comm.CodeParameterInvalid
+	}
+
+	campus, ok := parseCampus(req.Campus)
+	if !ok {
+		return comm.CodeParameterInvalid
+	}
+
 	openID := comm.GetOpenIDFromCtx(ctx)
 	if openID == "" {
 		return comm.CodeOpenIDEmpty
@@ -122,9 +132,9 @@ func doRegister(ctx *gin.Context, req RegisterCommonRequest, personType uint8) k
 	err = peopleRepo.Create(ctx, &repo.Person{
 		OpenID:     openID,
 		Name:       req.Name,
-		Gender:     req.Gender,
+		Gender:     gender,
 		StuID:      req.StuID,
-		Campus:     req.Campus,
+		Campus:     campus,
 		Identity:   req.Identity,
 		Role:       0,
 		QQ:         req.QQ,

@@ -33,8 +33,41 @@ type UserInfoApi struct {
 }
 
 type UserInfoApiResponse struct {
-	Person *repo.Person `json:"person"`
-	Team   *repo.Team   `json:"team"`
+	Person *UserInfoPerson `json:"person"`
+	Team   *UserInfoTeam   `json:"team"`
+}
+
+type UserInfoPerson struct {
+	ID         int64  `json:"id"`
+	Name       string `json:"name"`
+	Gender     string `json:"gender" desc:"字符串枚举: male|female"`
+	StuID      string `json:"stu_id"`
+	Campus     string `json:"campus" desc:"字符串枚举: chaohui|pingfeng|moganshan"`
+	Identity   string `json:"identity"`
+	TeamRole   string `json:"team_role" desc:"字符串枚举: none|member|captain"`
+	QQ         string `json:"qq"`
+	Wechat     string `json:"wechat"`
+	College    string `json:"college"`
+	Tel        string `json:"tel"`
+	CreatedOp  uint8  `json:"created_op"`
+	JoinOp     uint8  `json:"join_op"`
+	TeamID     int64  `json:"team_id"`
+	MemberType string `json:"member_type" desc:"字符串枚举: student|teacher|alumnus"`
+	WalkStatus string `json:"walk_status" desc:"字符串枚举: not_started|ready|in_progress|quit|withdrawn|violation|finished"`
+}
+
+type UserInfoTeam struct {
+	ID         int64  `json:"id"`
+	Name       string `json:"name"`
+	Num        uint8  `json:"num"`
+	Slogan     string `json:"slogan"`
+	AllowMatch bool   `json:"allow_match"`
+	Captain    string `json:"captain"`
+	RouteID    int64  `json:"route_id"`
+	PointID    int8   `json:"point_id"`
+	Submit     bool   `json:"submit"`
+	Status     string `json:"status" desc:"字符串枚举: not_started|in_progress|finished|withdrawn"`
+	IsLost     bool   `json:"is_lost"`
 }
 
 type UserModifyApi struct {
@@ -74,16 +107,59 @@ func (h *UserInfoApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeDataNotFound
 	}
 
-	h.Response.Person = person
+	h.Response.Person = toUserInfoPerson(person)
 	if person.TeamID > 0 {
 		team, err := teamRepo.FindByID(ctx, person.TeamID)
 		if err != nil {
 			return comm.CodeDatabaseError
 		}
-		h.Response.Team = team
+		h.Response.Team = toUserInfoTeam(team)
 	}
 
 	return comm.CodeOK
+}
+
+func toUserInfoPerson(person *repo.Person) *UserInfoPerson {
+	if person == nil {
+		return nil
+	}
+	return &UserInfoPerson{
+		ID:         person.ID,
+		Name:       person.Name,
+		Gender:     formatGender(person.Gender),
+		StuID:      person.StuID,
+		Campus:     formatCampus(person.Campus),
+		Identity:   person.Identity,
+		TeamRole:   formatTeamRole(person.Role),
+		QQ:         person.QQ,
+		Wechat:     person.Wechat,
+		College:    person.College,
+		Tel:        person.Tel,
+		CreatedOp:  person.CreatedOp,
+		JoinOp:     person.JoinOp,
+		TeamID:     person.TeamID,
+		MemberType: formatMemberType(person.Type),
+		WalkStatus: formatWalkStatus(person.WalkStatus),
+	}
+}
+
+func toUserInfoTeam(team *repo.Team) *UserInfoTeam {
+	if team == nil {
+		return nil
+	}
+	return &UserInfoTeam{
+		ID:         team.ID,
+		Name:       team.Name,
+		Num:        team.Num,
+		Slogan:     team.Slogan,
+		AllowMatch: team.AllowMatch,
+		Captain:    team.Captain,
+		RouteID:    team.RouteID,
+		PointID:    team.PointID,
+		Submit:     team.Submit,
+		Status:     formatTeamStatus(team.Status),
+		IsLost:     team.IsLost,
+	}
 }
 
 func (h *UserModifyApi) Run(ctx *gin.Context) kit.Code {

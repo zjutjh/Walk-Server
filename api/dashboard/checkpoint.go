@@ -28,13 +28,13 @@ type CheckpointApi struct {
 
 type CheckpointApiRequest struct {
 	Query struct {
-		PointId string `form:"point_id" desc:"点位编号，请使用全局唯一id，而不是CPn"`
+		PointName string `form:"point_name" desc:"点位编号，请使用全局唯一name，而不是CPn"`
 	}
 }
 
 type CheckpointApiResponse struct {
-	PassedCount     int    `json:"passed_count" desc:"经过该点位的总人数"`
-	NotArrivedCount int    `json:"not_arrived_count" desc:"未到达该点位的人数"`
+	PassedCount     int `json:"passed_count" desc:"经过该点位的总人数"`
+	NotArrivedCount int `json:"not_arrived_count" desc:"未到达该点位的人数"`
 }
 
 // Run Api业务逻辑执行点

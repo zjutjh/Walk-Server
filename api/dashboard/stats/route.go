@@ -21,14 +21,14 @@ func RouteHandler() gin.HandlerFunc {
 }
 
 type CheckpointStat struct {
-	PointId     string `json:"point_id" desc:"点位唯一id"`
+	PointName   string `json:"point_name" desc:"点位唯一name"`
 	PassedCount int    `json:"passed_count" desc:"经过该点位的总人数"`
 }
 
 type StatusStat struct {
-	TotalReg int `json:"total_reg" desc:"总报名人数"`
-	WrongRoute        int `json:"wrong_route" desc:"走错路线人数"`
-	Withdrawn         int `json:"withdrawn" desc:"下撤人数"`
+	TotalReg   int `json:"total_reg" desc:"总报名人数"`
+	WrongRoute int `json:"wrong_route" desc:"走错路线人数"`
+	Withdrawn  int `json:"withdrawn" desc:"下撤人数"`
 }
 
 type RouteApi struct {
@@ -39,7 +39,7 @@ type RouteApi struct {
 
 type RouteApiRequest struct {
 	Query struct {
-		Id string `form:"id" desc:"路线代号，如pf-half"`
+		Name string `form:"name" desc:"路线代号，如pf-half"`
 	}
 }
 

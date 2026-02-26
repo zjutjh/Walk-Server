@@ -29,7 +29,7 @@ type MemberInfo struct {
 	Index int    `json:"index" desc:"成员序号(队长为0)"`
 	Name  string `json:"name" desc:"成员姓名"`
 	Phone string `json:"phone" desc:"联系电话"`
-	Type  string `json:"type" desc:"人员类型(menber成员/captain队长)"`
+	Role  string `json:"role" desc:"人员身份(menber成员/captain队长)"`
 }
 
 type TeamApi struct {

@@ -33,6 +33,7 @@ func Route(router *gin.Engine) {
 			{
 				teamGroup.GET("/:team_id", teams.TeamHandler())
 				teamGroup.GET("/filter", teams.FilterHandler())
+				teamGroup.POST("/lost", teams.LostHandler())
 			}
 
 			dashboardGroup.GET("/stats/route/all", stats.AllHandler())

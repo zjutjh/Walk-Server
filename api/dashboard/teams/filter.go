@@ -29,7 +29,7 @@ type FilterApi struct {
 type FilterApiRequest struct {
 	Query struct {
 		ToPointName   string `form:"to_point_name" desc:"结束点位name，全局唯一，不是CPn"`
-		FromPointName string `form:"from_point_name" desc:"起始点位name，合流点一定要给"`
+		PrevPointName string `form:"prev_point_name" desc:"上一点位name，合流点一定要给"`
 		Key           string `form:"key" desc:"搜索关键词"`
 		SearchType    string `form:"search_type" desc:"搜索类型（team_id/captain_phone/captain_name）"`
 		Limit         int    `form:"limit" desc:"返回数量"`

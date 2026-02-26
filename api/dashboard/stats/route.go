@@ -20,7 +20,7 @@ func RouteHandler() gin.HandlerFunc {
 	return hfRoute
 }
 
-type CheckpointStat struct {
+type PointStat struct {
 	PointName   string `json:"point_name" desc:"点位唯一name"`
 	PassedCount int    `json:"passed_count" desc:"经过该点位的总人数"`
 }
@@ -44,8 +44,8 @@ type RouteApiRequest struct {
 }
 
 type RouteApiResponse struct {
-	CheckpointStats []CheckpointStat `json:"checkpoint_stats" desc:"经过点位总人数统计"`
-	StatusStats     StatusStat       `json:"status_stats" desc:"状态信息统计"`
+	PointStats  []PointStat `json:"point_stats" desc:"经过点位总人数统计"`
+	StatusStats StatusStat  `json:"status_stats" desc:"状态信息统计"`
 }
 
 // Run Api业务逻辑执行点

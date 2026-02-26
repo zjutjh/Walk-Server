@@ -45,11 +45,11 @@ type TeamApiRequest struct {
 }
 
 type TeamApiResponse struct {
-	TeamId               int          `json:"team_id" desc:"队伍ID"`
-	RouteName            string       `json:"route_name" desc:"路线name"`
-	Members              []MemberInfo `json:"members" desc:"队员信息列表"`
-	LatestCheckPointName string       `json:"latest_checkpoint_name" desc:"最新经过点位唯一name"`
-	LatestCheckpointTime string       `json:"latest_checkpoint_time" desc:"经过点位时间"`
+	TeamId          int          `json:"team_id" desc:"队伍ID"`
+	RouteName       string       `json:"route_name" desc:"路线name"`
+	Members         []MemberInfo `json:"members" desc:"队员信息列表"`
+	LatestPointName string       `json:"latest_point_name" desc:"最新经过点位唯一name"`
+	LatestpointTime string       `json:"latest_point_time" desc:"经过点位时间"`
 }
 
 // Run Api业务逻辑执行点

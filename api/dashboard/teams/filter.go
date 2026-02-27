@@ -45,11 +45,13 @@ type FilterApiResponse struct {
 }
 
 type TeamBriefInfo struct {
-	TeamId          string `json:"team_id" desc:"队伍ID"`
-	CaptainPhone    string `json:"captain_phone" desc:"队长联系电话"`
-	RouteName       string `json:"route_name" desc:"路线name"`
-	LatestPointName string `json:"latest_point_name" desc:"最新经过点位唯一name"`
-	LatestPointTime string `json:"latest_point_time" desc:"经过点位时间"`
+	TeamId        string `json:"team_id" desc:"队伍ID"`
+	CaptainName   string `json:"captain_name" desc:"队长姓名"`
+	CaptainPhone  string `json:"captain_phone" desc:"队长联系电话"`
+	PrevPointName string `json:"prev_point_name" desc:"最新经过点位唯一name"`
+	PrevPointTime string `json:"prev_point_time" desc:"最新经过点位时间"`
+	RouteName     string `json:"route_name" desc:"路线name"`
+	IsLost        bool   `json:"is_lost" desc:"是否失联"`
 }
 
 // Run Api业务逻辑执行点

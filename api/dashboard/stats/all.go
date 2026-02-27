@@ -25,7 +25,7 @@ type RouteStatItem struct {
 	NotPresent int `json:"not_present" desc:"未到场人数"`
 	UnDeparted int `json:"undeparted" desc:"待出发人数"`
 	TotalReg   int `json:"total_reg" desc:"总报名人数"`
-	Finished   int `json:"finished" desc:"已完成人数"`
+	Finished   int `json:"finished" desc:"已结束人数（无论是否违规）"`
 	WrongRoute int `json:"wrong_route" desc:"走错路线人数"`
 	Withdrawn  int `json:"withdrawn" desc:"下撤人数"`
 }

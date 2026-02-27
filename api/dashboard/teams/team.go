@@ -26,7 +26,6 @@ type CaptainInfo struct {
 }
 
 type MemberInfo struct {
-	Index int    `json:"index" desc:"成员序号(队长为0)"`
 	Name  string `json:"name" desc:"成员姓名"`
 	Phone string `json:"phone" desc:"联系电话"`
 	Role  string `json:"role" desc:"人员身份(menber成员/captain队长)"`
@@ -45,11 +44,12 @@ type TeamApiRequest struct {
 }
 
 type TeamApiResponse struct {
-	TeamId          int          `json:"team_id" desc:"队伍ID"`
-	RouteName       string       `json:"route_name" desc:"路线name"`
-	Members         []MemberInfo `json:"members" desc:"队员信息列表"`
-	LatestPointName string       `json:"latest_point_name" desc:"最新经过点位唯一name"`
-	LatestpointTime string       `json:"latest_point_time" desc:"经过点位时间"`
+	TeamId        int          `json:"team_id" desc:"队伍ID（保留）"`
+	Members       []MemberInfo `json:"members" desc:"队员信息列表"`
+	PrevPointName string       `json:"prev_point_name" desc:"最新经过点位唯一name"`
+	PrevPointTime string       `json:"prev_point_time" desc:"经过点位时间"`
+	RouteName     string       `json:"route_name" desc:"路线name"`
+	IsLost        bool         `json:"is_lost" desc:"是否失联"`
 }
 
 // Run Api业务逻辑执行点

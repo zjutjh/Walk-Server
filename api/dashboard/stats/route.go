@@ -26,9 +26,11 @@ type PointStat struct {
 }
 
 type StatusStat struct {
-	TotalReg   int `json:"total_reg" desc:"总报名人数"`
-	WrongRoute int `json:"wrong_route" desc:"走错路线人数"`
-	Withdrawn  int `json:"withdrawn" desc:"下撤人数"`
+	TotalReg    int `json:"total_reg" desc:"总报名人数"`
+	UnPresented int `json:"unpresented" desc:"未到场人数"`
+	Walking     int `json:"walking" desc:"进行中人数"`
+	WrongRoute  int `json:"wrong_route" desc:"走错路线人数"`
+	Withdrawn   int `json:"withdrawn" desc:"下撤人数"`
 }
 
 type RouteApi struct {

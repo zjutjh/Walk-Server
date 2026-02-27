@@ -37,6 +37,7 @@ type OverviewApiResponse struct {
 }
 
 type RoutesRes struct {
+	RouteName  string `json:"route_name" desc:"路线name"`
 	TotalReg   int `json:"total_reg" desc:"总报名人数"`
 	Walking    int `json:"walking" desc:"进行中人数"`
 	Finished   int `json:"finished" desc:"到达终点人数（无论是否违规）"`

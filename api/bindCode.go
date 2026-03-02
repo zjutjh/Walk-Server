@@ -27,8 +27,8 @@ type BindCodeApi struct {
 
 type BindCodeApiRequest struct {
     Body struct{
-        TeamID int `json:"team_id"`
-        Content string `json:"content"`
+        TeamID int `json:"team_id" desc:"团队编号" binding:"required"`
+        Content string `json:"content" desc:"签到码" binding:"required"`
     } 
 }
 
@@ -36,12 +36,12 @@ type BindCodeApiResponse struct {
 }
 
 // Run Api业务逻辑执行点
-func (h *BindCodeApi) Run(ctx *gin.Context) kit.Code {
+func (b *BindCodeApi) Run(ctx *gin.Context) kit.Code {
     return comm.CodeOK
 }
 
 // Run Api初始化 进行参数校验和绑定
-func (h *BindCodeApi) Init(ctx *gin.Context) (err error) {
+func (b *BindCodeApi) Init(ctx *gin.Context) (err error) {
     return err
 }
 

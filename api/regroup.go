@@ -27,24 +27,23 @@ type RegroupApi struct {
 
 type RegroupApiRequest struct {
     Body struct{
-        Jwts  []string `json:"jwts"`
-	    RouteCode string `json:"route_code"`
-	    Name string `json:"name"`
-	    Slogan string `json:"slogan"`
-	    Secret string `json:"secret"`
+        Members  []int `json:"members" desc:"用户编号,长度3-6人" binding:"required"`
+	    RouteName string `json:"route_name" desc:"路线名称" binding:"required"`
     }
 }
 
 type RegroupApiResponse struct {
+    TeamID int `json:"team_id" desc:"队伍编号"`
 }
 
+
 // Run Api业务逻辑执行点
-func (h *RegroupApi) Run(ctx *gin.Context) kit.Code {
+func (r *RegroupApi) Run(ctx *gin.Context) kit.Code {
     return comm.CodeOK
 }
 
 // Run Api初始化 进行参数校验和绑定
-func (h *RegroupApi) Init(ctx *gin.Context) (err error) {
+func (r *RegroupApi) Init(ctx *gin.Context) (err error) {
     return err
 }
 

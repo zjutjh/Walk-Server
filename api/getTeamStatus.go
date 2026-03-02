@@ -26,56 +26,41 @@ type GetTeamStatusApi struct {
 }
 
 type GetTeamStatusApiRequest struct {
+    Query struct{
+        TeamID int `form:"team_id" binding:"required"`
+    }
 }
 
 type GetTeamStatusApiResponse struct {
-	Admin AdminResponse `json:"admin"`
-	Team TeamResponse `json:"team"`
-	Member MemberResponse `json:"member"`
-}
-
-type AdminResponse struct{
-	AdminID int `json:"admin_id"`
-	Name string `json:"name"`
-	Account string `json:"account"`
-	Point string `json:"point"`
-	RouteCode string `json:"route_code"`
+	Team TeamResponse `json:"team" `
+	Members []MemberResponse `json:"members"`
 }
 
 type TeamResponse struct{
-	TeamID int `json:"team_id"`
-	Name string `json:"name"`
-	Point string `json:"point"`
-	RouteCode string `json:"route_code"`
-	Slogan string `json:"slogan"`
-	ProgressNum int `json:"progress_num"`
-	Status string `json:"status" decs:"有未出发,进行中,已完成,已下撤"`
+	Name string `json:"name" desc:"队名"`
+	PrevPointName string `json:"prev_point_name" desc:"点位名称"`
+	RouteName string `json:"route_name" desc:"路线名称"`
 }
 
 type MemberResponse struct{
-	Campus int `json:"campus"`
-	Gender int `json:"gender"`
-	Name string `json:"name"`
-	OpenID string `json:"open_id"`
-	WalkStatus string `json:"walk_status"`
-	Contact ContactResponse `json:"contact"`
-	Type int `json:"type"`
-}
-
-type ContactResponse struct{
-	QQ string `json:"qq"`
-	Wechat string `json:"wechat"`
-	Tel string `json:"tel"`
+	Name string `json:"name" desc:"姓名"`
+	UserID int `json:"user_id" desc:"用户编号"`
+	WalkStatus string `json:"walk_status" desc:"用户状态"`
+    Role  string `json:"role" desc:"用户身份"`
 }
 
 // Run Api业务逻辑执行点
-func (h *GetTeamStatusApi) Run(ctx *gin.Context) kit.Code {
+func (g *GetTeamStatusApi) Run(ctx *gin.Context) kit.Code {
     return comm.CodeOK
 }
 
 // Run Api初始化 进行参数校验和绑定
-func (h *GetTeamStatusApi) Init(ctx *gin.Context) (err error) {
-    return err
+func (g *GetTeamStatusApi) Init(ctx *gin.Context) (err error) {
+    err = ctx.ShouldBindQuery(&g.Request.Query)
+	if err != nil {
+		return err
+	}
+	return err
 }
 
 func getTeamStatus(ctx *gin.Context) {

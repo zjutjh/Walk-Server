@@ -27,22 +27,22 @@ type UpdateTeamApi struct {
 
 type UpdateTeamApiRequest struct {
     Body struct{
-        CodeType int `json:"code_type" desc:"0为团队码,1为签到码"`
-        Content string `json:"content"`
+        CodeType string `json:"code_type" binding:"required"`
+        Content string `json:"content" binding:"required"`
     }
 }
 
 type UpdateTeamApiResponse struct {
-    ProgressNum int `json:"progress_num" desc:"队伍剩余人数"`
+    TeamID int `json:"team_id" desc:"队伍编号"`
 }
 
 // Run Api业务逻辑执行点
-func (h *UpdateTeamApi) Run(ctx *gin.Context) kit.Code {
+func (u *UpdateTeamApi) Run(ctx *gin.Context) kit.Code {
     return comm.CodeOK
 }
 
 // Run Api初始化 进行参数校验和绑定
-func (h *UpdateTeamApi) Init(ctx *gin.Context) (err error) {
+func (u *UpdateTeamApi) Init(ctx *gin.Context) (err error) {
     return err
 }
 

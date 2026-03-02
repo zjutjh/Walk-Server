@@ -13,39 +13,40 @@ import (
     "app/comm"
 )
 
-func ConfirmDestinationHandler() gin.HandlerFunc {
-    api := ConfirmDestinationApi{}
-    swagger.CM[runtime.FuncForPC(reflect.ValueOf(confirmDestination).Pointer()).Name()] = api
-    return confirmDestination
-}
-type ConfirmDestinationApi struct {
-    Info     struct{} `name:"终点确认"`
-    Request  ConfirmDestinationApiRequest
-    Response ConfirmDestinationApiResponse
+func MarkTeamViolationHandler() gin.HandlerFunc {
+    api := MarkTeamViolationApi{}
+    swagger.CM[runtime.FuncForPC(reflect.ValueOf(markTeamViolation).Pointer()).Name()] = api
+    return markTeamViolation
 }
 
-type ConfirmDestinationApiRequest struct {
+type MarkTeamViolationApi struct {
+    Info     struct{} `name:"标记队伍违规"`
+    Request  MarkTeamViolationApiRequest
+    Response MarkTeamViolationApiResponse
+}
+
+type MarkTeamViolationApiRequest struct {
     Body struct{
         TeamID int `json:"team_id" desc:"团队编号" binding:"required"`
     }
 }
 
-type ConfirmDestinationApiResponse struct {
+type MarkTeamViolationApiResponse struct {
 }
 
 
-func (c *ConfirmDestinationApi) Run(ctx *gin.Context) kit.Code {
+func (m *MarkTeamViolationApi) Run(ctx *gin.Context) kit.Code {
     return comm.CodeOK
 }
 
 
-func (c *ConfirmDestinationApi) Init(ctx *gin.Context) (err error) {
+func (m *MarkTeamViolationApi) Init(ctx *gin.Context) (err error) {
     return err
 }
 
 
-func confirmDestination(ctx *gin.Context) {
-    api := &ConfirmDestinationApi{}
+func markTeamViolation(ctx *gin.Context) {
+    api := &MarkTeamViolationApi{}
     err := api.Init(ctx)
     if err != nil {
         nlog.Pick().WithContext(ctx).WithError(err).Warn("参数绑定校验错误")

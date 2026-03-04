@@ -28,6 +28,7 @@ type FilterApi struct {
 
 type FilterApiRequest struct {
 	Query struct {
+		Campus        string `form:"campus" desc:"校区（必填 pf/mgs）"`
 		ToPointName   string `form:"to_point_name" desc:"结束点位name，全局唯一，不是CPn"`
 		PrevPointName string `form:"prev_point_name" desc:"上一点位name，合流点一定要给"`
 		Key           string `form:"key" desc:"搜索关键词"`

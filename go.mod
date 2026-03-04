@@ -6,7 +6,7 @@ require (
 	github.com/gin-gonic/gin v1.11.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/spf13/cobra v1.10.1
-	github.com/zjutjh/mygo v1.6.5
+	github.com/zjutjh/mygo v1.6.8
 	gorm.io/gen v0.3.26
 	gorm.io/gorm v1.31.0
 	gorm.io/plugin/dbresolver v1.6.2

@@ -28,7 +28,7 @@ type CaptainInfo struct {
 type MemberInfo struct {
 	Name  string `json:"name" desc:"成员姓名"`
 	Phone string `json:"phone" desc:"联系电话"`
-	Role  string `json:"role" desc:"人员身份(menber成员/captain队长)"`
+	Role  string `json:"role" desc:"人员身份(member成员/captain队长)"`
 }
 
 type TeamApi struct {
@@ -38,8 +38,8 @@ type TeamApi struct {
 }
 
 type TeamApiRequest struct {
-	Uri struct {
-		TeamId string `uri:"team_id" desc:"队伍ID"`
+	Query struct {
+		TeamId string `form:"team_id" desc:"队伍ID"`
 	}
 }
 
@@ -60,7 +60,7 @@ func (t *TeamApi) Run(ctx *gin.Context) kit.Code {
 
 // Init Api初始化 进行参数校验和绑定
 func (t *TeamApi) Init(ctx *gin.Context) (err error) {
-	err = ctx.ShouldBindUri(&t.Request.Uri)
+	err = ctx.ShouldBindQuery(&t.Request.Query)
 	if err != nil {
 		return err
 	}

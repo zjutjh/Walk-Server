@@ -21,7 +21,7 @@ func LostHandler() gin.HandlerFunc {
 }
 
 type LostApi struct {
-	Info     struct{}        `name:"设置队伍失联状态" desc:"设置指定队伍的失联状态"`
+	Info     struct{}        `name:"设置队伍失联状态" desc:"设置指定队伍的失联状态 \n 距现在5min内打卡的队伍不允许设置失联状态为true"`
 	Request  LostApiRequest  // API请求参数 (Uri/Header/Query/Body)
 	Response LostApiResponse // API响应数据 (Body中的Data部分)
 }

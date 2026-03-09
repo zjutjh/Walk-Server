@@ -39,7 +39,6 @@ type FilterApiRequest struct {
 }
 
 type FilterApiResponse struct {
-	SegmentRange string          `json:"segment_range" desc:"点位范围，如CP1-CP2"`
 	TotalCount   int             `json:"total_count" desc:"满足要求的总队伍数"`
 	NextCursor   int             `json:"next_cursor" desc:"下一页游标，为0则表示无更多数据"`
 	Teams        []TeamBriefInfo `json:"teams" desc:"队伍列表"`

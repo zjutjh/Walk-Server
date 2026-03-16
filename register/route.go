@@ -33,6 +33,13 @@ func routeBase(r *gin.RouterGroup, router *gin.Engine) {
 		r.GET("/swagger.json", swagger.DocumentHandler(router))
 	}
 
-	// 健康检查
-	r.GET("/health", api.HealthHandler())
+	r.POST("/admin/team/update", api.UpdateTeamHandler())
+	r.POST("/admin/user/update", api.UpdateUserHandler())
+	r.POST("/admin/team/bind",api.BindCodeHandler())
+	r.POST("/admin/team/violation/mark",api.MarkTeamViolationHandler())
+	r.POST("/admin/destination/confirm",api.ConfirmDestinationHandler())
+	r.POST("/admin/team/regroup",api.RegroupHandler())
+	r.GET("/admin/team/status",api.GetTeamStatusHandler())
+	r.GET("/admin/user/info/code",api.GetUserInfoByScanHandler())
+	r.GET("/admin/user/info",api.GetUserInfoByIDHandler())
 }

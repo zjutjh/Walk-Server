@@ -42,6 +42,10 @@ func (u *UpdateUserApi) Run(ctx *gin.Context) kit.Code {
 
 
 func (u *UpdateUserApi) Init(ctx *gin.Context) (err error) {
+    err = ctx.ShouldBindJSON(&u.Request.Body)
+	if err != nil {
+		return err
+	}
     return err
 }
 

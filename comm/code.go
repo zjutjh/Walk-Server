@@ -27,4 +27,7 @@ var (
 )
 
 // 业务错误码 从 30000 开始
-var ()
+var (
+	CodeAccountOrPasswordError =kit.NewCode(30000,"账号或密码错误")
+	CodeAccountExistError=kit.NewCode(30001,"该账号已存在")
+)

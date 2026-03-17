@@ -10,6 +10,7 @@ import (
 	midsession "github.com/zjutjh/mygo/session/middleware"
 	"github.com/zjutjh/mygo/swagger"
 
+	"app/api"
 	"app/api/dashboard"
 	"app/api/dashboard/stats"
 	"app/api/dashboard/teams"

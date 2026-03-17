@@ -16,6 +16,9 @@ import (
 )
 
 func Boot() kernel.BootList {
+	// 初始化配置文件
+	config.Boot("conf/config.yaml")
+
 	return kernel.BootList{
 		// 基础引导器
 		feishu.Boot(),   // 飞书Bot (消息提醒)

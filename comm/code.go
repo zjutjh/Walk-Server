@@ -2,7 +2,7 @@ package comm
 
 import "github.com/zjutjh/mygo/kit"
 
-var CodeOK = kit.NewCode(0, "成功")
+var CodeOK = kit.NewCode(0, "success")
 
 // 系统错误码
 var (
@@ -18,7 +18,7 @@ var (
 	CodeNotLoggedIn        = kit.NewCode(20000, "用户未登录")
 	CodeLoginExpired       = kit.NewCode(20001, "登录过期，请重新登录")
 	CodePermissionDenied   = kit.NewCode(20002, "用户无权限")
-	CodeParameterInvalid   = kit.NewCode(20003, "参数非法")
+	CodeParameterInvalid   = kit.NewCode(20003, "参数错误")
 	CodeDataParseError     = kit.NewCode(20004, "数据解析异常")
 	CodeDataNotFound       = kit.NewCode(20005, "数据不存在")
 	CodeDataConflict       = kit.NewCode(20006, "数据冲突")
@@ -27,4 +27,7 @@ var (
 )
 
 // 业务错误码 从 30000 开始
-var ()
+var (
+	CodeAccountOrPasswordError =kit.NewCode(30000,"账号或密码错误")
+	CodeAccountExistError=kit.NewCode(30001,"该账号已存在")
+)

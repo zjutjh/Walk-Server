@@ -12,7 +12,14 @@ import (
 )
 
 var tables = []string{
-	"user",
+	"admins",
+	"checkins",
+	"peoples",
+	"points",
+	"route_edges",
+	"routes",
+	"teams",
+	"wrong_route_records",
 }
 
 func main() {

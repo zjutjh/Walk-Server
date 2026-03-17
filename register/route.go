@@ -26,6 +26,7 @@ func Route(router *gin.Engine) {
 
 		// 注册业务逻辑接口
 
+		//dashboardGroup := r.Group("/dashboard",midsession.Auth[int](true))
 		dashboardGroup := r.Group("/dashboard")
 		{
 			dashboardGroup.GET("/overview", dashboard.OverviewHandler())

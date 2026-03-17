@@ -16,34 +16,69 @@ import (
 )
 
 var (
-	Q    = new(Query)
-	User *user
+	Q                = new(Query)
+	Admin            *admin
+	Checkin          *checkin
+	People           *people
+	Point            *point
+	Route            *route
+	RouteEdge        *routeEdge
+	Team             *team
+	WrongRouteRecord *wrongRouteRecord
 )
 
 func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 	*Q = *Use(db, opts...)
-	User = &Q.User
+	Admin = &Q.Admin
+	Checkin = &Q.Checkin
+	People = &Q.People
+	Point = &Q.Point
+	Route = &Q.Route
+	RouteEdge = &Q.RouteEdge
+	Team = &Q.Team
+	WrongRouteRecord = &Q.WrongRouteRecord
 }
 
 func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 	return &Query{
-		db:   db,
-		User: newUser(db, opts...),
+		db:               db,
+		Admin:            newAdmin(db, opts...),
+		Checkin:          newCheckin(db, opts...),
+		People:           newPeople(db, opts...),
+		Point:            newPoint(db, opts...),
+		Route:            newRoute(db, opts...),
+		RouteEdge:        newRouteEdge(db, opts...),
+		Team:             newTeam(db, opts...),
+		WrongRouteRecord: newWrongRouteRecord(db, opts...),
 	}
 }
 
 type Query struct {
 	db *gorm.DB
 
-	User user
+	Admin            admin
+	Checkin          checkin
+	People           people
+	Point            point
+	Route            route
+	RouteEdge        routeEdge
+	Team             team
+	WrongRouteRecord wrongRouteRecord
 }
 
 func (q *Query) Available() bool { return q.db != nil }
 
 func (q *Query) clone(db *gorm.DB) *Query {
 	return &Query{
-		db:   db,
-		User: q.User.clone(db),
+		db:               db,
+		Admin:            q.Admin.clone(db),
+		Checkin:          q.Checkin.clone(db),
+		People:           q.People.clone(db),
+		Point:            q.Point.clone(db),
+		Route:            q.Route.clone(db),
+		RouteEdge:        q.RouteEdge.clone(db),
+		Team:             q.Team.clone(db),
+		WrongRouteRecord: q.WrongRouteRecord.clone(db),
 	}
 }
 
@@ -57,18 +92,39 @@ func (q *Query) WriteDB() *Query {
 
 func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 	return &Query{
-		db:   db,
-		User: q.User.replaceDB(db),
+		db:               db,
+		Admin:            q.Admin.replaceDB(db),
+		Checkin:          q.Checkin.replaceDB(db),
+		People:           q.People.replaceDB(db),
+		Point:            q.Point.replaceDB(db),
+		Route:            q.Route.replaceDB(db),
+		RouteEdge:        q.RouteEdge.replaceDB(db),
+		Team:             q.Team.replaceDB(db),
+		WrongRouteRecord: q.WrongRouteRecord.replaceDB(db),
 	}
 }
 
 type queryCtx struct {
-	User IUserDo
+	Admin            IAdminDo
+	Checkin          ICheckinDo
+	People           IPeopleDo
+	Point            IPointDo
+	Route            IRouteDo
+	RouteEdge        IRouteEdgeDo
+	Team             ITeamDo
+	WrongRouteRecord IWrongRouteRecordDo
 }
 
 func (q *Query) WithContext(ctx context.Context) *queryCtx {
 	return &queryCtx{
-		User: q.User.WithContext(ctx),
+		Admin:            q.Admin.WithContext(ctx),
+		Checkin:          q.Checkin.WithContext(ctx),
+		People:           q.People.WithContext(ctx),
+		Point:            q.Point.WithContext(ctx),
+		Route:            q.Route.WithContext(ctx),
+		RouteEdge:        q.RouteEdge.WithContext(ctx),
+		Team:             q.Team.WithContext(ctx),
+		WrongRouteRecord: q.WrongRouteRecord.WithContext(ctx),
 	}
 }
 

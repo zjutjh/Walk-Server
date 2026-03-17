@@ -41,6 +41,10 @@ func (m *MarkTeamViolationApi) Run(ctx *gin.Context) kit.Code {
 
 
 func (m *MarkTeamViolationApi) Init(ctx *gin.Context) (err error) {
+    err = ctx.ShouldBindJSON(&m.Request.Body)
+	if err != nil {
+		return err
+	}
     return err
 }
 

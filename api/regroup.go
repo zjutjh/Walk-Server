@@ -44,6 +44,10 @@ func (r *RegroupApi) Run(ctx *gin.Context) kit.Code {
 
 // Run Api初始化 进行参数校验和绑定
 func (r *RegroupApi) Init(ctx *gin.Context) (err error) {
+    err = ctx.ShouldBindJSON(&r.Request.Body)
+	if err != nil {
+		return err
+	}
     return err
 }
 

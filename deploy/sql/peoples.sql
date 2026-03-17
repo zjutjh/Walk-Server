@@ -1,0 +1,28 @@
+-- Active: 1753940332076@@127.0.0.1@3306@jh_db
+CREATE TABLE `peoples` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `open_id` varchar(64) NOT NULL COMMENT '微信OpenID',
+  `name` varchar(128) NOT NULL COMMENT '姓名',
+  `gender` tinyint NOT NULL COMMENT '性别(1男,2女)',
+  `stu_id` varchar(32) DEFAULT NULL COMMENT '学号',
+  `campus` varchar(64) NOT NULL COMMENT '校区(zh朝晖,pf屏峰,mgs莫干山)',
+  `identity` varchar(18) NOT NULL COMMENT '身份证号',
+  `role` varchar(64) NOT NULL DEFAULT 'unbind' COMMENT '队伍中身份(unbind未绑定,menber成员,captain队长)',
+  `qq` varchar(20) DEFAULT NULL COMMENT 'QQ号',
+  `wechat` varchar(64) DEFAULT NULL COMMENT '微信号',
+  `college` varchar(64) NOT NULL COMMENT '学院',
+  `tel` varchar(20) NOT NULL COMMENT '联系电话',
+  `created_op` tinyint unsigned NOT NULL DEFAULT '3' COMMENT '剩余创建团队次数',
+  `join_op` tinyint unsigned NOT NULL DEFAULT '5' COMMENT '剩余加入团队次数',
+  `team_id` bigint DEFAULT '-1' COMMENT '所属团队ID',
+  `type` varchar(10) NOT NULL COMMENT '人员类型(alumni校友，student学生，staff教职工)',
+  `walk_status` varchar(64) NOT NULL COMMENT '活动状态(未开始,待出发,已放弃,进行中,已下撤,已违规,已完成)',
+  `updated_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uni_people_identity` (`identity`),
+  UNIQUE KEY `uni_people_tel` (`tel`),
+  UNIQUE KEY `uni_people_stu_id` (`stu_id`),
+  KEY `idx_people_team_id` (`team_id`),
+  KEY `idx_open_id` (`open_id`)
+);

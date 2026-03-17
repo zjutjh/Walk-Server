@@ -40,6 +40,10 @@ func (c *ConfirmDestinationApi) Run(ctx *gin.Context) kit.Code {
 
 
 func (c *ConfirmDestinationApi) Init(ctx *gin.Context) (err error) {
+    err = ctx.ShouldBindJSON(&c.Request.Body)
+	if err != nil {
+		return err
+	}
     return err
 }
 

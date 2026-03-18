@@ -18,7 +18,7 @@ import (
 func Boot() kernel.BootList {
 	// 初始化配置文件
 	config.Boot("conf/config.yaml")
-	
+
 	return kernel.BootList{
 		// 基础引导器
 		feishu.Boot(),   // 飞书Bot (消息提醒)
@@ -26,8 +26,7 @@ func Boot() kernel.BootList {
 		generate.Boot(), // 导入生成代码
 
 		// Client引导器
-		ndb.Boot(), // DB
-		// nedis.Boot(), // Redis
+		ndb.Boot(),   // DB
 		nesty.Boot(), // HTTP Client
 
 		// 业务引导器

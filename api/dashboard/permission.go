@@ -21,7 +21,7 @@ func PermissionHandler() gin.HandlerFunc {
 }
 
 type PermissionApi struct {
-	Info     struct{}              `name:"获取当前管理员权限信息" desc:"获取当前登录管理员的权限级别和可访问功能"`
+	Info     struct{}              `name:"获取当前管理员权限信息" desc:"获取当前登录管理员的权限级别"`
 	Request  PermissionApiRequest  // API请求参数 (Uri/Header/Query/Body)
 	Response PermissionApiResponse // API响应数据 (Body中的Data部分)
 }

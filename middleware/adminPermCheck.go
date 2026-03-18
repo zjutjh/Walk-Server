@@ -11,6 +11,7 @@ import (
 	"github.com/zjutjh/mygo/session"
 )
 
+//下面两个还是放在service里面，middleawar只做鉴权
 func GetAdminID(ctx *gin.Context) (int64, bool) {
 	adminID, err := session.GetIdentity[int64](ctx)
 	if err != nil {
@@ -40,4 +41,19 @@ func GetAdmin(ctx *gin.Context) (*model.Admin, bool) {
 	}
 
 	return admin, true
+}
+
+func NeedPerm(ctx *gin.content,string prem) (bool)
+{
+	struct permModel{
+		"admin":0
+		}
+	admin,err := GetAdimn()
+	if err != nil{
+		reply.Fail(ctx,comm.CodeUnknownError)
+		return}
+	if admin.Permission == "admin"{
+		return true
+	return false
+	}
 }

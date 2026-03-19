@@ -1,8 +1,10 @@
 package stats
 
 import (
+	"encoding/json"
 	"reflect"
 	"runtime"
+	"sort"
 
 	"github.com/gin-gonic/gin"
 	"github.com/zjutjh/mygo/foundation/reply"
@@ -11,6 +13,8 @@ import (
 	"github.com/zjutjh/mygo/swagger"
 
 	"app/comm"
+	cachedao "app/dao/cache/dashboard"
+	repodao "app/dao/repo/dashboard"
 )
 
 // AllHandler API router注册点
@@ -26,7 +30,7 @@ type RouteStatItem struct {
 	UnDeparted int `json:"undeparted" desc:"待出发人数"`
 	TotalReg   int `json:"total_reg" desc:"总报名人数"`
 	Finished   int `json:"finished" desc:"已结束人数（无论是否违规）"`
-	WrongRoute int `json:"wrong_route" desc:"走错路线人数"`
+	WrongRoute int `json:"wrong_route" desc:"走错路线人数（走到另一条线路的人数）"`
 	Withdrawn  int `json:"withdrawn" desc:"下撤人数"`
 }
 
@@ -48,9 +52,129 @@ type AllApiResponse struct {
 	Routes []RouteStats `json:"routes" desc:"路线统计列表"`
 }
 
+func ensureRouteStat(routeStats map[string]*RouteStatItem, routeOrder *[]string, routeName string) *RouteStatItem {
+	// 已存在则复用，避免重复初始化统计对象。
+	stat, ok := routeStats[routeName]
+	if ok {
+		return stat
+	}
+
+	// 新路线首次出现时，初始化并记录到输出顺序中。
+	stat = &RouteStatItem{}
+	routeStats[routeName] = stat
+	*routeOrder = append(*routeOrder, routeName)
+	return stat
+}
+
+func applyStatus(stat *RouteStatItem, walkStatus string, count int) {
+	// 将 walk_status 聚合口径映射到前端展示字段。
+	switch walkStatus {
+	case "未开始", "已放弃":
+		stat.NotPresent += count
+	case "待出发":
+		stat.UnDeparted += count
+	case "进行中":
+		stat.Started += count
+	case "已下撤":
+		stat.Withdrawn += count
+	case "已完成", "已违规":
+		stat.Finished += count
+	}
+}
+
 // Run Api业务逻辑执行点
 func (a *AllApi) Run(ctx *gin.Context) kit.Code {
-	// TODO: 在此处编写接口业务逻辑
+	// 1) 使用 cache dao 先尝试读取 Redis。
+	dashboardCache := cachedao.NewDashboardCache()
+
+	// 先走缓存，命中后直接返回，降低统计查询压力。
+	cached, found, err := dashboardCache.GetAllRouteStats(ctx)
+	if err != nil {
+		// 非未命中错误时仅告警，继续回源数据库。
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("读取路线统计缓存失败")
+	} else if found {
+		cachedResp := AllApiResponse{}
+		err = json.Unmarshal(cached, &cachedResp)
+		if err == nil {
+			a.Response = cachedResp
+			return comm.CodeOK
+		}
+
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("解析路线统计缓存失败")
+	}
+
+	// 2) 缓存未命中或异常时，回源数据库做聚合计算。
+	dashboardRepo := repodao.NewDashboardRepo()
+
+	// 2.1) 先查启用路线，保证没有报名数据的路线也能返回 0 统计。
+	routes, err := dashboardRepo.ListActiveRouteNames(ctx)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Error("查询路线列表失败")
+		return comm.CodeDatabaseError
+	}
+
+	// 2.2) 初始化输出顺序和统计容器。
+	routeOrder := make([]string, 0, len(routes))
+	routeStats := make(map[string]*RouteStatItem, len(routes))
+	for _, route := range routes {
+		routeOrder = append(routeOrder, route.Name)
+		routeStats[route.Name] = &RouteStatItem{}
+	}
+
+	// 2.3) 查询路线+人员状态聚合，得到总报名与各状态人数。
+	statusRows, err := dashboardRepo.ListRouteStatusCounts(ctx)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Error("查询路线状态统计失败")
+		return comm.CodeDatabaseError
+	}
+
+	// 2.4) 将聚合行写入每条路线统计结构。
+	for _, row := range statusRows {
+		stat := ensureRouteStat(routeStats, &routeOrder, row.RouteName)
+		count := int(row.Count)
+		stat.TotalReg += count
+		applyStatus(stat, row.WalkStatus, count)
+	}
+
+	// 2.5) 走错人数单独聚合，避免与人员状态口径混淆。
+	wrongRows, err := dashboardRepo.ListRouteWrongCounts(ctx)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Error("查询路线走错统计失败")
+		return comm.CodeDatabaseError
+	}
+
+	// 2.6) 回填每条路线的走错人数。
+	for _, row := range wrongRows {
+		stat := ensureRouteStat(routeStats, &routeOrder, row.RouteName)
+		stat.WrongRoute = int(row.Count)
+	}
+
+	// 没有启用路线时兜底排序，保证输出顺序稳定。
+	if len(routes) == 0 {
+		sort.Strings(routeOrder)
+	}
+
+	// 2.7) 组装最终响应。
+	a.Response.Routes = make([]RouteStats, 0, len(routeOrder))
+	for _, routeName := range routeOrder {
+		a.Response.Routes = append(a.Response.Routes, RouteStats{
+			RouteName: routeName,
+			Stats:     *routeStats[routeName],
+		})
+	}
+
+	cacheBody, err := json.Marshal(a.Response)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("序列化路线统计缓存失败")
+		return comm.CodeOK
+	}
+
+	// 3) 回填短 TTL 缓存，后续请求直接命中缓存。
+	err = dashboardCache.SetAllRouteStats(ctx, cacheBody)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("写入路线统计缓存失败")
+	}
+
 	return comm.CodeOK
 }
 

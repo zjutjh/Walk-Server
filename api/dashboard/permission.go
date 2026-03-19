@@ -11,6 +11,7 @@ import (
 	"github.com/zjutjh/mygo/swagger"
 
 	"app/comm"
+	"app/middleware"
 )
 
 // PermissionHandler API router注册点
@@ -39,6 +40,17 @@ type PermissionApiResponse struct {
 // Run Api业务逻辑执行点
 func (p *PermissionApi) Run(ctx *gin.Context) kit.Code {
 	// TODO: 在此处编写接口业务逻辑
+	admin,ok:=middleware.GetAdminInfo(ctx) //从中间件获取管理员信息（虽然理论上不应该从中间拿，而是serveice，但是就这样吧
+	if !ok {
+		//reply.Fail(ctx, comm.CodeUnknownError)  get Fall过了,这里不fall
+		return comm.CodeUnknownError
+	}
+
+	p.Response.Name=admin.Name
+	p.Response.Permission=admin.Permission
+	p.Response.Campus=admin.Campus
+	p.Response.PointName=admin.PointName
+
 	return comm.CodeOK
 }
 

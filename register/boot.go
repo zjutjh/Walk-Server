@@ -8,6 +8,7 @@ import (
 	"github.com/zjutjh/mygo/foundation/kernel"
 	"github.com/zjutjh/mygo/kit"
 	"github.com/zjutjh/mygo/ndb"
+	"github.com/zjutjh/mygo/nedis"
 	"github.com/zjutjh/mygo/nesty"
 	"github.com/zjutjh/mygo/nlog"
 
@@ -28,6 +29,7 @@ func Boot() kernel.BootList {
 		// Client引导器
 		ndb.Boot(),   // DB
 		nesty.Boot(), // HTTP Client
+		nedis.Boot(), // Redis Client
 
 		// 业务引导器
 		BizConfBoot(),

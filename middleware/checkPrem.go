@@ -32,7 +32,7 @@ func GetAdminInfo(ctx *gin.Context) (*model.Admin, bool) {
 	}
 
 	adminRepo := repo.NewAdminRepo()
-	//这里应该可以优化，我只需要权限 信息即可
+	
 	admin, err := adminRepo.FindByID(ctx, adminID)
 	if err != nil {
 		reply.Fail(ctx, comm.CodeUnknownError)

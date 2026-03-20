@@ -53,7 +53,7 @@ func (a *AuthAdminApi) Run(ctx *gin.Context) kit.Code {
         return comm.CodeUnknownError
     }
     if admin == nil {
-        return comm.CodeAccountOrPasswordError // 你项目里如果没这个码，就换成你自己的“账号或密码错误”
+        return comm.CodeAccountOrPasswordError 
     }
 
     // 校验密码

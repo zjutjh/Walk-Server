@@ -29,7 +29,7 @@ func LostHandler() gin.HandlerFunc {
 }
 
 type LostApi struct {
-	Info     struct{}        `name:"设置队伍失联状态" desc:"设置指定队伍的失联状态 \n 距现在5min内打卡的队伍不允许设置失联状态为true"`
+	Info     struct{}        `name:"设置队伍失联状态" desc:"设置指定队伍的失联状态 \n 距现在5min内打卡的队伍不允许设置失联状态为true \n 设置为false不受时间限制，但会覆盖之前的失联状态和时间"`
 	Request  LostApiRequest  // API请求参数 (Uri/Header/Query/Body)
 	Response LostApiResponse // API响应数据 (Body中的Data部分)
 }
@@ -116,6 +116,11 @@ func (l *LostApi) Run(ctx *gin.Context) kit.Code {
 
 	if lockAcquired {
 		keepLock = true
+	}
+
+	err = dashboardCache.DeleteTeamInfo(ctx, teamID)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("删除队伍详情缓存失败")
 	}
 
 	return comm.CodeOK

@@ -2,11 +2,46 @@ package cache
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
+
+	redis "github.com/redis/go-redis/v9"
 )
 
-const teamInfoLockCacheKeyPrefix = "dashboard:teams:info:lock"
+const (
+	teamInfoCacheKeyPrefix     = "dashboard:teams:info"
+	teamInfoCacheTTL           = 60 * time.Second
+	teamInfoLockCacheKeyPrefix = "dashboard:teams:info:lock"
+)
+
+// BuildTeamInfoCacheKey 构造队伍详情缓存 key。
+func BuildTeamInfoCacheKey(teamID int64) string {
+	return fmt.Sprintf("%s:%d", teamInfoCacheKeyPrefix, teamID)
+}
+
+// GetTeamInfo 返回缓存内容；命中返回 found=true，未命中返回 found=false。
+func (c *DashboardCache) GetTeamInfo(ctx context.Context, teamID int64) (cached []byte, found bool, err error) {
+	cached, err = c.rdb.Get(ctx, BuildTeamInfoCacheKey(teamID)).Bytes()
+	if errors.Is(err, redis.Nil) {
+		return nil, false, nil
+	}
+	if err != nil {
+		return nil, false, err
+	}
+
+	return cached, true, nil
+}
+
+// SetTeamInfo 写入队伍详情缓存。
+func (c *DashboardCache) SetTeamInfo(ctx context.Context, teamID int64, cached []byte) error {
+	return c.rdb.Set(ctx, BuildTeamInfoCacheKey(teamID), cached, teamInfoCacheTTL).Err()
+}
+
+// DeleteTeamInfo 删除队伍详情缓存。
+func (c *DashboardCache) DeleteTeamInfo(ctx context.Context, teamID int64) error {
+	return c.rdb.Del(ctx, BuildTeamInfoCacheKey(teamID)).Err()
+}
 
 func BuildTeamInfoLockCacheKey(teamID int64) string {
 	return fmt.Sprintf("%s:%d", teamInfoLockCacheKeyPrefix, teamID)

@@ -1,16 +1,25 @@
 package teams
 
 import (
+	"encoding/json"
+	"errors"
 	"reflect"
 	"runtime"
+	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/zjutjh/mygo/foundation/reply"
 	"github.com/zjutjh/mygo/kit"
 	"github.com/zjutjh/mygo/nlog"
 	"github.com/zjutjh/mygo/swagger"
+	"gorm.io/gorm"
+
+	//"fmt"
 
 	"app/comm"
+	cachedao "app/dao/cache/dashboard"
+	repodao "app/dao/repo/dashboard"
 )
 
 // TeamHandler API router注册点
@@ -54,8 +63,92 @@ type TeamApiResponse struct {
 
 // Run Api业务逻辑执行点
 func (t *TeamApi) Run(ctx *gin.Context) kit.Code {
-	// TODO: 在此处编写接口业务逻辑
+	// Redis缓存规划:
+	// Key: walk:dashboard:teams:info:{teamId}
+	// Type: String(JSON)
+	// TTL: 60s
+	teamID, err := strconv.ParseInt(strings.TrimSpace(t.Request.Query.TeamId), 10, 64)
+	if err != nil || teamID <= 0 {
+		return comm.CodeParameterInvalid
+	}
+
+	dashboardCache := cachedao.NewDashboardCache()
+
+	// 先走缓存，命中则直接返回。
+	cached, found, err := dashboardCache.GetTeamInfo(ctx, teamID)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("读取队伍详情缓存失败")
+	} else if found {
+		cachedResp := TeamApiResponse{}
+		err = json.Unmarshal(cached, &cachedResp)
+		if err == nil {
+			t.Response = cachedResp
+			return comm.CodeOK
+		}
+
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("解析队伍详情缓存失败")
+	}
+
+	dashboardRepo := repodao.NewDashboardRepo()
+	//fmt.Println("1")
+	team, err := dashboardRepo.GetTeamByID(ctx, teamID)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return comm.CodeDataNotFound
+	}
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Error("查询队伍信息失败")
+		return comm.CodeDatabaseError
+	}
+
+	members, err := dashboardRepo.ListTeamMembers(ctx, teamID)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Error("查询队伍成员失败")
+		return comm.CodeDatabaseError
+	}
+
+
+	t.Response.TeamId = int(team.ID)
+	t.Response.PrevPointName = team.PrevPointName
+	t.Response.RouteName = team.RouteName
+	t.Response.IsLost = team.IsLost == 1
+	if !team.Time.IsZero() {
+		t.Response.PrevPointTime = team.Time.UTC().Format("2006-01-02T15:04:05.000Z")
+	}
+
+	t.Response.Members = make([]MemberInfo, 0, len(members))
+	for _, member := range members {
+		t.Response.Members = append(t.Response.Members, MemberInfo{
+			Name:  member.Name,
+			Phone: member.Phone,
+			Role:  normalizeMemberRole(member.Role, member.OpenID, team.Captain),
+		})
+	}
+
+	cacheBody, err := json.Marshal(t.Response)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("序列化队伍详情缓存失败")
+		return comm.CodeOK
+	}
+
+	err = dashboardCache.SetTeamInfo(ctx, teamID, cacheBody)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("写入队伍详情缓存失败")
+	}
+
 	return comm.CodeOK
+}
+
+// normalizeMemberRole 兼容历史 role 脏数据，并优先以队长 open_id 判定 captain。
+func normalizeMemberRole(role string, memberOpenID string, captainOpenID string) string {
+	if strings.EqualFold(memberOpenID, captainOpenID) || strings.EqualFold(role, "captain") {
+		return "captain"
+	}
+
+	if strings.EqualFold(role, "member") || strings.EqualFold(role, "menber") {
+		return "member"
+	}
+
+	return role
 }
 
 // Init Api初始化 进行参数校验和绑定

@@ -4,8 +4,11 @@ import (
 	"app/comm"
 	"app/dao/model"
 	"app/dao/repo"
+	//"fmt"
+	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/zjutjh/mygo/config"
 
 	"github.com/zjutjh/mygo/foundation/reply"
 	"github.com/zjutjh/mygo/session"
@@ -13,10 +16,39 @@ import (
 
 //下面两个还是放在service里面，middleawar只做鉴权
 //但是考虑到没有service，而dao的cache意义不明，还是留在这里吧（
+func sessionCookieName() string {
+	name := strings.TrimSpace(config.Pick().GetString("session.name"))
+	if name == "" {
+		return "session"
+	}
+	return name
+}
+
+func hasSessionCookie(ctx *gin.Context) bool {
+	_, err := ctx.Request.Cookie(sessionCookieName())
+	return err == nil
+}
+
+// NeedLogin 严格校验当前请求必须携带有效 session cookie，避免复用历史登录态。
+func NeedLogin() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		if _, ok := GetAdminID(ctx); !ok {
+			return
+		}
+		ctx.Next()
+	}
+}
 
 // 从session反查id
 func GetAdminID(ctx *gin.Context) (int64, bool) {
+	if !hasSessionCookie(ctx) {
+		reply.Fail(ctx, comm.CodeNotLoggedIn)
+		return 0, false
+	}
 	adminID, err := session.GetIdentity[int64](ctx)
+	//fmt.Println("middleware get adminID:", adminID)
+	//fmt.Println("err:", err)
+
 	if err != nil {
 		reply.Fail(ctx, comm.CodeNotLoggedIn)
 		return 0, false
@@ -32,7 +64,7 @@ func GetAdminInfo(ctx *gin.Context) (*model.Admin, bool) {
 	}
 
 	adminRepo := repo.NewAdminRepo()
-	
+
 	admin, err := adminRepo.FindByID(ctx, adminID)
 	if err != nil {
 		reply.Fail(ctx, comm.CodeUnknownError)

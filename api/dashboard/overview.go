@@ -1,8 +1,10 @@
 package dashboard
 
 import (
+	"encoding/json"
 	"reflect"
 	"runtime"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/zjutjh/mygo/foundation/reply"
@@ -11,6 +13,8 @@ import (
 	"github.com/zjutjh/mygo/swagger"
 
 	"app/comm"
+	cachedao "app/dao/cache/dashboard"
+	repodao "app/dao/repo/dashboard"
 )
 
 // OverviewHandler API router注册点
@@ -38,15 +42,116 @@ type OverviewApiResponse struct {
 
 type RoutesRes struct {
 	RouteName  string `json:"route_name" desc:"路线name"`
-	TotalReg   int `json:"total_reg" desc:"总报名人数"`
-	Walking    int `json:"walking" desc:"进行中人数"`
-	Finished   int `json:"finished" desc:"到达终点人数（无论是否违规）"`
-	WrongRoute int `json:"wrong_route" desc:"走错路线人数"`
+	TotalReg   int    `json:"total_reg" desc:"总报名人数"`
+	Walking    int    `json:"walking" desc:"进行中人数"`
+	Finished   int    `json:"finished" desc:"到达终点人数（无论是否违规）"`
+	WrongRoute int    `json:"wrong_route" desc:"走错路线人数"`
+}
+
+func applyOverviewStatus(route *RoutesRes, walkStatus string, count int) {
+	switch walkStatus {
+	case "进行中":
+		route.Walking += count
+	case "已完成", "已违规":
+		route.Finished += count
+	}
 }
 
 // Run Api业务逻辑执行点
 func (o *OverviewApi) Run(ctx *gin.Context) kit.Code {
-	// TODO: 在此处编写接口业务逻辑
+	// Redis缓存规划:
+	// Key: walk:dashboard:overview:{campus}
+	// Type: String(JSON)
+	// TTL: 10~15s
+	campus := strings.ToLower(strings.TrimSpace(o.Request.Query.Campus))
+	if campus == "" {
+		return comm.CodeParameterInvalid
+	}
+
+	dashboardCache := cachedao.NewDashboardCache()
+
+	// 先走缓存，命中则直接返回。
+	cached, found, err := dashboardCache.GetOverview(ctx, campus)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("读取总览缓存失败")
+	} else if found {
+		cachedResp := OverviewApiResponse{}
+		err = json.Unmarshal(cached, &cachedResp)
+		if err == nil {
+			o.Response = cachedResp
+			return comm.CodeOK
+		}
+
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("解析总览缓存失败")
+	}
+
+	dashboardRepo := repodao.NewDashboardRepo()
+
+	routes, err := dashboardRepo.ListActiveRouteNamesByCampus(ctx, campus)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Error("查询总览路线失败")
+		return comm.CodeDatabaseError
+	}
+
+	routeOrder := make([]string, 0, len(routes))
+	routeStats := make(map[string]*RoutesRes, len(routes))
+	for _, route := range routes {
+		routeOrder = append(routeOrder, route.Name)
+		routeStats[route.Name] = &RoutesRes{RouteName: route.Name}
+	}
+
+	statusRows, err := dashboardRepo.ListRouteStatusCountsByCampus(ctx, campus)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Error("查询总览状态统计失败")
+		return comm.CodeDatabaseError
+	}
+
+	for _, row := range statusRows {
+		stat, ok := routeStats[row.RouteName]
+		if !ok {
+			stat = &RoutesRes{RouteName: row.RouteName}
+			routeStats[row.RouteName] = stat
+			routeOrder = append(routeOrder, row.RouteName)
+		}
+
+		count := int(row.Count)
+		stat.TotalReg += count
+		applyOverviewStatus(stat, row.WalkStatus, count)
+	}
+
+	wrongRows, err := dashboardRepo.ListRouteWrongCountsByCampus(ctx, campus)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Error("查询总览走错统计失败")
+		return comm.CodeDatabaseError
+	}
+
+	for _, row := range wrongRows {
+		stat, ok := routeStats[row.RouteName]
+		if !ok {
+			stat = &RoutesRes{RouteName: row.RouteName}
+			routeStats[row.RouteName] = stat
+			routeOrder = append(routeOrder, row.RouteName)
+		}
+
+		stat.WrongRoute = int(row.Count)
+	}
+
+	o.Response.Routes = make([]RoutesRes, 0, len(routeOrder))
+	for _, routeName := range routeOrder {
+		o.Response.Routes = append(o.Response.Routes, *routeStats[routeName])
+	}
+
+	cacheBody, err := json.Marshal(o.Response)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("序列化总览缓存失败")
+		return comm.CodeOK
+	}
+
+	err = dashboardCache.SetOverview(ctx, campus, cacheBody)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("写入总览缓存失败")
+	}
+
 	return comm.CodeOK
 }
 

@@ -33,6 +33,21 @@ type RouteWrongCountRow struct {
 	Count     int64  `gorm:"column:cnt"`
 }
 
+type RoutePointRow struct {
+	PointName string `gorm:"column:point_name"`
+	SeqOrder  int    `gorm:"column:seq_order"`
+}
+
+type WalkStatusCountRow struct {
+	WalkStatus string `gorm:"column:walk_status"`
+	Count      int64  `gorm:"column:cnt"`
+}
+
+type PointPassedCountRow struct {
+	PointName string `gorm:"column:point_name"`
+	Count     int64  `gorm:"column:cnt"`
+}
+
 // ListActiveRouteNames 查询启用路线，保证没有报名数据的路线也能返回 0 统计。
 func (r *DashboardRepo) ListActiveRouteNames(ctx context.Context) ([]RouteNameRow, error) {
 	rows := make([]RouteNameRow, 0)
@@ -42,6 +57,24 @@ func (r *DashboardRepo) ListActiveRouteNames(ctx context.Context) ([]RouteNameRo
 		Table("routes").
 		Select("name").
 		Where("is_active = ?", 1).
+		Order("id ASC").
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return rows, nil
+}
+
+// ListActiveRouteNamesByCampus 查询指定校区的启用路线。
+func (r *DashboardRepo) ListActiveRouteNamesByCampus(ctx context.Context, campus string) ([]RouteNameRow, error) {
+	rows := make([]RouteNameRow, 0)
+
+	err := r.query.Route.WithContext(ctx).
+		UnderlyingDB().
+		Table("routes").
+		Select("name").
+		Where("is_active = ? AND campus = ?", 1, campus).
 		Order("id ASC").
 		Scan(&rows).Error
 	if err != nil {
@@ -70,6 +103,26 @@ func (r *DashboardRepo) ListRouteStatusCounts(ctx context.Context) ([]RouteStatu
 	return rows, nil
 }
 
+// ListRouteStatusCountsByCampus 查询指定校区路线+人员状态聚合。
+func (r *DashboardRepo) ListRouteStatusCountsByCampus(ctx context.Context, campus string) ([]RouteStatusCountRow, error) {
+	rows := make([]RouteStatusCountRow, 0)
+
+	err := r.query.People.WithContext(ctx).
+		UnderlyingDB().
+		Table("peoples AS p").
+		Select("t.route_name, p.walk_status, COUNT(1) AS cnt").
+		Joins("JOIN teams AS t ON t.id = p.team_id").
+		Joins("JOIN routes AS rt ON rt.name = t.route_name AND rt.is_active = ? AND rt.campus = ?", 1, campus).
+		Where("t.submit = ?", 1).
+		Group("t.route_name, p.walk_status").
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return rows, nil
+}
+
 // ListRouteWrongCounts 查询按路线聚合的走错人数。
 func (r *DashboardRepo) ListRouteWrongCounts(ctx context.Context) ([]RouteWrongCountRow, error) {
 	rows := make([]RouteWrongCountRow, 0)
@@ -87,6 +140,119 @@ func (r *DashboardRepo) ListRouteWrongCounts(ctx context.Context) ([]RouteWrongC
 	}
 
 	return rows, nil
+}
+
+// ListRouteWrongCountsByCampus 查询指定校区按路线聚合的走错人数。
+func (r *DashboardRepo) ListRouteWrongCountsByCampus(ctx context.Context, campus string) ([]RouteWrongCountRow, error) {
+	rows := make([]RouteWrongCountRow, 0)
+
+	err := r.query.People.WithContext(ctx).
+		UnderlyingDB().
+		Table("peoples AS p").
+		Select("t.route_name, COUNT(1) AS cnt").
+		Joins("JOIN teams AS t ON t.id = p.team_id").
+		Joins("JOIN routes AS rt ON rt.name = t.route_name AND rt.is_active = ? AND rt.campus = ?", 1, campus).
+		Where("t.submit = ? AND t.is_wrong_route = ?", 1, 1).
+		Group("t.route_name").
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return rows, nil
+}
+
+// ExistsActiveRoute 校验路线是否存在且启用。
+func (r *DashboardRepo) ExistsActiveRoute(ctx context.Context, routeName string) (bool, error) {
+	var total int64
+	err := r.query.Route.WithContext(ctx).
+		UnderlyingDB().
+		Table("routes").
+		Where("name = ? AND is_active = ?", routeName, 1).
+		Count(&total).Error
+	if err != nil {
+		return false, err
+	}
+
+	return total > 0, nil
+}
+
+// ListRoutePoints 查询路线点位顺序。
+func (r *DashboardRepo) ListRoutePoints(ctx context.Context, routeName string) ([]RoutePointRow, error) {
+	rows := make([]RoutePointRow, 0)
+
+	err := r.query.RouteEdge.WithContext(ctx).
+		UnderlyingDB().
+		Table("route_edges").
+		Select("point_name, MIN(seq_order) AS seq_order").
+		Where("route_name = ? AND point_name IS NOT NULL AND point_name <> ''", routeName).
+		Group("point_name").
+		Order("seq_order ASC").
+		Order("point_name ASC").
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return rows, nil
+}
+
+// ListRoutePointPassedCounts 查询各点位经过人数（按 people 口径）。
+func (r *DashboardRepo) ListRoutePointPassedCounts(ctx context.Context, routeName string) ([]PointPassedCountRow, error) {
+	rows := make([]PointPassedCountRow, 0)
+
+	err := r.query.Checkin.WithContext(ctx).
+		UnderlyingDB().
+		Raw(
+			"SELECT cp.point_name, COUNT(ps.id) AS cnt "+
+				"FROM (SELECT DISTINCT team_id, point_name FROM checkins WHERE route_name = ? AND point_name IS NOT NULL AND point_name <> '') AS cp "+
+				"JOIN teams AS t ON t.id = cp.team_id AND t.submit = 1 AND t.route_name = ? "+
+				"JOIN peoples AS ps ON ps.team_id = t.id "+
+				"GROUP BY cp.point_name",
+			routeName,
+			routeName,
+		).
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return rows, nil
+}
+
+// ListSingleRouteStatusCounts 查询单路线的 walk_status 聚合。
+func (r *DashboardRepo) ListSingleRouteStatusCounts(ctx context.Context, routeName string) ([]WalkStatusCountRow, error) {
+	rows := make([]WalkStatusCountRow, 0)
+
+	err := r.query.People.WithContext(ctx).
+		UnderlyingDB().
+		Table("peoples AS p").
+		Select("p.walk_status, COUNT(1) AS cnt").
+		Joins("JOIN teams AS t ON t.id = p.team_id").
+		Where("t.submit = ? AND t.route_name = ?", 1, routeName).
+		Group("p.walk_status").
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return rows, nil
+}
+
+// CountSingleRouteWrongPeople 查询单路线走错人数。
+func (r *DashboardRepo) CountSingleRouteWrongPeople(ctx context.Context, routeName string) (int64, error) {
+	var total int64
+	err := r.query.People.WithContext(ctx).
+		UnderlyingDB().
+		Table("peoples AS p").
+		Joins("JOIN teams AS t ON t.id = p.team_id").
+		Where("t.submit = ? AND t.route_name = ? AND t.is_wrong_route = ?", 1, routeName, 1).
+		Count(&total).Error
+	if err != nil {
+		return 0, err
+	}
+
+	return total, nil
 }
 
 // CountPeopleOnSegment 统计指定路段上的人数（按 people 计数）。

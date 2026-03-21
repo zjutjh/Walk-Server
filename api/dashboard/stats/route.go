@@ -1,8 +1,11 @@
 package stats
 
 import (
+	"encoding/json"
 	"reflect"
 	"runtime"
+	"sort"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/zjutjh/mygo/foundation/reply"
@@ -11,6 +14,8 @@ import (
 	"github.com/zjutjh/mygo/swagger"
 
 	"app/comm"
+	cachedao "app/dao/cache/dashboard"
+	repodao "app/dao/repo/dashboard"
 )
 
 // RouteHandler API router注册点
@@ -50,9 +55,131 @@ type RouteApiResponse struct {
 	StatusStats StatusStat  `json:"status_stats" desc:"状态信息统计"`
 }
 
+func applyRouteStatus(stat *StatusStat, walkStatus string, count int) {
+	switch walkStatus {
+	case "未开始", "待出发", "已放弃":
+		stat.UnPresented += count
+	case "进行中":
+		stat.Walking += count
+	case "已下撤":
+		stat.Withdrawn += count
+	}
+}
+
 // Run Api业务逻辑执行点
 func (r *RouteApi) Run(ctx *gin.Context) kit.Code {
-	// TODO: 在此处编写接口业务逻辑
+	// Redis缓存规划:
+	// Key: walk:dashboard:stats:route:detail:{campus}:{routeName}
+	// Type: String(JSON)
+	// TTL: 15s
+	routeName := strings.TrimSpace(r.Request.Query.Name)
+	if routeName == "" {
+		return comm.CodeParameterInvalid
+	}
+
+	dashboardCache := cachedao.NewDashboardCache()
+
+	// 先走缓存，命中则直接返回。
+	cached, found, err := dashboardCache.GetRouteDetailStats(ctx, routeName)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("读取单路线统计缓存失败")
+	} else if found {
+		cachedResp := RouteApiResponse{}
+		err = json.Unmarshal(cached, &cachedResp)
+		if err == nil {
+			r.Response = cachedResp
+			return comm.CodeOK
+		}
+
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("解析单路线统计缓存失败")
+	}
+
+	dashboardRepo := repodao.NewDashboardRepo()
+
+	exists, err := dashboardRepo.ExistsActiveRoute(ctx, routeName)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Error("校验路线存在失败")
+		return comm.CodeDatabaseError
+	}
+	if !exists {
+		return comm.CodeDataNotFound
+	}
+
+	pointRows, err := dashboardRepo.ListRoutePoints(ctx, routeName)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Error("查询路线点位失败")
+		return comm.CodeDatabaseError
+	}
+
+	passedRows, err := dashboardRepo.ListRoutePointPassedCounts(ctx, routeName)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Error("查询点位经过人数失败")
+		return comm.CodeDatabaseError
+	}
+
+	passedMap := make(map[string]int, len(passedRows))
+	for _, row := range passedRows {
+		passedMap[row.PointName] = int(row.Count)
+	}
+
+	r.Response.PointStats = make([]PointStat, 0, len(pointRows)+len(passedRows))
+	pointSeen := make(map[string]struct{}, len(pointRows))
+	for _, row := range pointRows {
+		r.Response.PointStats = append(r.Response.PointStats, PointStat{
+			PointName:   row.PointName,
+			PassedCount: passedMap[row.PointName],
+		})
+		pointSeen[row.PointName] = struct{}{}
+	}
+
+	extraPointNames := make([]string, 0)
+	for _, row := range passedRows {
+		if _, exists := pointSeen[row.PointName]; exists {
+			continue
+		}
+
+		extraPointNames = append(extraPointNames, row.PointName)
+	}
+	sort.Strings(extraPointNames)
+	for _, pointName := range extraPointNames {
+		r.Response.PointStats = append(r.Response.PointStats, PointStat{
+			PointName:   pointName,
+			PassedCount: passedMap[pointName],
+		})
+	}
+
+	statusRows, err := dashboardRepo.ListSingleRouteStatusCounts(ctx, routeName)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Error("查询路线状态统计失败")
+		return comm.CodeDatabaseError
+	}
+
+	status := StatusStat{}
+	for _, row := range statusRows {
+		count := int(row.Count)
+		status.TotalReg += count
+		applyRouteStatus(&status, row.WalkStatus, count)
+	}
+
+	wrongCount, err := dashboardRepo.CountSingleRouteWrongPeople(ctx, routeName)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Error("查询路线走错统计失败")
+		return comm.CodeDatabaseError
+	}
+	status.WrongRoute = int(wrongCount)
+	r.Response.StatusStats = status
+
+	cacheBody, err := json.Marshal(r.Response)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("序列化单路线统计缓存失败")
+		return comm.CodeOK
+	}
+
+	err = dashboardCache.SetRouteDetailStats(ctx, routeName, cacheBody)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("写入单路线统计缓存失败")
+	}
+
 	return comm.CodeOK
 }
 

@@ -84,6 +84,10 @@ func applyStatus(stat *RouteStatItem, walkStatus string, count int) {
 
 // Run Api业务逻辑执行点
 func (a *AllApi) Run(ctx *gin.Context) kit.Code {
+	// Redis缓存规划:
+	// Key: dashboard:stats:route:all
+	// Type: String(JSON)
+	// TTL: 15s
 	// 1) 使用 cache dao 先尝试读取 Redis。
 	dashboardCache := cachedao.NewDashboardCache()
 

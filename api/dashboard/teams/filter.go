@@ -1,8 +1,13 @@
 package teams
 
 import (
+	"crypto/sha1"
+	"encoding/hex"
+	"encoding/json"
 	"reflect"
 	"runtime"
+	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/zjutjh/mygo/foundation/reply"
@@ -11,6 +16,8 @@ import (
 	"github.com/zjutjh/mygo/swagger"
 
 	"app/comm"
+	cachedao "app/dao/cache/dashboard"
+	repodao "app/dao/repo/dashboard"
 )
 
 // FilterHandler API router注册点
@@ -34,14 +41,14 @@ type FilterApiRequest struct {
 		Key           string `form:"key" desc:"搜索关键词"`
 		SearchType    string `form:"search_type" desc:"搜索类型（team_id/captain_phone/captain_name）"`
 		Limit         int    `form:"limit" desc:"返回数量"`
-		Cursor        int    `form:"cursor" desc:"指针"`
+		Cursor        int    `form:"cursor" desc:"指针，从0开始"`
 	}
 }
 
 type FilterApiResponse struct {
-	TotalCount   int             `json:"total_count" desc:"满足要求的总队伍数"`
-	NextCursor   int             `json:"next_cursor" desc:"下一页游标，为0则表示无更多数据"`
-	Teams        []TeamBriefInfo `json:"teams" desc:"队伍列表"`
+	TotalCount int             `json:"total_count" desc:"满足要求的总队伍数"`
+	NextCursor int             `json:"next_cursor" desc:"下一页游标，为0则表示无更多数据"`
+	Teams      []TeamBriefInfo `json:"teams" desc:"队伍列表"`
 }
 
 type TeamBriefInfo struct {
@@ -56,8 +63,141 @@ type TeamBriefInfo struct {
 
 // Run Api业务逻辑执行点
 func (f *FilterApi) Run(ctx *gin.Context) kit.Code {
-	// TODO: 在此处编写接口业务逻辑
+	// Redis缓存规划:
+	// Key: walk:dashboard:teams:filter:{campus}:{queryHash}
+	// Type: String(JSON)
+	// TTL: 20~30s
+	campus := strings.ToLower(strings.TrimSpace(f.Request.Query.Campus))
+	toPointName := strings.TrimSpace(f.Request.Query.ToPointName)
+	prevPointName := strings.TrimSpace(f.Request.Query.PrevPointName)
+	key := strings.TrimSpace(f.Request.Query.Key)
+	searchType := strings.ToLower(strings.TrimSpace(f.Request.Query.SearchType))
+
+	if campus == "" {
+		return comm.CodeParameterInvalid
+	}
+	if key == "" && toPointName == "" {
+		return comm.CodeParameterInvalid
+	}
+	if toPointName == "" && prevPointName != "" {
+		return comm.CodeParameterInvalid
+	}
+
+	if key != "" {
+		switch searchType {
+		case "team_id", "captain_phone", "captain_name":
+		default:
+			return comm.CodeParameterInvalid
+		}
+
+		if searchType == "team_id" {
+			teamID, err := strconv.ParseInt(key, 10, 64)
+			if err != nil || teamID <= 0 {
+				return comm.CodeParameterInvalid
+			}
+		}
+	} else if searchType != "" {
+		return comm.CodeParameterInvalid
+	}
+
+	limit := f.Request.Query.Limit
+	if limit <= 0 {
+		limit = 20
+	}
+	if limit > 100 {
+		limit = 100
+	}
+
+	cursor := f.Request.Query.Cursor
+	if cursor < 0 {
+		cursor = 0
+	}
+
+	filterQuery := repodao.TeamFilterQuery{
+		Campus:        campus,
+		ToPointName:   toPointName,
+		PrevPointName: prevPointName,
+		Key:           key,
+		SearchType:    searchType,
+		Limit:         limit,
+		Offset:        cursor,
+	}
+
+	dashboardCache := cachedao.NewDashboardCache()
+	queryHash := buildFilterQueryHash(filterQuery)
+
+	// 先走缓存，命中则直接返回。
+	cached, found, err := dashboardCache.GetTeamFilter(ctx, campus, queryHash)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("读取队伍筛选缓存失败")
+	} else if found {
+		cachedResp := FilterApiResponse{}
+		err = json.Unmarshal(cached, &cachedResp)
+		if err == nil {
+			f.Response = cachedResp
+			return comm.CodeOK
+		}
+
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("解析队伍筛选缓存失败")
+	}
+
+	dashboardRepo := repodao.NewDashboardRepo()
+
+	totalCount, err := dashboardRepo.CountTeamsByFilter(ctx, filterQuery)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Error("统计队伍筛选结果失败")
+		return comm.CodeDatabaseError
+	}
+
+	teams, err := dashboardRepo.ListTeamsByFilter(ctx, filterQuery)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Error("查询队伍筛选列表失败")
+		return comm.CodeDatabaseError
+	}
+
+	f.Response.TotalCount = int(totalCount)
+	f.Response.NextCursor = 0
+	f.Response.Teams = make([]TeamBriefInfo, 0, len(teams))
+
+	for _, team := range teams {
+		item := TeamBriefInfo{
+			TeamId:        strconv.FormatInt(team.TeamID, 10),
+			CaptainName:   team.CaptainName,
+			CaptainPhone:  team.CaptainPhone,
+			PrevPointName: team.PrevPointName,
+			RouteName:     team.RouteName,
+			IsLost:        team.IsLost == 1,
+		}
+		if team.PrevPointTime.Valid {
+			item.PrevPointTime = team.PrevPointTime.Time.UTC().Format("2006-01-02T15:04:05.000Z")
+		}
+
+		f.Response.Teams = append(f.Response.Teams, item)
+	}
+
+	nextOffset := cursor + len(f.Response.Teams)
+	if int64(nextOffset) < totalCount {
+		f.Response.NextCursor = nextOffset
+	}
+
+	cacheBody, err := json.Marshal(f.Response)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("序列化队伍筛选缓存失败")
+		return comm.CodeOK
+	}
+
+	err = dashboardCache.SetTeamFilter(ctx, campus, queryHash, cacheBody)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("写入队伍筛选缓存失败")
+	}
+
 	return comm.CodeOK
+}
+
+func buildFilterQueryHash(query repodao.TeamFilterQuery) string {
+	raw := query.Campus + "|" + query.ToPointName + "|" + query.PrevPointName + "|" + query.Key + "|" + query.SearchType + "|" + strconv.Itoa(query.Limit) + "|" + strconv.Itoa(query.Offset)
+	hash := sha1.Sum([]byte(raw))
+	return hex.EncodeToString(hash[:])
 }
 
 // Init Api初始化 进行参数校验和绑定

@@ -12,6 +12,8 @@ import (
 const (
 	teamInfoCacheKeyPrefix     = "dashboard:teams:info"
 	teamInfoCacheTTL           = 60 * time.Second
+	teamFilterCacheKeyPrefix   = "dashboard:teams:filter"
+	teamFilterCacheTTL         = 5 * time.Second
 	teamInfoLockCacheKeyPrefix = "dashboard:teams:info:lock"
 )
 
@@ -41,6 +43,29 @@ func (c *DashboardCache) SetTeamInfo(ctx context.Context, teamID int64, cached [
 // DeleteTeamInfo 删除队伍详情缓存。
 func (c *DashboardCache) DeleteTeamInfo(ctx context.Context, teamID int64) error {
 	return c.rdb.Del(ctx, BuildTeamInfoCacheKey(teamID)).Err()
+}
+
+// BuildTeamFilterCacheKey 构造队伍筛选缓存 key。
+func BuildTeamFilterCacheKey(campus string, queryHash string) string {
+	return fmt.Sprintf("%s:%s:%s", teamFilterCacheKeyPrefix, campus, queryHash)
+}
+
+// GetTeamFilter 返回缓存内容；命中返回 found=true，未命中返回 found=false。
+func (c *DashboardCache) GetTeamFilter(ctx context.Context, campus string, queryHash string) (cached []byte, found bool, err error) {
+	cached, err = c.rdb.Get(ctx, BuildTeamFilterCacheKey(campus, queryHash)).Bytes()
+	if errors.Is(err, redis.Nil) {
+		return nil, false, nil
+	}
+	if err != nil {
+		return nil, false, err
+	}
+
+	return cached, true, nil
+}
+
+// SetTeamFilter 写入队伍筛选缓存。
+func (c *DashboardCache) SetTeamFilter(ctx context.Context, campus string, queryHash string, cached []byte) error {
+	return c.rdb.Set(ctx, BuildTeamFilterCacheKey(campus, queryHash), cached, teamFilterCacheTTL).Err()
 }
 
 func BuildTeamInfoLockCacheKey(teamID int64) string {

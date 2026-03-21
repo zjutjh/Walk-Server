@@ -1,8 +1,10 @@
 package dashboard
 
 import (
+	"encoding/json"
 	"reflect"
 	"runtime"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/zjutjh/mygo/foundation/reply"
@@ -11,6 +13,9 @@ import (
 	"github.com/zjutjh/mygo/swagger"
 
 	"app/comm"
+	cachedao "app/dao/cache/dashboard"
+	repodao "app/dao/repo/dashboard"
+	"app/middleware"
 )
 
 // CheckpointHandler API router注册点
@@ -39,7 +44,59 @@ type CheckpointApiResponse struct {
 
 // Run Api业务逻辑执行点
 func (c *CheckpointApi) Run(ctx *gin.Context) kit.Code {
-	// TODO: 在此处编写接口业务逻辑
+	// Redis缓存规划:
+	// Key: walk:dashboard:checkpoint:{campus}:{pointName}
+	// Type: String(JSON)
+	// TTL: 10s
+	admin, ok := middleware.GetAdminInfo(ctx)
+	if !ok {
+		return comm.CodeUnknownError
+	}
+
+	campus := strings.ToLower(strings.TrimSpace(admin.Campus))
+	pointName := strings.TrimSpace(c.Request.Query.PointName)
+	if campus == "" || pointName == "" {
+		return comm.CodeParameterInvalid
+	}
+
+	dashboardCache := cachedao.NewDashboardCache()
+
+	// 先走缓存，命中则直接返回。
+	cached, found, err := dashboardCache.GetCheckpoint(ctx, campus, pointName)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("读取点位详情缓存失败")
+	} else if found {
+		cachedResp := CheckpointApiResponse{}
+		err = json.Unmarshal(cached, &cachedResp)
+		if err == nil {
+			c.Response = cachedResp
+			return comm.CodeOK
+		}
+
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("解析点位详情缓存失败")
+	}
+
+	dashboardRepo := repodao.NewDashboardRepo()
+	passedCount, notArrivedCount, err := dashboardRepo.GetCheckpointPeopleCounts(ctx, campus, pointName)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Error("查询点位详情统计失败")
+		return comm.CodeDatabaseError
+	}
+
+	c.Response.PassedCount = int(passedCount)
+	c.Response.NotArrivedCount = int(notArrivedCount)
+
+	cacheBody, err := json.Marshal(c.Response)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("序列化点位详情缓存失败")
+		return comm.CodeOK
+	}
+
+	err = dashboardCache.SetCheckpoint(ctx, campus, pointName, cacheBody)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("写入点位详情缓存失败")
+	}
+
 	return comm.CodeOK
 }
 

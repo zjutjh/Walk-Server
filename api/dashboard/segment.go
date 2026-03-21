@@ -1,8 +1,10 @@
 package dashboard
 
 import (
+	"encoding/json"
 	"reflect"
 	"runtime"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/zjutjh/mygo/foundation/reply"
@@ -11,6 +13,9 @@ import (
 	"github.com/zjutjh/mygo/swagger"
 
 	"app/comm"
+	cachedao "app/dao/cache/dashboard"
+	repodao "app/dao/repo/dashboard"
+	"app/middleware"
 )
 
 // SegmentHandler API router注册点
@@ -39,7 +44,59 @@ type SegmentApiResponse struct {
 
 // Run Api业务逻辑执行点
 func (s *SegmentApi) Run(ctx *gin.Context) kit.Code {
-	// TODO: 在此处编写接口业务逻辑
+	// Redis缓存规划:
+	// Key: walk:dashboard:segment:{campus}:{prevPoint}:{toPoint}
+	// Type: String(JSON)
+	// TTL: 5~10s
+	admin, ok := middleware.GetAdminInfo(ctx)
+	if !ok {
+		return comm.CodeUnknownError
+	}
+
+	campus := strings.ToLower(strings.TrimSpace(admin.Campus))
+	prevPointName := strings.TrimSpace(s.Request.Query.PrevPointName)
+	toPointName := strings.TrimSpace(s.Request.Query.ToPointName)
+	if campus == "" || prevPointName == "" || toPointName == "" {
+		return comm.CodeParameterInvalid
+	}
+
+	dashboardCache := cachedao.NewDashboardCache()
+
+	// 先走缓存，命中则直接返回。
+	cached, found, err := dashboardCache.GetSegment(ctx, campus, prevPointName, toPointName)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("读取路段人数缓存失败")
+	} else if found {
+		cachedResp := SegmentApiResponse{}
+		err = json.Unmarshal(cached, &cachedResp)
+		if err == nil {
+			s.Response = cachedResp
+			return comm.CodeOK
+		}
+
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("解析路段人数缓存失败")
+	}
+
+	dashboardRepo := repodao.NewDashboardRepo()
+	peopleCount, err := dashboardRepo.CountPeopleOnSegment(ctx, campus, prevPointName, toPointName)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Error("查询路段人数失败")
+		return comm.CodeDatabaseError
+	}
+
+	s.Response.Number = int(peopleCount)
+
+	cacheBody, err := json.Marshal(s.Response)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("序列化路段人数缓存失败")
+		return comm.CodeOK
+	}
+
+	err = dashboardCache.SetSegment(ctx, campus, prevPointName, toPointName, cacheBody)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("写入路段人数缓存失败")
+	}
+
 	return comm.CodeOK
 }
 

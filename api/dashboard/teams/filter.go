@@ -28,7 +28,7 @@ func FilterHandler() gin.HandlerFunc {
 }
 
 type FilterApi struct {
-	Info     struct{}          `name:"筛选队伍" desc:"搜索队伍和获取指定路段上的队伍列表合并接口，按最新更新时间倒序排序 （距上次更新时间最长的在最前面）\ncampus必填，作为第一道筛选\nkey和toPointName不可同时为空"`
+	Info     struct{}          `name:"筛选队伍" desc:"搜索队伍和获取指定路段上的队伍列表合并接口，按更新时间正序排序（距上次更新时间最长的在最前面）\ncampus必填，作为第一道筛选\nkey和toPointName不可同时为空"`
 	Request  FilterApiRequest  // API请求参数 (Uri/Header/Query/Body)
 	Response FilterApiResponse // API响应数据 (Body中的Data部分)
 }

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"reflect"
 	"runtime"
-	"sort"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -140,12 +139,18 @@ func (r *RouteApi) Run(ctx *gin.Context) kit.Code {
 
 		extraPointNames = append(extraPointNames, row.PointName)
 	}
-	sort.Strings(extraPointNames)
 	for _, pointName := range extraPointNames {
 		r.Response.PointStats = append(r.Response.PointStats, PointStat{
 			PointName:   pointName,
 			PassedCount: passedMap[pointName],
 		})
+	}
+
+	// 转换为累计经过人数：例如原始(0,1)会返回为(1,1)。
+	totalPassed := 0
+	for i := len(r.Response.PointStats) - 1; i >= 0; i-- {
+		totalPassed += r.Response.PointStats[i].PassedCount
+		r.Response.PointStats[i].PassedCount = totalPassed
 	}
 
 	statusRows, err := dashboardRepo.ListSingleRouteStatusCounts(ctx, routeName)

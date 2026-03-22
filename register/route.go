@@ -59,7 +59,7 @@ func routeBase(r *gin.RouterGroup, router *gin.Engine) {
 		r.GET("/swagger.json", swagger.DocumentHandler(router))
 	}
 	r.POST("/admin/register", api.RegisterAdminHandler())
-	r.POST("/admin/auth", api.AuthAdminIsolatedHandler())
+	r.POST("/admin/auth", api.AuthAdminHandler())
 	r.POST("/admin/user/update", midsession.Auth[int](true), api.UpdateUserHandler())
 	r.POST("/admin/team/bind", midsession.Auth[int](true), api.BindCodeHandler())
 	r.POST("/admin/team/violation/mark", midsession.Auth[int](true), api.MarkTeamViolationHandler())

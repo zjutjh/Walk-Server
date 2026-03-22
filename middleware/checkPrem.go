@@ -98,6 +98,7 @@ func getPermRank(perm string) (int, bool) {
 // NeedPerm 判断当前管理员权限是否达到传入的最低权限。
 // 例如最低权限为 internal 时，internal/manager/super 都会放行。
 func NeedPerm(minPerm string) gin.HandlerFunc {
+	minPerm = strings.ToLower(strings.TrimSpace(minPerm))
 	return func(ctx *gin.Context) {
 		admin, ok := GetAdminInfo(ctx)
 		if !ok {

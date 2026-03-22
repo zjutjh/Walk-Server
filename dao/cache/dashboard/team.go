@@ -13,7 +13,7 @@ const (
 	teamInfoCacheKeyPrefix     = "dashboard:teams:info"
 	teamInfoCacheTTL           = 60 * time.Second
 	teamFilterCacheKeyPrefix   = "dashboard:teams:filter"
-	teamFilterCacheTTL         = 5 * time.Second
+	teamFilterCacheTTL         = 30 * time.Second
 	teamInfoLockCacheKeyPrefix = "dashboard:teams:info:lock"
 )
 

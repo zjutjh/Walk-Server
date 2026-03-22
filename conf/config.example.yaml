@@ -56,15 +56,16 @@ feishu:
   notice_webhook: ""
   notice_secret: ""
 
-  session:
-    driver: "memory" # 底层驱动 memory(内存) | redis
-    name: "session" # 名称
-    secret: "secert" # 密钥
-    redis: "" # 选取的 Redis 实例
-    # cookie 相关配置
-    path: # cookie 路径限制
-    domain: # cookie 域限制
-    max_age: # cookie 生存时间 (过期时间 默认7天)
-    secure: # 是否仅允许 HTTPS 发送cookie (开发建议false, 生产配置true)
-    http_only: # 是否禁止客户端脚本访问该 cookie（防止 XSS 读取）
-    same_site: # 同站策略
+# 会话配置
+session:
+  driver: "memory" # 底层驱动 memory(内存) | redis
+  name: "session" # 名称
+  secret: "secert" # 密钥
+  redis: "" # 选取的 Redis 实例
+  # cookie 相关配置
+  path: # cookie 路径限制
+  domain: # cookie 域限制
+  max_age: # cookie 生存时间 (过期时间 默认7天)
+  secure: # 是否仅允许 HTTPS 发送cookie (开发建议false, 生产配置true)
+  http_only: # 是否禁止客户端脚本访问该 cookie（防止 XSS 读取）
+  same_site: # 同站策略

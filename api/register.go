@@ -13,11 +13,14 @@ import (
 	"github.com/zjutjh/mygo/foundation/reply"
 	"github.com/zjutjh/mygo/kit"
 	"github.com/zjutjh/mygo/nedis"
+	"github.com/zjutjh/mygo/nlog"
 	"github.com/zjutjh/mygo/swagger"
 
 	"app/comm"
 	"app/dao/repo"
 )
+
+const registerLockTTL = 5 * time.Second
 
 var registerLockReleaseScript = redis.NewScript(`
 if redis.call("get", KEYS[1]) == ARGV[1] then
@@ -116,14 +119,15 @@ func doRegister(ctx *gin.Context, req RegisterCommonRequest, personType uint8) k
 
 	lockValue, locked, err := acquireRegisterLock(ctx, openID)
 	if err != nil {
-		return comm.LogAndCode(ctx, comm.ErrRegisterLockAcquire, err)
+		nlog.Pick().WithContext(ctx).WithError(err).Error("获取报名锁失败")
+		return comm.CodeRedisError
 	}
 	if !locked {
 		return comm.CodeTooFrequently
 	}
 	defer func() {
 		if err = releaseRegisterLock(ctx, openID, lockValue); err != nil {
-			comm.LogAppError(ctx, comm.ErrRegisterLockRelease, err)
+			nlog.Pick().WithContext(ctx).WithError(err).Warn("释放报名锁失败")
 		}
 	}()
 
@@ -176,7 +180,8 @@ func doRegister(ctx *gin.Context, req RegisterCommonRequest, personType uint8) k
 		if isDuplicateEntryError(err) {
 			return comm.CodeAlreadyRegistered
 		}
-		return comm.LogAndCode(ctx, comm.ErrRegisterCreateFailed, err)
+		nlog.Pick().WithContext(ctx).WithError(err).Error("创建报名记录失败")
+		return comm.CodeDatabaseError
 	}
 
 	return comm.CodeOK
@@ -186,7 +191,8 @@ func hfRegisterStudent(ctx *gin.Context) {
 	api := &RegisterStudentApi{}
 	err := api.Init(ctx)
 	if err != nil {
-		reply.Fail(ctx, comm.LogAndCode(ctx, comm.ErrRequestBindInvalid, err))
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("参数绑定校验错误")
+		reply.Fail(ctx, comm.CodeParameterInvalid)
 		return
 	}
 	code := api.Run(ctx)
@@ -203,7 +209,7 @@ func acquireRegisterLock(ctx *gin.Context, openID string) (string, bool, error) 
 	lockKey := fmt.Sprintf("walk:user:register:lock:%s", openID)
 	lockValue := fmt.Sprintf("%s:%d", openID, time.Now().UnixNano())
 
-	locked, err := nedis.Pick().SetNX(ctx, lockKey, lockValue, comm.BizConf.GetRegisterLockTTL()).Result()
+	locked, err := nedis.Pick().SetNX(ctx, lockKey, lockValue, registerLockTTL).Result()
 	if err != nil {
 		return "", false, err
 	}
@@ -232,7 +238,8 @@ func hfRegisterTeacher(ctx *gin.Context) {
 	api := &RegisterTeacherApi{}
 	err := api.Init(ctx)
 	if err != nil {
-		reply.Fail(ctx, comm.LogAndCode(ctx, comm.ErrRequestBindInvalid, err))
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("参数绑定校验错误")
+		reply.Fail(ctx, comm.CodeParameterInvalid)
 		return
 	}
 	code := api.Run(ctx)
@@ -249,7 +256,8 @@ func hfRegisterAlumnus(ctx *gin.Context) {
 	api := &RegisterAlumnusApi{}
 	err := api.Init(ctx)
 	if err != nil {
-		reply.Fail(ctx, comm.LogAndCode(ctx, comm.ErrRequestBindInvalid, err))
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("参数绑定校验错误")
+		reply.Fail(ctx, comm.CodeParameterInvalid)
 		return
 	}
 	code := api.Run(ctx)

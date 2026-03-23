@@ -21,6 +21,7 @@ biz:
   expired_date: "2025-12-31 23:59:59"
   open_date: "2025-01-01 00:00:00"
   submit_date: "2025-12-01 23:59:59"
+  register_lock_ttl: "5s"
   max_team_size: 6
   min_submit_size: 4
 

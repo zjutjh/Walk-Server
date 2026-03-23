@@ -1,18 +1,30 @@
 package api
 
 import (
+	"errors"
+	"fmt"
 	"reflect"
 	"runtime"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	mysqlDriver "github.com/go-sql-driver/mysql"
+	"github.com/redis/go-redis/v9"
 	"github.com/zjutjh/mygo/foundation/reply"
 	"github.com/zjutjh/mygo/kit"
-	"github.com/zjutjh/mygo/nlog"
+	"github.com/zjutjh/mygo/nedis"
 	"github.com/zjutjh/mygo/swagger"
 
 	"app/comm"
 	"app/dao/repo"
 )
+
+var registerLockReleaseScript = redis.NewScript(`
+if redis.call("get", KEYS[1]) == ARGV[1] then
+	return redis.call("del", KEYS[1])
+end
+return 0
+`)
 
 func RegisterStudentHandler() gin.HandlerFunc {
 	api := RegisterStudentApi{}
@@ -102,6 +114,19 @@ func doRegister(ctx *gin.Context, req RegisterCommonRequest, personType uint8) k
 		return comm.CodeOpenIDEmpty
 	}
 
+	lockValue, locked, err := acquireRegisterLock(ctx, openID)
+	if err != nil {
+		return comm.LogAndCode(ctx, comm.ErrRegisterLockAcquire, err)
+	}
+	if !locked {
+		return comm.CodeTooFrequently
+	}
+	defer func() {
+		if err = releaseRegisterLock(ctx, openID, lockValue); err != nil {
+			comm.LogAppError(ctx, comm.ErrRegisterLockRelease, err)
+		}
+	}()
+
 	peopleRepo := repo.NewPeopleRepo()
 	existing, err := peopleRepo.FindByOpenID(ctx, openID)
 	if err != nil {
@@ -148,8 +173,10 @@ func doRegister(ctx *gin.Context, req RegisterCommonRequest, personType uint8) k
 		WalkStatus: 1,
 	})
 	if err != nil {
-		nlog.Pick().WithContext(ctx).WithError(err).Error("创建报名记录失败")
-		return comm.CodeDatabaseError
+		if isDuplicateEntryError(err) {
+			return comm.CodeAlreadyRegistered
+		}
+		return comm.LogAndCode(ctx, comm.ErrRegisterCreateFailed, err)
 	}
 
 	return comm.CodeOK
@@ -159,8 +186,7 @@ func hfRegisterStudent(ctx *gin.Context) {
 	api := &RegisterStudentApi{}
 	err := api.Init(ctx)
 	if err != nil {
-		nlog.Pick().WithContext(ctx).WithError(err).Warn("参数绑定校验错误")
-		reply.Fail(ctx, comm.CodeParameterInvalid)
+		reply.Fail(ctx, comm.LogAndCode(ctx, comm.ErrRequestBindInvalid, err))
 		return
 	}
 	code := api.Run(ctx)
@@ -173,12 +199,40 @@ func hfRegisterStudent(ctx *gin.Context) {
 	}
 }
 
+func acquireRegisterLock(ctx *gin.Context, openID string) (string, bool, error) {
+	lockKey := fmt.Sprintf("walk:user:register:lock:%s", openID)
+	lockValue := fmt.Sprintf("%s:%d", openID, time.Now().UnixNano())
+
+	locked, err := nedis.Pick().SetNX(ctx, lockKey, lockValue, comm.BizConf.GetRegisterLockTTL()).Result()
+	if err != nil {
+		return "", false, err
+	}
+
+	return lockValue, locked, nil
+}
+
+func releaseRegisterLock(ctx *gin.Context, openID, lockValue string) error {
+	if lockValue == "" {
+		return nil
+	}
+
+	lockKey := fmt.Sprintf("walk:user:register:lock:%s", openID)
+	return registerLockReleaseScript.Run(ctx, nedis.Pick(), []string{lockKey}, lockValue).Err()
+}
+
+func isDuplicateEntryError(err error) bool {
+	var mysqlErr *mysqlDriver.MySQLError
+	if errors.As(err, &mysqlErr) {
+		return mysqlErr.Number == 1062
+	}
+	return false
+}
+
 func hfRegisterTeacher(ctx *gin.Context) {
 	api := &RegisterTeacherApi{}
 	err := api.Init(ctx)
 	if err != nil {
-		nlog.Pick().WithContext(ctx).WithError(err).Warn("参数绑定校验错误")
-		reply.Fail(ctx, comm.CodeParameterInvalid)
+		reply.Fail(ctx, comm.LogAndCode(ctx, comm.ErrRequestBindInvalid, err))
 		return
 	}
 	code := api.Run(ctx)
@@ -195,8 +249,7 @@ func hfRegisterAlumnus(ctx *gin.Context) {
 	api := &RegisterAlumnusApi{}
 	err := api.Init(ctx)
 	if err != nil {
-		nlog.Pick().WithContext(ctx).WithError(err).Warn("参数绑定校验错误")
-		reply.Fail(ctx, comm.CodeParameterInvalid)
+		reply.Fail(ctx, comm.LogAndCode(ctx, comm.ErrRequestBindInvalid, err))
 		return
 	}
 	code := api.Run(ctx)

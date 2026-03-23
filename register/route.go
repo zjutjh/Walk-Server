@@ -41,8 +41,8 @@ func Route(router *gin.Engine) {
 				auth.POST("/team/join", api.TeamJoinHandler())
 				auth.GET("/team/info", api.TeamInfoHandler())
 				auth.POST("/team/update", api.TeamUpdateHandler())
-				auth.GET("/team/leave", api.TeamLeaveHandler())
-				auth.GET("/team/disband", api.TeamDisbandHandler())
+				auth.POST("/team/leave", api.TeamLeaveHandler())
+				auth.DELETE("/team/disband", api.TeamDisbandHandler())
 			}
 		}
 
@@ -58,14 +58,14 @@ func routeBase(r *gin.RouterGroup, router *gin.Engine) {
 	if slices.Contains([]string{config.AppEnvDev, config.AppEnvTest}, config.AppEnv()) {
 		r.GET("/swagger.json", swagger.DocumentHandler(router))
 	}
-	r.POST("/admin/register",api.RegisterAdminHandler())
+	r.POST("/admin/register", api.RegisterAdminHandler())
 	r.POST("/admin/auth", api.AuthAdminHandler())
 	r.POST("/admin/user/update", midsession.Auth[int](true), api.UpdateUserHandler())
-	r.POST("/admin/team/bind",midsession.Auth[int](true),api.BindCodeHandler())
-	r.POST("/admin/team/violation/mark",midsession.Auth[int](true),api.MarkTeamViolationHandler())
-	r.POST("/admin/destination/confirm",midsession.Auth[int](true),api.ConfirmDestinationHandler())
-	r.POST("/admin/team/regroup",midsession.Auth[int](true),api.RegroupHandler())
-	r.GET("/admin/team/status",midsession.Auth[int](true),api.GetTeamStatusHandler())
-	r.GET("/admin/user/info/code",midsession.Auth[int](true),api.GetUserInfoByScanHandler())
-	r.GET("/admin/user/info",midsession.Auth[int](true),api.GetUserInfoByIDHandler())
+	r.POST("/admin/team/bind", midsession.Auth[int](true), api.BindCodeHandler())
+	r.POST("/admin/team/violation/mark", midsession.Auth[int](true), api.MarkTeamViolationHandler())
+	r.POST("/admin/destination/confirm", midsession.Auth[int](true), api.ConfirmDestinationHandler())
+	r.POST("/admin/team/regroup", midsession.Auth[int](true), api.RegroupHandler())
+	r.GET("/admin/team/status", midsession.Auth[int](true), api.GetTeamStatusHandler())
+	r.GET("/admin/user/info/code", midsession.Auth[int](true), api.GetUserInfoByScanHandler())
+	r.GET("/admin/user/info", midsession.Auth[int](true), api.GetUserInfoByIDHandler())
 }

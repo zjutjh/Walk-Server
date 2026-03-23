@@ -5,6 +5,7 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"encoding/base64"
+	"fmt"
 	"io"
 	"strings"
 	"time"
@@ -37,6 +38,9 @@ func GenerateToken(openID string) (string, error) {
 // ParseToken 解析 JWT Token
 func ParseToken(tokenStr string) (*JwtClaims, error) {
 	tokenClaims, err := jwt.ParseWithClaims(tokenStr, &JwtClaims{}, func(token *jwt.Token) (interface{}, error) {
+		if token.Method == nil || token.Method.Alg() != jwt.SigningMethodHS256.Alg() {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
 		return []byte(BizConf.JWTSecret), nil
 	})
 	if tokenClaims != nil {
@@ -53,47 +57,47 @@ func GetOpenIDFromCtx(ctx *gin.Context) string {
 }
 
 // AesEncrypt AES 加密
-func AesEncrypt(plaintext, key string) string {
+func AesEncrypt(plaintext, key string) (string, error) {
 	block, err := aes.NewCipher([]byte(padKey(key)))
 	if err != nil {
-		return ""
+		return "", err
 	}
 	aesGCM, err := cipher.NewGCM(block)
 	if err != nil {
-		return ""
+		return "", err
 	}
 	nonce := make([]byte, aesGCM.NonceSize())
 	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
-		return ""
+		return "", err
 	}
 	ciphertext := aesGCM.Seal(nonce, nonce, []byte(plaintext), nil)
-	return base64.StdEncoding.EncodeToString(ciphertext)
+	return base64.StdEncoding.EncodeToString(ciphertext), nil
 }
 
 // AesDecrypt AES 解密
-func AesDecrypt(cipherStr, key string) string {
+func AesDecrypt(cipherStr, key string) (string, error) {
 	ciphertext, err := base64.StdEncoding.DecodeString(cipherStr)
 	if err != nil {
-		return ""
+		return "", err
 	}
 	block, err := aes.NewCipher([]byte(padKey(key)))
 	if err != nil {
-		return ""
+		return "", err
 	}
 	aesGCM, err := cipher.NewGCM(block)
 	if err != nil {
-		return ""
+		return "", err
 	}
 	nonceSize := aesGCM.NonceSize()
 	if len(ciphertext) < nonceSize {
-		return ""
+		return "", fmt.Errorf("ciphertext too short")
 	}
 	nonce, ciphertext := ciphertext[:nonceSize], ciphertext[nonceSize:]
 	plaintext, err := aesGCM.Open(nil, nonce, ciphertext, nil)
 	if err != nil {
-		return ""
+		return "", err
 	}
-	return string(plaintext)
+	return string(plaintext), nil
 }
 
 func padKey(key string) string {

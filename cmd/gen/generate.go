@@ -1,6 +1,8 @@
 package main
 
 import (
+	"strings"
+
 	"github.com/spf13/cobra"
 	"github.com/zjutjh/mygo/foundation/command"
 	"github.com/zjutjh/mygo/ndb"
@@ -38,6 +40,10 @@ func main() {
 
 	m := map[string]func(columnType gorm.ColumnType) (dataType string){
 		"tinyint": func(columnType gorm.ColumnType) (dataType string) {
+			columnTypeName, ok := columnType.ColumnType()
+			if ok && strings.Contains(strings.ToLower(columnTypeName), "unsigned") {
+				return "uint8"
+			}
 			return "int8"
 		},
 	}

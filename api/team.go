@@ -1,8 +1,10 @@
 package api
 
 import (
+	"errors"
 	"reflect"
 	"runtime"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/zjutjh/mygo/foundation/reply"
@@ -14,6 +16,12 @@ import (
 
 	"app/comm"
 	"app/dao/repo"
+)
+
+var (
+	errTeamNameDuplicated = errors.New("team name duplicated")
+	errTeamJoinConflict   = errors.New("team join conflict")
+	errTeamLeaveConflict  = errors.New("team leave conflict")
 )
 
 func TeamCreateHandler() gin.HandlerFunc {
@@ -174,6 +182,11 @@ func (h *TeamDisbandApi) Init(ctx *gin.Context) (err error) {
 }
 
 func (h *TeamCreateApi) Run(ctx *gin.Context) kit.Code {
+	teamName := strings.TrimSpace(h.Request.Name)
+	if teamName == "" {
+		return comm.CodeParameterInvalid
+	}
+
 	openID := comm.GetOpenIDFromCtx(ctx)
 	if openID == "" {
 		return comm.CodeOpenIDEmpty
@@ -196,7 +209,7 @@ func (h *TeamCreateApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeNoCreateChance
 	}
 
-	duplicated, err := teamRepo.FindByName(ctx, h.Request.Name)
+	duplicated, err := teamRepo.FindByName(ctx, teamName)
 	if err != nil {
 		return comm.CodeDatabaseError
 	}
@@ -209,7 +222,7 @@ func (h *TeamCreateApi) Run(ctx *gin.Context) kit.Code {
 		txTeamRepo := repo.NewTeamRepoWithDB(tx)
 
 		team := &repo.Team{
-			Name:       h.Request.Name,
+			Name:       teamName,
 			Num:        1,
 			Password:   h.Request.Password,
 			Slogan:     h.Request.Slogan,
@@ -224,6 +237,9 @@ func (h *TeamCreateApi) Run(ctx *gin.Context) kit.Code {
 			IsLost:     false,
 		}
 		if errTx := txTeamRepo.Create(ctx, team); errTx != nil {
+			if isDuplicateEntryError(errTx) {
+				return errTeamNameDuplicated
+			}
 			return errTx
 		}
 
@@ -240,6 +256,9 @@ func (h *TeamCreateApi) Run(ctx *gin.Context) kit.Code {
 		return nil
 	})
 	if err != nil {
+		if errors.Is(err, errTeamNameDuplicated) {
+			return comm.CodeTeamNameDuplicated
+		}
 		return comm.CodeDatabaseError
 	}
 
@@ -294,10 +313,12 @@ func (h *TeamJoinApi) Run(ctx *gin.Context) kit.Code {
 		txPeopleRepo := repo.NewPeopleRepoWithDB(tx)
 		txTeamRepo := repo.NewTeamRepoWithDB(tx)
 
-		if errTx := txTeamRepo.UpdateByID(ctx, team.ID, map[string]any{
-			"num": int(team.Num) + 1,
-		}); errTx != nil {
+		updated, errTx := txTeamRepo.IncrementNumIfAvailable(ctx, team.ID, maxTeamSize)
+		if errTx != nil {
 			return errTx
+		}
+		if !updated {
+			return errTeamJoinConflict
 		}
 		if errTx := txPeopleRepo.UpdateByOpenID(ctx, openID, map[string]any{
 			"team_id": team.ID,
@@ -309,6 +330,22 @@ func (h *TeamJoinApi) Run(ctx *gin.Context) kit.Code {
 		return nil
 	})
 	if err != nil {
+		if errors.Is(err, errTeamJoinConflict) {
+			latestTeam, latestErr := teamRepo.FindByID(ctx, h.Request.TeamID)
+			if latestErr != nil {
+				return comm.CodeDatabaseError
+			}
+			if latestTeam == nil {
+				return comm.CodeDataNotFound
+			}
+			if latestTeam.Submit {
+				return comm.CodeTeamSubmitted
+			}
+			if int(latestTeam.Num) >= maxTeamSize {
+				return comm.CodeTeamFull
+			}
+			return comm.CodeDataConflict
+		}
 		return comm.CodeDatabaseError
 	}
 
@@ -393,6 +430,11 @@ func toTeamInfoMemberViews(members []repo.Person) []TeamInfoMemberView {
 }
 
 func (h *TeamUpdateApi) Run(ctx *gin.Context) kit.Code {
+	teamName := strings.TrimSpace(h.Request.Name)
+	if teamName == "" {
+		return comm.CodeParameterInvalid
+	}
+
 	openID := comm.GetOpenIDFromCtx(ctx)
 	if openID == "" {
 		return comm.CodeOpenIDEmpty
@@ -423,14 +465,25 @@ func (h *TeamUpdateApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeTeamSubmitted
 	}
 
+	duplicated, err := teamRepo.FindByNameExceptID(ctx, teamName, team.ID)
+	if err != nil {
+		return comm.CodeDatabaseError
+	}
+	if duplicated != nil {
+		return comm.CodeTeamNameDuplicated
+	}
+
 	err = teamRepo.UpdateByID(ctx, team.ID, map[string]any{
-		"name":        h.Request.Name,
+		"name":        teamName,
 		"password":    h.Request.Password,
 		"slogan":      h.Request.Slogan,
 		"allow_match": h.Request.AllowMatch,
 		"route_id":    h.Request.RouteID,
 	})
 	if err != nil {
+		if isDuplicateEntryError(err) {
+			return comm.CodeTeamNameDuplicated
+		}
 		return comm.CodeDatabaseError
 	}
 	return comm.CodeOK
@@ -453,7 +506,7 @@ func (h *TeamLeaveApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeNotInTeam
 	}
 	if person.Role == 2 {
-		return comm.CodeNotCaptain
+		return comm.CodePermissionDenied
 	}
 
 	team, err := teamRepo.FindByID(ctx, person.TeamID)
@@ -471,10 +524,12 @@ func (h *TeamLeaveApi) Run(ctx *gin.Context) kit.Code {
 		txPeopleRepo := repo.NewPeopleRepoWithDB(tx)
 		txTeamRepo := repo.NewTeamRepoWithDB(tx)
 
-		if errTx := txTeamRepo.UpdateByID(ctx, team.ID, map[string]any{
-			"num": int(team.Num) - 1,
-		}); errTx != nil {
+		updated, errTx := txTeamRepo.DecrementNumIfPositive(ctx, team.ID)
+		if errTx != nil {
 			return errTx
+		}
+		if !updated {
+			return errTeamLeaveConflict
 		}
 		if errTx := txPeopleRepo.UpdateByOpenID(ctx, openID, map[string]any{
 			"team_id": -1,
@@ -485,6 +540,9 @@ func (h *TeamLeaveApi) Run(ctx *gin.Context) kit.Code {
 		return nil
 	})
 	if err != nil {
+		if errors.Is(err, errTeamLeaveConflict) {
+			return comm.CodeDataConflict
+		}
 		return comm.CodeDatabaseError
 	}
 

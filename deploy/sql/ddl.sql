@@ -51,6 +51,7 @@ CREATE TABLE `teams` (
     `created_at`  TIMESTAMP(3)    NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
     `updated_at`  TIMESTAMP(3)    NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
     PRIMARY KEY (`id`),
+    UNIQUE KEY `uni_teams_name` (`name`),
     KEY `idx_teams_code` (`code`),
     KEY `idx_teams_route_point` (`route_id`, `point_id`),
     KEY `idx_teams_captain` (`captain`)
@@ -100,18 +101,18 @@ CREATE TABLE `route_edges` (
 -- 6. Admins（管理员权限表）
 CREATE TABLE `admins` (
     `id`         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '管理员ID',
-    `wx_openid`  VARCHAR(128)    DEFAULT NULL COMMENT '微信OpenID',
+    `open_id`    VARCHAR(128)    DEFAULT NULL COMMENT '微信OpenID',
     `name`       VARCHAR(128)    DEFAULT NULL COMMENT '管理员姓名',
     `account`    VARCHAR(128)    DEFAULT NULL COMMENT '登录账号',
     `password`   VARCHAR(255)    DEFAULT NULL COMMENT '登录密码',
-    `admin_type` TINYINT         NOT NULL COMMENT '权限级别(1最高权限,2负责人权限,3内部权限,4外部权限)',
-    `point_id`   TINYINT         DEFAULT NULL COMMENT '负责的点位ID',
-    `campus`     TINYINT UNSIGNED DEFAULT NULL COMMENT '负责校区(1朝晖,2屏峰,3莫干山)',
+    `permission` VARCHAR(32)     NOT NULL COMMENT '权限级别(super最高权限,manager负责人权限,internal内部权限,external外部权限)',
+    `point_name` VARCHAR(128)    DEFAULT NULL COMMENT '负责的点位名称',
+    `campus`     VARCHAR(16)     NOT NULL COMMENT '校区(zh朝晖,pf屏峰,mgs莫干山)',
     `created_at` TIMESTAMP(3)    NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
     `updated_at` TIMESTAMP(3)    NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
     PRIMARY KEY (`id`),
-    KEY `idx_admins_wx` (`wx_openid`),
-    KEY `idx_admins_point` (`point_id`)
+    KEY `idx_admins_open_id` (`open_id`),
+    KEY `idx_admins_point_name` (`point_name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='管理员权限表';
 
 -- 7. Checkins（打卡签到记录表）

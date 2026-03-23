@@ -1,12 +1,15 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"reflect"
 	"runtime"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/zjutjh/mygo/foundation/reply"
@@ -48,7 +51,7 @@ func (h *WechatLoginApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeWechatCodeMissing
 	}
 
-	openID, err := fetchWechatOpenID(h.Request.Code)
+	openID, err := fetchWechatOpenID(ctx.Request.Context(), h.Request.Code)
 	if err != nil || openID == "" {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("微信换取OpenID失败")
 		return comm.CodeOAuthFailed
@@ -90,7 +93,7 @@ func hfWechatLogin(ctx *gin.Context) {
 	}
 }
 
-func fetchWechatOpenID(code string) (string, error) {
+func fetchWechatOpenID(ctx context.Context, code string) (string, error) {
 	if comm.BizConf == nil || comm.BizConf.WechatAppID == "" || comm.BizConf.WechatSecret == "" {
 		return "", fmt.Errorf("wechat config missing")
 	}
@@ -101,11 +104,25 @@ func fetchWechatOpenID(code string) (string, error) {
 	query.Set("js_code", code)
 	query.Set("grant_type", "authorization_code")
 
-	resp, err := http.Get(endpoint + "?" + query.Encode())
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint+"?"+query.Encode(), nil)
+	if err != nil {
+		return "", err
+	}
+
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, readErr := io.ReadAll(io.LimitReader(resp.Body, 512))
+		if readErr != nil {
+			return "", fmt.Errorf("wechat status %d and read body failed: %w", resp.StatusCode, readErr)
+		}
+		return "", fmt.Errorf("wechat status %d: %s", resp.StatusCode, string(body))
+	}
 
 	result := struct {
 		OpenID  string `json:"openid"`

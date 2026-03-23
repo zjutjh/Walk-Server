@@ -28,6 +28,10 @@ var (
 
 // 业务错误码 从 30000 开始
 var (
-	CodeAccountOrPasswordError =kit.NewCode(30000,"账号或密码错误")
-	CodeAccountExistError=kit.NewCode(30001,"该账号已存在")
+	CodeAccountOrPasswordError = kit.NewCode(30000, "账号或密码错误")
+	CodeAccountExistError      = kit.NewCode(30001, "该账号已存在")
+	CodeTeamNotFound           = kit.NewCode(30002, "队伍不存在")
+	CodeUserNoQuota            = kit.NewCode(30003, "该用户没有名额")
+	CodeBindCodeError          = kit.NewCode(30004, "签到码绑定失败")
+	CodePeopleNotFound          = kit.NewCode(30005, "人员不存在")
 )

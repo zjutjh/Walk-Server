@@ -33,4 +33,5 @@ var (
 	CodeTeamNotFound           = kit.NewCode(30002, "队伍不存在")
 	CodeUserNoQuota            = kit.NewCode(30003, "该用户没有名额")
 	CodeBindCodeError          = kit.NewCode(30004, "签到码绑定失败")
+	CodePeopleNotFound          = kit.NewCode(30005, "人员不存在")
 )

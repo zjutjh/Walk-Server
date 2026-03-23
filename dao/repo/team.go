@@ -5,7 +5,6 @@ import (
 	"errors"
 	"slices"
 
-	"github.com/zjutjh/mygo/ndb"
 	"gorm.io/gorm"
 
 	"app/comm"
@@ -19,12 +18,12 @@ type TeamRepo struct {
 
 func NewTeamRepo() *TeamRepo {
 	return &TeamRepo{
-		query: query.Use(ndb.Pick()),
+		query: newQuery(),
 	}
 }
 
-// FindByID 根据ID查询队伍
-func (r *TeamRepo) FindByID(ctx context.Context, id int64) (*model.Team, error) {
+// FindTeamByID 根据ID查询队伍
+func (r *TeamRepo) FindTeamByID(ctx context.Context, id int64) (*model.Team, error) {
 	t := r.query.Team
 	record, err := t.WithContext(ctx).Where(t.ID.Eq(id)).First()
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -36,20 +35,7 @@ func (r *TeamRepo) FindByID(ctx context.Context, id int64) (*model.Team, error) 
 	return record, nil
 }
 
-// FindByCode 根据签到码查询队伍
-func (r *TeamRepo) FindByCode(ctx context.Context, code string) (*model.Team, error) {
-	t := r.query.Team
-	record, err := t.WithContext(ctx).Where(t.Code.Eq(code)).First()
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	return record, nil
-}
-
-func (r *TeamRepo) findByID(ctx context.Context, tx *query.Query, id int64) (*model.Team, error) {
+func (r *TeamRepo) findTeamByID(ctx context.Context, tx *query.Query, id int64) (*model.Team, error) {
 	t := tx.Team
 	record, err := t.WithContext(ctx).Where(t.ID.Eq(id)).First()
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -96,7 +82,7 @@ func (r *TeamRepo) deleteTeams(ctx context.Context, tx *query.Query, teamIDs []i
 	return err
 }
 
-func (r *TeamRepo) updateCaptain(ctx context.Context, tx *query.Query, teamID int64, captainOpenID string) error {
+func (r *TeamRepo) updateTeamCaptain(ctx context.Context, tx *query.Query, teamID int64, captainOpenID string) error {
 	t := tx.Team
 	_, err := t.WithContext(ctx).
 		Where(t.ID.Eq(teamID)).
@@ -112,39 +98,11 @@ func (r *TeamRepo) bindCode(ctx context.Context, tx *query.Query, teamID int64, 
 	return err
 }
 
-func (r *TeamRepo) updateStatusByInProgressCount(ctx context.Context, tx *query.Query, teamID int64, inProgressCount int64) error {
-	t := tx.Team
-	status := comm.TeamStatusCompleted
-	if inProgressCount > 0 {
-		status = comm.TeamStatusInProgress
-	}
-
-	_, err := t.WithContext(ctx).
-		Where(t.ID.Eq(teamID)).
-		Update(t.Status, status)
-	return err
-}
-
-func (r *TeamRepo) updateStatus(ctx context.Context, tx *query.Query, teamID int64, status string) error {
+func (r *TeamRepo) updateTeamStatus(ctx context.Context, tx *query.Query, teamID int64, status string) error {
 	t := tx.Team
 	_, err := t.WithContext(ctx).
 		Where(t.ID.Eq(teamID)).
 		Update(t.Status, status)
-	return err
-}
-
-func (r *TeamRepo) completeTeam(ctx context.Context, tx *query.Query, teamID int64) error {
-	return r.updateStatus(ctx, tx, teamID, comm.TeamStatusCompleted)
-}
-
-func (r *TeamRepo) completeTeams(ctx context.Context, tx *query.Query, teamIDs []int64) error {
-	if len(teamIDs) == 0 {
-		return nil
-	}
-	t := tx.Team
-	_, err := t.WithContext(ctx).
-		Where(t.ID.In(teamIDs...)).
-		Update(t.Status, comm.TeamStatusCompleted)
 	return err
 }
 
@@ -163,7 +121,13 @@ func (r *TeamRepo) BindCodeAndStartPendingMembers(ctx context.Context, teamID in
 		if err != nil {
 			return err
 		}
-		return r.updateStatusByInProgressCount(ctx, tx, teamID, inProgressCount)
+		if inProgressCount > 0 {
+			err = r.updateTeamStatus(ctx, tx, teamID, comm.TeamStatusInProgress)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
 	})
 }
 
@@ -175,7 +139,7 @@ func (r *TeamRepo) ConfirmDestination(ctx context.Context, teamID int64) error {
 		if err := peopleRepo.completeAllMembers(ctx, tx, teamID); err != nil {
 			return err
 		}
-		return r.completeTeam(ctx, tx, teamID)
+		return r.updateTeamStatus(ctx, tx, teamID, comm.TeamStatusCompleted)
 	})
 }
 
@@ -184,7 +148,7 @@ func (r *TeamRepo) MarkViolation(ctx context.Context, teamID int64) error {
 	peopleRepo := NewPeopleRepo()
 
 	return r.query.Transaction(func(tx *query.Query) error {
-		if err := r.completeTeam(ctx, tx, teamID); err != nil {
+		if err := r.updateTeamStatus(ctx, tx, teamID, comm.TeamStatusCompleted); err != nil {
 			return err
 		}
 		return peopleRepo.violateInProgressMembers(ctx, tx, teamID)
@@ -192,24 +156,16 @@ func (r *TeamRepo) MarkViolation(ctx context.Context, teamID int64) error {
 }
 
 // UpdateUserStatus 更改人员状态，并根据队伍成员状态回推队伍状态
-func (r *TeamRepo) UpdateUserStatus(ctx context.Context, userID int64, status string) error {
+func (r *TeamRepo) UpdateUserStatus(ctx context.Context, user *model.People, status string) error {
 	peopleRepo := NewPeopleRepo()
 
 	return r.query.Transaction(func(tx *query.Query) error {
-		user, err := peopleRepo.findByID(ctx, tx, userID)
+		if err := peopleRepo.updateWalkStatus(ctx, tx, user.ID, status); err != nil {
+			return err
+		}
+		team, err := r.findTeamByID(ctx, tx, user.TeamID)
 		if err != nil {
 			return err
-		}
-		if user == nil {
-			return gorm.ErrRecordNotFound
-		}
-
-		if err := peopleRepo.updateWalkStatus(ctx, tx, userID, status); err != nil {
-			return err
-		}
-
-		if user.TeamID <= 0 {
-			return nil
 		}
 
 		inProgressCount, err := peopleRepo.countInProgressMembers(ctx, tx, user.TeamID)
@@ -217,22 +173,18 @@ func (r *TeamRepo) UpdateUserStatus(ctx context.Context, userID int64, status st
 			return err
 		}
 		if inProgressCount > 0 {
+			if team.Status != comm.TeamStatusInProgress {
+				return r.updateTeamStatus(ctx, tx, user.TeamID, comm.TeamStatusInProgress)
+			}
 			return nil
 		}
 
 		if status != comm.WalkStatusWithdrawn {
-			return r.updateStatus(ctx, tx, user.TeamID, comm.TeamStatusCompleted)
+			return r.updateTeamStatus(ctx, tx, user.TeamID, comm.TeamStatusCompleted)
 		}
 
-		team := tx.Team
-		teamInfo, err := team.WithContext(ctx).
-			Where(team.ID.Eq(user.TeamID)).
-			First()
-		if err != nil {
-			return err
-		}
-		if teamInfo.Status != comm.TeamStatusCompleted {
-			return r.updateStatus(ctx, tx, user.TeamID, comm.TeamStatusWithDrawn)
+		if team != nil && team.Status != comm.TeamStatusCompleted {
+			return r.updateTeamStatus(ctx, tx, user.TeamID, comm.TeamStatusWithDrawn)
 		}
 
 		return nil
@@ -243,9 +195,9 @@ func (r *TeamRepo) UpdateUserStatus(ctx context.Context, userID int64, status st
 func (r *TeamRepo) Regroup(ctx context.Context, memberIDs []int64, routeName string) (int64, error) {
 	peopleRepo := NewPeopleRepo()
 
-	returnTeamID := int64(0)
+	var newTeamID int64
 	err := r.query.Transaction(func(tx *query.Query) error {
-		members, err := peopleRepo.findByIDs(ctx, tx, memberIDs)
+		members, err := peopleRepo.findPeopleByIDs(ctx, tx, memberIDs)
 		if err != nil {
 			return err
 		}
@@ -274,9 +226,9 @@ func (r *TeamRepo) Regroup(ctx context.Context, memberIDs []int64, routeName str
 			return err
 		}
 
-		deleteTeamIDs := make([]int64, 0)
+		var deleteTeamIDs []int64
 		for _, oldTeamID := range oldTeamIDs {
-			remainingCount, err := peopleRepo.countByTeamID(ctx, tx, oldTeamID)
+			remainingCount, err := peopleRepo.countInProgressMembers(ctx, tx, oldTeamID)
 			if err != nil {
 				return err
 			}
@@ -285,32 +237,24 @@ func (r *TeamRepo) Regroup(ctx context.Context, memberIDs []int64, routeName str
 				continue
 			}
 
-			oldTeam, err := r.findByID(ctx, tx, oldTeamID)
-			if err != nil {
-				return err
-			}
-			if oldTeam == nil {
-				continue
-			}
-
-			remainingMembers, err := peopleRepo.findByTeamID(ctx, tx, oldTeamID)
+			remainingMembers, err := peopleRepo.findPeopleByTeamID(ctx, tx, oldTeamID)
 			if err != nil {
 				return err
 			}
 
 			captainStillExists := false
 			var nextCaptain *model.People
-			for _, remainingMember := range remainingMembers {
-				if remainingMember.OpenID == oldTeam.Captain {
+			for _, member := range remainingMembers {
+				if member.Role == comm.RoleCaptain {
 					captainStillExists = true
 				}
 				if nextCaptain == nil {
-					nextCaptain = remainingMember
+					nextCaptain = member
 				}
 			}
 
 			if !captainStillExists && nextCaptain != nil {
-				if err := r.updateCaptain(ctx, tx, oldTeamID, nextCaptain.OpenID); err != nil {
+				if err := r.updateTeamCaptain(ctx, tx, oldTeamID, nextCaptain.OpenID); err != nil {
 					return err
 				}
 				if err := peopleRepo.updateRoleByUserID(ctx, tx, nextCaptain.ID, comm.RoleCaptain); err != nil {
@@ -323,11 +267,11 @@ func (r *TeamRepo) Regroup(ctx context.Context, memberIDs []int64, routeName str
 			return err
 		}
 
-		returnTeamID = newTeam.ID
+		newTeamID = newTeam.ID
 		return nil
 	})
 	if err != nil {
 		return 0, err
 	}
-	return returnTeamID, nil
+	return newTeamID, nil
 }

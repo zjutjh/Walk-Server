@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 
-	"github.com/zjutjh/mygo/ndb"
 	"gorm.io/gorm"
 
 	"app/comm"
@@ -18,12 +17,12 @@ type PeopleRepo struct {
 
 func NewPeopleRepo() *PeopleRepo {
 	return &PeopleRepo{
-		query: query.Use(ndb.Pick()),
+		query: newQuery(),
 	}
 }
 
 // FindByID 根据ID查询人员
-func (r *PeopleRepo) FindByID(ctx context.Context, id int64) (*model.People, error) {
+func (r *PeopleRepo) FindPeopleByID(ctx context.Context, id int64) (*model.People, error) {
 	p := r.query.People
 	record, err := p.WithContext(ctx).Where(p.ID.Eq(id)).First()
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -36,7 +35,7 @@ func (r *PeopleRepo) FindByID(ctx context.Context, id int64) (*model.People, err
 }
 
 // FindByOpenID 根据OpenID查询人员
-func (r *PeopleRepo) FindByOpenID(ctx context.Context, openID string) (*model.People, error) {
+func (r *PeopleRepo) FindPeopleByOpenID(ctx context.Context, openID string) (*model.People, error) {
 	p := r.query.People
 	record, err := p.WithContext(ctx).Where(p.OpenID.Eq(openID)).First()
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -49,7 +48,7 @@ func (r *PeopleRepo) FindByOpenID(ctx context.Context, openID string) (*model.Pe
 }
 
 // FindByTeamID 查询队伍成员
-func (r *PeopleRepo) FindByTeamID(ctx context.Context, teamID int64) ([]*model.People, error) {
+func (r *PeopleRepo) FindPeopleByTeamID(ctx context.Context, teamID int64) ([]*model.People, error) {
 	p := r.query.People
 	return p.WithContext(ctx).
 		Where(p.TeamID.Eq(teamID)).
@@ -57,7 +56,14 @@ func (r *PeopleRepo) FindByTeamID(ctx context.Context, teamID int64) ([]*model.P
 		Find()
 }
 
-func (r *PeopleRepo) findByTeamID(ctx context.Context, tx *query.Query, teamID int64) ([]*model.People, error) {
+func (r *PeopleRepo) findPeopleByIDs(ctx context.Context, tx *query.Query, ids []int64) ([]*model.People, error) {
+	p := tx.People
+	return p.WithContext(ctx).
+		Where(p.ID.In(ids...)).
+		Find()
+}
+
+func (r *PeopleRepo) findPeopleByTeamID(ctx context.Context, tx *query.Query, teamID int64) ([]*model.People, error) {
 	p := tx.People
 	return p.WithContext(ctx).
 		Where(p.TeamID.Eq(teamID)).
@@ -65,30 +71,14 @@ func (r *PeopleRepo) findByTeamID(ctx context.Context, tx *query.Query, teamID i
 		Find()
 }
 
-func (r *PeopleRepo) countByTeamID(ctx context.Context, tx *query.Query, teamID int64) (int64, error) {
+func (r *PeopleRepo) countInProgressMembers(ctx context.Context, tx *query.Query, teamID int64) (int64, error) {
 	p := tx.People
 	return p.WithContext(ctx).
-		Where(p.TeamID.Eq(teamID)).
+		Where(
+			p.TeamID.Eq(teamID),
+			p.WalkStatus.Eq(comm.WalkStatusInProgress),
+		).
 		Count()
-}
-
-func (r *PeopleRepo) findByIDs(ctx context.Context, tx *query.Query, ids []int64) ([]*model.People, error) {
-	p := tx.People
-	return p.WithContext(ctx).
-		Where(p.ID.In(ids...)).
-		Find()
-}
-
-func (r *PeopleRepo) findByID(ctx context.Context, tx *query.Query, id int64) (*model.People, error) {
-	p := tx.People
-	record, err := p.WithContext(ctx).Where(p.ID.Eq(id)).First()
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	return record, nil
 }
 
 func (r *PeopleRepo) updateWalkStatus(ctx context.Context, tx *query.Query, userID int64, status string) error {
@@ -137,72 +127,24 @@ func (r *PeopleRepo) startPendingMembers(ctx context.Context, tx *query.Query, t
 	return err
 }
 
-func (r *PeopleRepo) countInProgressMembers(ctx context.Context, tx *query.Query, teamID int64) (int64, error) {
-	p := tx.People
-	return p.WithContext(ctx).
-		Where(
-			p.TeamID.Eq(teamID),
-			p.WalkStatus.Eq(comm.WalkStatusInProgress),
-		).
-		Count()
-}
-
-func (r *PeopleRepo) countCompletedMembers(ctx context.Context, tx *query.Query, teamID int64) (int64, error) {
-	p := tx.People
-	return p.WithContext(ctx).
-		Where(
-			p.TeamID.Eq(teamID),
-			p.WalkStatus.Eq(comm.WalkStatusCompleted),
-		).
-		Count()
-}
-
-func (r *PeopleRepo) countWithdrawnMembers(ctx context.Context, tx *query.Query, teamID int64) (int64, error) {
-	p := tx.People
-	return p.WithContext(ctx).
-		Where(
-			p.TeamID.Eq(teamID),
-			p.WalkStatus.Eq(comm.WalkStatusWithdrawn),
-		).
-		Count()
-}
-
 func (r *PeopleRepo) completeAllMembers(ctx context.Context, tx *query.Query, teamID int64) error {
 	p := tx.People
-
 	_, err := p.WithContext(ctx).
 		Where(
 			p.TeamID.Eq(teamID),
 			p.WalkStatus.Neq(comm.WalkStatusCompleted),
 		).
 		Update(p.WalkStatus, comm.WalkStatusCompleted)
-
 	return err
 }
 
 func (r *PeopleRepo) violateInProgressMembers(ctx context.Context, tx *query.Query, teamID int64) error {
 	p := tx.People
-
 	_, err := p.WithContext(ctx).
 		Where(
 			p.TeamID.Eq(teamID),
 			p.WalkStatus.Eq(comm.WalkStatusInProgress),
 		).
 		Update(p.WalkStatus, comm.WalkStatusViolated)
-
-	return err
-}
-
-// ConfirmDestination 将指定队伍下所有未完成的人员状态更新为 completed
-func (r *PeopleRepo) ConfirmDestination(ctx context.Context, teamID int64) error {
-	p := r.query.People
-
-	_, err := p.WithContext(ctx).
-		Where(
-			p.TeamID.Eq(teamID),
-			p.WalkStatus.Neq(comm.WalkStatusCompleted),
-		).
-		Update(p.WalkStatus, comm.WalkStatusCompleted)
-
 	return err
 }

@@ -39,9 +39,19 @@ type UpdateUserApiResponse struct {
 }
 
 func (u *UpdateUserApi) Run(ctx *gin.Context) kit.Code {
+	peopleRepo := repo.NewPeopleRepo()
 	teamRepo := repo.NewTeamRepo()
 
-	err := teamRepo.UpdateUserStatus(ctx, int64(u.Request.Body.UserID), u.Request.Body.Status)
+	user, err := peopleRepo.FindPeopleByID(ctx, int64(u.Request.Body.UserID))
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Error("查询人员失败")
+		return comm.CodeUnknownError
+	}
+	if user == nil {
+		return comm.CodePeopleNotFound
+	}
+
+	err = teamRepo.UpdateUserStatus(ctx, user, u.Request.Body.Status)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return comm.CodeDataNotFound

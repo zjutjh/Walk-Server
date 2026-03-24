@@ -27,7 +27,7 @@ func RequireSuperAdmin() gin.HandlerFunc {
 		admin, err := adminRepo.FindByID(ctx, adminID)
 		if err != nil {
 			nlog.Pick().WithContext(ctx).WithError(err).Error("查询管理员权限失败")
-			reply.Fail(ctx, comm.CodeUnknownError)
+			reply.Fail(ctx, comm.CodeDatabaseError)
 			ctx.Abort()
 			return
 		}

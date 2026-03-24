@@ -41,17 +41,65 @@ type UpdateTeamApiResponse struct {
 	TeamID int `json:"team_id" desc:"队伍编号"`
 }
 
+type routePointCheckinResult struct {
+	code *kit.Code
+}
+
 // Run Api业务逻辑执行点
 func (u *UpdateTeamApi) Run(ctx *gin.Context) kit.Code {
-	adminRepo := repo.NewAdminRepo()
 	teamRepo := repo.NewTeamRepo()
+
+	admin, code := u.getCurrentAdmin(ctx)
+	if code != nil {
+		return *code
+	}
+
+	team, code := u.resolveTeam(ctx, admin)
+	if code != nil {
+		return *code
+	}
+
+	if err := teamRepo.ClearLostStatus(ctx, team.ID); err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Error("清除队伍失联状态失败")
+		return comm.CodeDatabaseError
+	}
+
+	routeEdge, err := teamRepo.FindRouteEdge(ctx, team.RouteName, admin.PointName)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Error("查询路线边失败")
+		return comm.CodeDatabaseError
+	}
+	if routeEdge != nil && routeEdge.PrevPointName == "" {
+		if err := u.handleStartPointCheckin(ctx, team, admin.PointName); err != nil {
+			nlog.Pick().WithContext(ctx).WithError(err).Error("起点打卡失败")
+			return comm.CodeDatabaseError
+		}
+		u.Response.TeamID = int(team.ID)
+		return comm.CodeOK
+	}
+
+	result, err := u.handleRoutePointCheckin(ctx, team, admin.PointName, routeEdge)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Error("普通点位打卡失败")
+		return comm.CodeDatabaseError
+	}
+	if result.code != nil {
+		return *result.code
+	}
+
+	u.Response.TeamID = int(team.ID)
+	return comm.CodeOK
+}
+
+func (u *UpdateTeamApi) getCurrentAdmin(ctx *gin.Context) (*model.Admin, *kit.Code) {
+	adminRepo := repo.NewAdminRepo()
 
 	adminID, err := session.GetIdentity[int64](ctx)
 	if err != nil {
 		adminIDInt, fallbackErr := session.GetIdentity[int](ctx)
 		if fallbackErr != nil {
 			nlog.Pick().WithContext(ctx).WithError(fallbackErr).Warn("获取管理员登录态失败")
-			return comm.CodeNotLoggedIn
+			return nil, &comm.CodeNotLoggedIn
 		}
 		adminID = int64(adminIDInt)
 	}
@@ -59,31 +107,15 @@ func (u *UpdateTeamApi) Run(ctx *gin.Context) kit.Code {
 	admin, err := adminRepo.FindByID(ctx, adminID)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询管理员失败")
-		return comm.CodeUnknownError
+		return nil, &comm.CodeDatabaseError
 	}
 	if admin == nil {
-		return comm.CodeNotLoggedIn
+		return nil, &comm.CodeNotLoggedIn
 	}
-
-	team, code := u.checkRoute(ctx, admin)
-	if code != nil {
-		return *code
-	}
-
-	businessCode, err := teamRepo.UpdateTeamCheckin(ctx, team, admin.PointName)
-	if err != nil {
-		nlog.Pick().WithContext(ctx).WithError(err).Error("更新队伍签到点失败")
-		return comm.CodeUnknownError
-	}
-	if businessCode != nil {
-		return *businessCode
-	}
-
-	u.Response.TeamID = int(team.ID)
-	return comm.CodeOK
+	return admin, nil
 }
 
-func (u *UpdateTeamApi) checkRoute(ctx *gin.Context, admin *model.Admin) (*model.Team, *kit.Code) {
+func (u *UpdateTeamApi) resolveTeam(ctx *gin.Context, admin *model.Admin) (*model.Team, *kit.Code) {
 	teamRepo := repo.NewTeamRepo()
 
 	content := strings.TrimSpace(u.Request.Body.Content)
@@ -108,7 +140,7 @@ func (u *UpdateTeamApi) checkRoute(ctx *gin.Context, admin *model.Admin) (*model
 	}
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询队伍失败")
-		return nil, &comm.CodeUnknownError
+		return nil, &comm.CodeDatabaseError
 	}
 	if team == nil {
 		return nil, &comm.CodeTeamNotFound
@@ -117,7 +149,7 @@ func (u *UpdateTeamApi) checkRoute(ctx *gin.Context, admin *model.Admin) (*model
 	route, err := teamRepo.FindRouteByName(ctx, team.RouteName)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询路线失败")
-		return nil, &comm.CodeUnknownError
+		return nil, &comm.CodeDatabaseError
 	}
 	if route == nil {
 		return nil, &comm.CodeDataNotFound
@@ -125,8 +157,42 @@ func (u *UpdateTeamApi) checkRoute(ctx *gin.Context, admin *model.Admin) (*model
 	if route.Campus != admin.Campus {
 		return nil, &comm.CodeCampusMismatch
 	}
-
 	return team, nil
+}
+
+func (u *UpdateTeamApi) handleStartPointCheckin(ctx *gin.Context, team *model.Team, pointName string) error {
+	teamRepo := repo.NewTeamRepo()
+	return teamRepo.StartPointCheckin(ctx, team.ID, pointName)
+}
+
+func (u *UpdateTeamApi) handleRoutePointCheckin(ctx *gin.Context, team *model.Team, pointName string, routeEdge *model.RouteEdge) (*routePointCheckinResult, error) {
+	teamRepo := repo.NewTeamRepo()
+
+	if team.Status != comm.TeamStatusInProgress {
+		return &routePointCheckinResult{code: &comm.CodeTeamCheckinClosed}, nil
+	}
+
+	if err := teamRepo.UpdatePrevPointName(ctx, team.ID, pointName); err != nil {
+		return nil, err
+	}
+
+	pointRoutes, err := teamRepo.FindPointRoutes(ctx, pointName)
+	if err != nil {
+		return nil, err
+	}
+	if len(pointRoutes) == 0 {
+		return &routePointCheckinResult{code: &comm.CodeDataNotFound}, nil
+	}
+
+	if len(pointRoutes) == 1 && pointRoutes[0] != team.RouteName {
+		return &routePointCheckinResult{code: &comm.CodeWrongRouteAlert}, nil
+	}
+
+	if routeEdge == nil || routeEdge.PrevPointName != team.PrevPointName {
+		return &routePointCheckinResult{code: &comm.CodePrevPointInvalid}, nil
+	}
+
+	return &routePointCheckinResult{}, nil
 }
 
 // Run Api初始化 进行参数校验和绑定

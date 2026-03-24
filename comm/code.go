@@ -39,4 +39,5 @@ var (
 	CodePrevPointInvalid       = kit.NewCode(30008, "上一签到点并非路线前序点位")
 	CodeWrongRouteAlert        = kit.NewCode(30009, "该团队路线走错，请立即提醒")
 	CodeTeamMemberInsufficient = kit.NewCode(30010, "团队人数不足")
+	CodeTeamMemberExceeded     = kit.NewCode(30011, "团队人数超过上限")
 )

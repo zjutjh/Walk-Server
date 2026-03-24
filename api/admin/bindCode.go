@@ -11,6 +11,7 @@ import (
 	"github.com/zjutjh/mygo/swagger"
 
 	"app/comm"
+	"app/dao/model"
 	"app/dao/repo"
 )
 
@@ -38,38 +39,64 @@ type BindCodeApiResponse struct {
 
 const (
 	minTeamMemberCount = 3
+	maxTeamMemberCount = 6
 )
 
 // Run Api业务逻辑执行点
 func (b *BindCodeApi) Run(ctx *gin.Context) kit.Code {
-	teamRepo := repo.NewTeamRepo()
-	peopleRepo := repo.NewPeopleRepo()
-
-	team, err := teamRepo.FindTeamByID(ctx, int64(b.Request.Body.TeamID))
-	if err != nil {
-		nlog.Pick().WithContext(ctx).WithError(err).Error("查询队伍失败")
-		return comm.CodeUnknownError
-	}
-	if team == nil {
-		return comm.CodeTeamNotFound
+	team, code := b.getTeam(ctx)
+	if code != nil {
+		return *code
 	}
 
-	pendingCount, err := peopleRepo.CountPendingMembers(ctx, int64(b.Request.Body.TeamID))
-	if err != nil {
-		nlog.Pick().WithContext(ctx).WithError(err).Error("统计待出发人数失败")
-		return comm.CodeUnknownError
-	}
-	if pendingCount < minTeamMemberCount {
-		return comm.CodeTeamMemberInsufficient
+	code = b.validatePendingMemberCount(ctx, team.ID)
+	if code != nil {
+		return *code
 	}
 
-	err = teamRepo.BindCodeAndStartPendingMembers(ctx, int64(b.Request.Body.TeamID), b.Request.Body.Content)
+	err := b.bindCode(ctx, team.ID)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("绑定签到码失败")
 		return comm.CodeBindCodeError
 	}
 
 	return comm.CodeOK
+}
+
+func (b *BindCodeApi) getTeam(ctx *gin.Context) (*model.Team, *kit.Code) {
+	teamRepo := repo.NewTeamRepo()
+
+	team, err := teamRepo.FindTeamByID(ctx, int64(b.Request.Body.TeamID))
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Error("查询队伍失败")
+		return nil, &comm.CodeDatabaseError
+	}
+	if team == nil {
+		return nil, &comm.CodeTeamNotFound
+	}
+	return team, nil
+}
+
+func (b *BindCodeApi) validatePendingMemberCount(ctx *gin.Context, teamID int64) *kit.Code {
+	peopleRepo := repo.NewPeopleRepo()
+
+	pendingCount, err := peopleRepo.CountPendingMembers(ctx, teamID)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Error("统计待出发人数失败")
+		return &comm.CodeDatabaseError
+	}
+	if pendingCount < minTeamMemberCount {
+		return &comm.CodeTeamMemberInsufficient
+	}
+	if pendingCount > maxTeamMemberCount {
+		return &comm.CodeTeamMemberExceeded
+	}
+	return nil
+}
+
+func (b *BindCodeApi) bindCode(ctx *gin.Context, teamID int64) error {
+	teamRepo := repo.NewTeamRepo()
+	return teamRepo.BindCodeAndStartPendingMembers(ctx, teamID, b.Request.Body.Content)
 }
 
 // Run Api初始化 进行参数校验和绑定

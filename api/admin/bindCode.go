@@ -36,17 +36,31 @@ type BindCodeApiRequest struct {
 type BindCodeApiResponse struct {
 }
 
+const (
+	minTeamMemberCount = 3
+)
+
 // Run Api业务逻辑执行点
 func (b *BindCodeApi) Run(ctx *gin.Context) kit.Code {
 	teamRepo := repo.NewTeamRepo()
+	peopleRepo := repo.NewPeopleRepo()
 
-	team, err := teamRepo.FindByID(ctx, int64(b.Request.Body.TeamID))
+	team, err := teamRepo.FindTeamByID(ctx, int64(b.Request.Body.TeamID))
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询队伍失败")
 		return comm.CodeUnknownError
 	}
 	if team == nil {
 		return comm.CodeTeamNotFound
+	}
+
+	pendingCount, err := peopleRepo.CountPendingMembers(ctx, int64(b.Request.Body.TeamID))
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Error("统计待出发人数失败")
+		return comm.CodeUnknownError
+	}
+	if pendingCount < minTeamMemberCount {
+		return comm.CodeTeamMemberInsufficient
 	}
 
 	err = teamRepo.BindCodeAndStartPendingMembers(ctx, int64(b.Request.Body.TeamID), b.Request.Body.Content)

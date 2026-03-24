@@ -41,7 +41,7 @@ func (g *GetUserInfoByIDApi) Run(ctx *gin.Context) kit.Code {
 	teamRepo := repo.NewTeamRepo()
 	peopleRepo := repo.NewPeopleRepo()
 
-	user, err := peopleRepo.FindByID(ctx, int64(g.Request.Query.UserID))
+	user, err := peopleRepo.FindPeopleByID(ctx, int64(g.Request.Query.UserID))
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询人员信息失败")
 		return comm.CodeUnknownError
@@ -53,7 +53,7 @@ func (g *GetUserInfoByIDApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeUserNoQuota
 	}
 
-	team, err := teamRepo.FindByID(ctx, user.TeamID)
+	team, err := teamRepo.FindTeamByID(ctx, user.TeamID)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询队伍信息失败")
 		return comm.CodeUnknownError

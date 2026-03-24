@@ -4,7 +4,10 @@ import (
 	"context"
 	"errors"
 	"slices"
+	"strings"
 
+	"github.com/zjutjh/mygo/kit"
+	"gorm.io/gen/field"
 	"gorm.io/gorm"
 
 	"app/comm"
@@ -26,6 +29,18 @@ func NewTeamRepo() *TeamRepo {
 func (r *TeamRepo) FindTeamByID(ctx context.Context, id int64) (*model.Team, error) {
 	t := r.query.Team
 	record, err := t.WithContext(ctx).Where(t.ID.Eq(id)).First()
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return record, nil
+}
+
+func (r *TeamRepo) FindByCode(ctx context.Context, code string) (*model.Team, error) {
+	t := r.query.Team
+	record, err := t.WithContext(ctx).Where(t.Code.Eq(code)).First()
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
 	}
@@ -104,6 +119,160 @@ func (r *TeamRepo) updateTeamStatus(ctx context.Context, tx *query.Query, teamID
 		Where(t.ID.Eq(teamID)).
 		Update(t.Status, status)
 	return err
+}
+
+func (r *TeamRepo) updatePrevPointName(ctx context.Context, tx *query.Query, teamID int64, pointName string) error {
+	t := tx.Team
+	_, err := t.WithContext(ctx).
+		Where(t.ID.Eq(teamID)).
+		Update(t.PrevPointName, pointName)
+	return err
+}
+
+func (r *TeamRepo) FindRouteByName(ctx context.Context, routeName string) (*model.Route, error) {
+	rt := r.query.Route
+	record, err := rt.WithContext(ctx).Where(rt.Name.Eq(routeName)).First()
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return record, nil
+}
+
+func (r *TeamRepo) FindPrevCheckinPointName(ctx context.Context, routeName, currentPointName string) (string, error) {
+	if strings.TrimSpace(currentPointName) == "" {
+		return "", nil
+	}
+
+	re := r.query.RouteEdge
+	record, err := re.WithContext(ctx).
+		Where(
+			re.RouteName.Eq(routeName),
+			re.PointName.Eq(currentPointName),
+		).
+		First()
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return "", nil
+	}
+	if err != nil {
+		return "", err
+	}
+	return record.PrevPointName, nil
+}
+
+func (r *TeamRepo) isStartPointOnRoute(ctx context.Context, tx *query.Query, routeName, pointName string) (bool, error) {
+	re := tx.RouteEdge
+	count, err := re.WithContext(ctx).
+		Where(
+			re.RouteName.Eq(routeName),
+			re.PointName.Eq(pointName),
+			field.Or(
+				re.PrevPointName.Eq(""),
+				re.PrevPointName.IsNull(),
+			),
+		).
+		Count()
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (r *TeamRepo) countPointOnAllRoutes(ctx context.Context, tx *query.Query, pointName string) (int64, error) {
+	re := tx.RouteEdge
+	return re.WithContext(ctx).
+		Where(re.PointName.Eq(pointName)).
+		Count()
+}
+
+func (r *TeamRepo) findRouteNameByPoint(ctx context.Context, tx *query.Query, pointName string) (string, error) {
+	re := tx.RouteEdge
+	record, err := re.WithContext(ctx).
+		Where(re.PointName.Eq(pointName)).
+		First()
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return "", nil
+	}
+	if err != nil {
+		return "", err
+	}
+	return record.RouteName, nil
+}
+
+func (r *TeamRepo) hasPrevEdge(ctx context.Context, tx *query.Query, routeName, pointName, prevPointName string) (bool, error) {
+	re := tx.RouteEdge
+	count, err := re.WithContext(ctx).
+		Where(
+			re.RouteName.Eq(routeName),
+			re.PointName.Eq(pointName),
+			re.PrevPointName.Eq(prevPointName),
+		).
+		Count()
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (r *TeamRepo) UpdateTeamCheckin(ctx context.Context, team *model.Team, pointName string) (*kit.Code, error) {
+	peopleRepo := NewPeopleRepo()
+	oldPrevPointName := team.PrevPointName
+
+	var businessCode *kit.Code
+	err := r.query.Transaction(func(tx *query.Query) error {
+		if err := r.updatePrevPointName(ctx, tx, team.ID, pointName); err != nil {
+			return err
+		}
+
+		isStart, err := r.isStartPointOnRoute(ctx, tx, team.RouteName, pointName)
+		if err != nil {
+			return err
+		}
+		if isStart {
+			return peopleRepo.setAllMembersPending(ctx, tx, team.ID)
+		}
+
+		if team.Status != comm.TeamStatusInProgress {
+			businessCode = &comm.CodeTeamCheckinClosed
+			return nil
+		}
+
+		pointCount, err := r.countPointOnAllRoutes(ctx, tx, pointName)
+		if err != nil {
+			return err
+		}
+		if pointCount == 0 {
+			businessCode = &comm.CodeDataNotFound
+			return nil
+		}
+
+		if pointCount == 1 {
+			routeName, err := r.findRouteNameByPoint(ctx, tx, pointName)
+			if err != nil {
+				return err
+			}
+			if routeName != team.RouteName {
+				businessCode = &comm.CodeWrongRouteAlert
+				return nil
+			}
+		}
+
+		matched, err := r.hasPrevEdge(ctx, tx, team.RouteName, pointName, oldPrevPointName)
+		if err != nil {
+			return err
+		}
+		if !matched {
+			businessCode = &comm.CodePrevPointInvalid
+			return nil
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return businessCode, nil
 }
 
 // BindCodeAndStartPendingMembers 绑定签到码，并将待出发成员更新为进行中

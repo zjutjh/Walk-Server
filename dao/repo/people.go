@@ -34,6 +34,10 @@ func (r *PeopleRepo) FindPeopleByID(ctx context.Context, id int64) (*model.Peopl
 	return record, nil
 }
 
+func (r *PeopleRepo) FindByID(ctx context.Context, id int64) (*model.People, error) {
+	return r.FindPeopleByID(ctx, id)
+}
+
 // FindByOpenID 根据OpenID查询人员
 func (r *PeopleRepo) FindPeopleByOpenID(ctx context.Context, openID string) (*model.People, error) {
 	p := r.query.People
@@ -47,6 +51,10 @@ func (r *PeopleRepo) FindPeopleByOpenID(ctx context.Context, openID string) (*mo
 	return record, nil
 }
 
+func (r *PeopleRepo) FindByOpenID(ctx context.Context, openID string) (*model.People, error) {
+	return r.FindPeopleByOpenID(ctx, openID)
+}
+
 // FindByTeamID 查询队伍成员
 func (r *PeopleRepo) FindPeopleByTeamID(ctx context.Context, teamID int64) ([]*model.People, error) {
 	p := r.query.People
@@ -54,6 +62,10 @@ func (r *PeopleRepo) FindPeopleByTeamID(ctx context.Context, teamID int64) ([]*m
 		Where(p.TeamID.Eq(teamID)).
 		Order(p.ID).
 		Find()
+}
+
+func (r *PeopleRepo) FindByTeamID(ctx context.Context, teamID int64) ([]*model.People, error) {
+	return r.FindPeopleByTeamID(ctx, teamID)
 }
 
 func (r *PeopleRepo) findPeopleByIDs(ctx context.Context, tx *query.Query, ids []int64) ([]*model.People, error) {
@@ -77,6 +89,16 @@ func (r *PeopleRepo) countInProgressMembers(ctx context.Context, tx *query.Query
 		Where(
 			p.TeamID.Eq(teamID),
 			p.WalkStatus.Eq(comm.WalkStatusInProgress),
+		).
+		Count()
+}
+
+func (r *PeopleRepo) CountPendingMembers(ctx context.Context, teamID int64) (int64, error) {
+	p := r.query.People
+	return p.WithContext(ctx).
+		Where(
+			p.TeamID.Eq(teamID),
+			p.WalkStatus.Eq(comm.WalkStatusPending),
 		).
 		Count()
 }
@@ -124,6 +146,14 @@ func (r *PeopleRepo) startPendingMembers(ctx context.Context, tx *query.Query, t
 			p.WalkStatus.Eq(comm.WalkStatusPending),
 		).
 		Update(p.WalkStatus, comm.WalkStatusInProgress)
+	return err
+}
+
+func (r *PeopleRepo) setAllMembersPending(ctx context.Context, tx *query.Query, teamID int64) error {
+	p := tx.People
+	_, err := p.WithContext(ctx).
+		Where(p.TeamID.Eq(teamID)).
+		Update(p.WalkStatus, comm.WalkStatusPending)
 	return err
 }
 

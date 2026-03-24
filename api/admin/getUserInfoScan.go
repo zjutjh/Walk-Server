@@ -42,7 +42,7 @@ func (g *GetUserInfoByScanApi) Run(ctx *gin.Context) kit.Code {
 	teamRepo := repo.NewTeamRepo()
 	peopleRepo := repo.NewPeopleRepo()
 
-	user, err := peopleRepo.FindByOpenID(ctx, g.Request.Query.Content)
+	user, err := peopleRepo.FindPeopleByOpenID(ctx, g.Request.Query.Content)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("根据OpenID查询人员信息失败")
 		return comm.CodeUnknownError
@@ -54,7 +54,7 @@ func (g *GetUserInfoByScanApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeUserNoQuota
 	}
 
-	team, err := teamRepo.FindByID(ctx, user.TeamID)
+	team, err := teamRepo.FindTeamByID(ctx, user.TeamID)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询队伍信息失败")
 		return comm.CodeUnknownError

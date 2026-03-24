@@ -41,7 +41,7 @@ func (m *MarkTeamViolationApi) Run(ctx *gin.Context) kit.Code {
 	err := teamRepo.MarkViolation(ctx, int64(m.Request.Body.TeamID))
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("标记队伍违规失败")
-		return comm.CodeUnknownError
+		return comm.CodeDatabaseError
 	}
 
 	return comm.CodeOK

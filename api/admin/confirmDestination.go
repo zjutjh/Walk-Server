@@ -41,7 +41,7 @@ func (c *ConfirmDestinationApi) Run(ctx *gin.Context) kit.Code {
 	err := teamRepo.ConfirmDestination(ctx, int64(c.Request.Body.TeamID))
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("终点确认失败")
-		return comm.CodeUnknownError
+		return comm.CodeDatabaseError
 	}
 
 	return comm.CodeOK

@@ -58,22 +58,28 @@ func (g *GetTeamStatusApi) Run(ctx *gin.Context) kit.Code {
 	team, err := teamRepo.FindTeamByID(ctx, int64(g.Request.Query.TeamID))
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询队伍状态失败")
-		return comm.CodeUnknownError
+		return comm.CodeDatabaseError
 	}
 	if team == nil {
 		return comm.CodeTeamNotFound
 	}
 
-	prevCheckinPointName, err := teamRepo.FindPrevCheckinPointName(ctx, team.RouteName, team.PrevPointName)
-	if err != nil {
-		nlog.Pick().WithContext(ctx).WithError(err).Error("查询队伍上一签到点失败")
-		return comm.CodeUnknownError
+	prevCheckinPointName := ""
+	if team.PrevPointName != "" {
+		routeEdge, findErr := teamRepo.FindRouteEdge(ctx, team.RouteName, team.PrevPointName)
+		if findErr != nil {
+			nlog.Pick().WithContext(ctx).WithError(findErr).Error("查询队伍上一签到点失败")
+			return comm.CodeDatabaseError
+		}
+		if routeEdge != nil {
+			prevCheckinPointName = routeEdge.PrevPointName
+		}
 	}
 
 	members, err := peopleRepo.FindPeopleByTeamID(ctx, int64(g.Request.Query.TeamID))
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询队伍成员失败")
-		return comm.CodeUnknownError
+		return comm.CodeDatabaseError
 	}
 
 	g.Response.Team = TeamResponse{

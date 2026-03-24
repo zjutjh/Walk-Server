@@ -57,7 +57,7 @@ func (r *RegroupApi) Run(ctx *gin.Context) kit.Code {
 			return comm.CodeDataNotFound
 		}
 		nlog.Pick().WithContext(ctx).WithError(err).Error("重组队伍失败")
-		return comm.CodeUnknownError
+		return comm.CodeDatabaseError
 	}
 
 	r.Response.TeamID = int(teamID)

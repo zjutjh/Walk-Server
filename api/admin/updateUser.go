@@ -45,7 +45,7 @@ func (u *UpdateUserApi) Run(ctx *gin.Context) kit.Code {
 	user, err := peopleRepo.FindPeopleByID(ctx, int64(u.Request.Body.UserID))
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询人员失败")
-		return comm.CodeUnknownError
+		return comm.CodeDatabaseError
 	}
 	if user == nil {
 		return comm.CodePeopleNotFound
@@ -57,7 +57,7 @@ func (u *UpdateUserApi) Run(ctx *gin.Context) kit.Code {
 			return comm.CodeDataNotFound
 		}
 		nlog.Pick().WithContext(ctx).WithError(err).Error("更改人员状态失败")
-		return comm.CodeUnknownError
+		return comm.CodeDatabaseError
 	}
 
 	return comm.CodeOK

@@ -1,13 +1,12 @@
 package repo
 
 import (
+	routecache "app/dao/cache/route"
+	teamcache "app/dao/cache/team"
 	"context"
 	"errors"
 	"slices"
-	"strings"
 
-	"github.com/zjutjh/mygo/kit"
-	"gorm.io/gen/field"
 	"gorm.io/gorm"
 
 	"app/comm"
@@ -35,10 +34,17 @@ func (r *TeamRepo) FindTeamByID(ctx context.Context, id int64) (*model.Team, err
 	if err != nil {
 		return nil, err
 	}
+	if record.Code != "" {
+		_ = teamcache.SetTeamIDByCode(ctx, record.Code, record.ID)
+	}
 	return record, nil
 }
 
 func (r *TeamRepo) FindByCode(ctx context.Context, code string) (*model.Team, error) {
+	if teamID, hit, err := teamcache.GetTeamIDByCode(ctx, code); err == nil && hit {
+		return r.FindTeamByID(ctx, teamID)
+	}
+
 	t := r.query.Team
 	record, err := t.WithContext(ctx).Where(t.Code.Eq(code)).First()
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -47,6 +53,7 @@ func (r *TeamRepo) FindByCode(ctx context.Context, code string) (*model.Team, er
 	if err != nil {
 		return nil, err
 	}
+	_ = teamcache.SetTeamIDByCode(ctx, record.Code, record.ID)
 	return record, nil
 }
 
@@ -121,15 +128,24 @@ func (r *TeamRepo) updateTeamStatus(ctx context.Context, tx *query.Query, teamID
 	return err
 }
 
-func (r *TeamRepo) updatePrevPointName(ctx context.Context, tx *query.Query, teamID int64, pointName string) error {
-	t := tx.Team
-	_, err := t.WithContext(ctx).
-		Where(t.ID.Eq(teamID)).
-		Update(t.PrevPointName, pointName)
-	return err
+func (r *TeamRepo) ClearLostStatus(ctx context.Context, teamID int64) error {
+	return r.query.Transaction(func(tx *query.Query) error {
+		t := tx.Team
+		_, err := t.WithContext(ctx).
+			Where(
+				t.ID.Eq(teamID),
+				t.IsLost.Eq(1),
+			).
+			Update(t.IsLost, 0)
+		return err
+	})
 }
 
 func (r *TeamRepo) FindRouteByName(ctx context.Context, routeName string) (*model.Route, error) {
+	if route, hit, err := routecache.GetRoute(ctx, routeName); err == nil && hit {
+		return route, nil
+	}
+
 	rt := r.query.Route
 	record, err := rt.WithContext(ctx).Where(rt.Name.Eq(routeName)).First()
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -138,148 +154,82 @@ func (r *TeamRepo) FindRouteByName(ctx context.Context, routeName string) (*mode
 	if err != nil {
 		return nil, err
 	}
+	_ = routecache.SetRoute(ctx, record)
 	return record, nil
 }
 
-func (r *TeamRepo) FindPrevCheckinPointName(ctx context.Context, routeName, currentPointName string) (string, error) {
-	if strings.TrimSpace(currentPointName) == "" {
-		return "", nil
+func (r *TeamRepo) FindRouteEdge(ctx context.Context, routeName, pointName string) (*model.RouteEdge, error) {
+	if routeEdge, hit, err := routecache.GetRouteEdge(ctx, routeName, pointName); err == nil && hit {
+		return routeEdge, nil
 	}
 
 	re := r.query.RouteEdge
 	record, err := re.WithContext(ctx).
 		Where(
 			re.RouteName.Eq(routeName),
-			re.PointName.Eq(currentPointName),
+			re.PointName.Eq(pointName),
 		).
 		First()
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return "", nil
+		return nil, nil
 	}
-	if err != nil {
-		return "", err
-	}
-	return record.PrevPointName, nil
-}
-
-func (r *TeamRepo) isStartPointOnRoute(ctx context.Context, tx *query.Query, routeName, pointName string) (bool, error) {
-	re := tx.RouteEdge
-	count, err := re.WithContext(ctx).
-		Where(
-			re.RouteName.Eq(routeName),
-			re.PointName.Eq(pointName),
-			field.Or(
-				re.PrevPointName.Eq(""),
-				re.PrevPointName.IsNull(),
-			),
-		).
-		Count()
-	if err != nil {
-		return false, err
-	}
-	return count > 0, nil
-}
-
-func (r *TeamRepo) countPointOnAllRoutes(ctx context.Context, tx *query.Query, pointName string) (int64, error) {
-	re := tx.RouteEdge
-	return re.WithContext(ctx).
-		Where(re.PointName.Eq(pointName)).
-		Count()
-}
-
-func (r *TeamRepo) findRouteNameByPoint(ctx context.Context, tx *query.Query, pointName string) (string, error) {
-	re := tx.RouteEdge
-	record, err := re.WithContext(ctx).
-		Where(re.PointName.Eq(pointName)).
-		First()
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return "", nil
-	}
-	if err != nil {
-		return "", err
-	}
-	return record.RouteName, nil
-}
-
-func (r *TeamRepo) hasPrevEdge(ctx context.Context, tx *query.Query, routeName, pointName, prevPointName string) (bool, error) {
-	re := tx.RouteEdge
-	count, err := re.WithContext(ctx).
-		Where(
-			re.RouteName.Eq(routeName),
-			re.PointName.Eq(pointName),
-			re.PrevPointName.Eq(prevPointName),
-		).
-		Count()
-	if err != nil {
-		return false, err
-	}
-	return count > 0, nil
-}
-
-func (r *TeamRepo) UpdateTeamCheckin(ctx context.Context, team *model.Team, pointName string) (*kit.Code, error) {
-	peopleRepo := NewPeopleRepo()
-	oldPrevPointName := team.PrevPointName
-
-	var businessCode *kit.Code
-	err := r.query.Transaction(func(tx *query.Query) error {
-		if err := r.updatePrevPointName(ctx, tx, team.ID, pointName); err != nil {
-			return err
-		}
-
-		isStart, err := r.isStartPointOnRoute(ctx, tx, team.RouteName, pointName)
-		if err != nil {
-			return err
-		}
-		if isStart {
-			return peopleRepo.setAllMembersPending(ctx, tx, team.ID)
-		}
-
-		if team.Status != comm.TeamStatusInProgress {
-			businessCode = &comm.CodeTeamCheckinClosed
-			return nil
-		}
-
-		pointCount, err := r.countPointOnAllRoutes(ctx, tx, pointName)
-		if err != nil {
-			return err
-		}
-		if pointCount == 0 {
-			businessCode = &comm.CodeDataNotFound
-			return nil
-		}
-
-		if pointCount == 1 {
-			routeName, err := r.findRouteNameByPoint(ctx, tx, pointName)
-			if err != nil {
-				return err
-			}
-			if routeName != team.RouteName {
-				businessCode = &comm.CodeWrongRouteAlert
-				return nil
-			}
-		}
-
-		matched, err := r.hasPrevEdge(ctx, tx, team.RouteName, pointName, oldPrevPointName)
-		if err != nil {
-			return err
-		}
-		if !matched {
-			businessCode = &comm.CodePrevPointInvalid
-			return nil
-		}
-		return nil
-	})
 	if err != nil {
 		return nil, err
 	}
-	return businessCode, nil
+	_ = routecache.SetRouteEdge(ctx, record)
+	return record, nil
+}
+
+func (r *TeamRepo) FindPointRoutes(ctx context.Context, pointName string) ([]string, error) {
+	if routeNames, hit, err := routecache.GetPointRoutes(ctx, pointName); err == nil && hit {
+		return routeNames, nil
+	}
+
+	re := r.query.RouteEdge
+	var routeNames []string
+	err := re.WithContext(ctx).
+		Where(re.PointName.Eq(pointName)).
+		Pluck(re.RouteName, &routeNames)
+	if err != nil {
+		return nil, err
+	}
+	_ = routecache.SetPointRoutes(ctx, pointName, routeNames)
+	return routeNames, nil
+}
+
+func (r *TeamRepo) StartPointCheckin(ctx context.Context, teamID int64, pointName string) error {
+	peopleRepo := NewPeopleRepo()
+
+	return r.query.Transaction(func(tx *query.Query) error {
+		t := tx.Team
+		_, err := t.WithContext(ctx).
+			Where(t.ID.Eq(teamID)).
+			Update(t.PrevPointName, pointName)
+		if err != nil {
+			return err
+		}
+		return peopleRepo.setAllMembersPending(ctx, tx, teamID)
+	})
+}
+
+func (r *TeamRepo) UpdatePrevPointName(ctx context.Context, teamID int64, pointName string) error {
+	return r.query.Transaction(func(tx *query.Query) error {
+		t := tx.Team
+		_, err := t.WithContext(ctx).
+			Where(t.ID.Eq(teamID)).
+			Update(t.PrevPointName, pointName)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
 // BindCodeAndStartPendingMembers 绑定签到码，并将待出发成员更新为进行中
 func (r *TeamRepo) BindCodeAndStartPendingMembers(ctx context.Context, teamID int64, content string) error {
 	peopleRepo := NewPeopleRepo()
 
-	return r.query.Transaction(func(tx *query.Query) error {
+	err := r.query.Transaction(func(tx *query.Query) error {
 		if err := r.bindCode(ctx, tx, teamID, content); err != nil {
 			return err
 		}
@@ -298,6 +248,11 @@ func (r *TeamRepo) BindCodeAndStartPendingMembers(ctx context.Context, teamID in
 		}
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+	_ = teamcache.SetTeamIDByCode(ctx, content, teamID)
+	return nil
 }
 
 // ConfirmDestination 将队伍和队伍成员状态更新为 completed

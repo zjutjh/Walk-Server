@@ -62,7 +62,7 @@ func (o *OverviewApi) Run(ctx *gin.Context) kit.Code {
 	// Redis缓存规划:
 	// Key: walk:dashboard:overview:{campus}
 	// Type: String(JSON)
-	// TTL: 10~15s
+	// TTL: 15s
 	campus := strings.ToLower(strings.TrimSpace(o.Request.Query.Campus))
 	if campus == "" {
 		return comm.CodeParameterInvalid

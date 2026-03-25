@@ -47,7 +47,7 @@ func (s *SegmentApi) Run(ctx *gin.Context) kit.Code {
 	// Redis缓存规划:
 	// Key: walk:dashboard:segment:{campus}:{prevPoint}:{toPoint}
 	// Type: String(JSON)
-	// TTL: 5~10s
+	// TTL: 15s
 	admin, ok := middleware.GetAdminInfo(ctx)
 	if !ok {
 		return comm.CodeUnknownError

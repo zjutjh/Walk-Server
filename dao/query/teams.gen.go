@@ -40,7 +40,7 @@ func newTeam(db *gorm.DB, opts ...gen.DOOption) team {
 	_team.PrevPointName = field.NewString(tableName, "prev_point_name")
 	_team.Status = field.NewString(tableName, "status")
 	_team.IsWrongRoute = field.NewInt8(tableName, "is_wrong_route")
-	_team.IDReunite = field.NewInt8(tableName, "id_reunite")
+	_team.IsReunite = field.NewInt8(tableName, "is_reunite")
 	_team.Code = field.NewString(tableName, "code")
 	_team.Time = field.NewTime(tableName, "time")
 	_team.IsLost = field.NewInt8(tableName, "is_lost")
@@ -68,7 +68,7 @@ type team struct {
 	PrevPointName field.String // 上一经过点位ID
 	Status        field.String // 活动状态(notStart未出发，inProgress进行中，completed已完成，withdrawn已下撤)
 	IsWrongRoute  field.Int8   // 是否走错
-	IDReunite     field.Int8   // 是否重组
+	IsReunite     field.Int8   // 是否重组
 	Code          field.String // 签到二维码绑定码
 	Time          field.Time   // 队伍状态更新时间
 	IsLost        field.Int8   // 是否失联
@@ -102,7 +102,7 @@ func (t *team) updateTableName(table string) *team {
 	t.PrevPointName = field.NewString(table, "prev_point_name")
 	t.Status = field.NewString(table, "status")
 	t.IsWrongRoute = field.NewInt8(table, "is_wrong_route")
-	t.IDReunite = field.NewInt8(table, "id_reunite")
+	t.IsReunite = field.NewInt8(table, "is_reunite")
 	t.Code = field.NewString(table, "code")
 	t.Time = field.NewTime(table, "time")
 	t.IsLost = field.NewInt8(table, "is_lost")
@@ -145,7 +145,7 @@ func (t *team) fillFieldMap() {
 	t.fieldMap["prev_point_name"] = t.PrevPointName
 	t.fieldMap["status"] = t.Status
 	t.fieldMap["is_wrong_route"] = t.IsWrongRoute
-	t.fieldMap["id_reunite"] = t.IDReunite
+	t.fieldMap["is_reunite"] = t.IsReunite
 	t.fieldMap["code"] = t.Code
 	t.fieldMap["time"] = t.Time
 	t.fieldMap["is_lost"] = t.IsLost

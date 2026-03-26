@@ -51,7 +51,6 @@ func BizConfBoot() func() error {
 // AppBoot 应用定制引导器
 func AppBoot() func() error {
 	return func() error {
-		// 可以在这里编写业务初始引导逻辑
 		return nil
 	}
 }

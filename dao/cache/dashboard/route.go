@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	redis "github.com/redis/go-redis/v9"
@@ -11,7 +12,8 @@ import (
 )
 
 type DashboardCache struct {
-	rdb redis.UniversalClient
+	rdb           redis.UniversalClient
+	teamInfoLocks sync.Map // map[int64]*redsync.Mutex
 }
 
 const (

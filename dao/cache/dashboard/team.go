@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/go-redsync/redsync/v4"
 	redis "github.com/redis/go-redis/v9"
+	"github.com/zjutjh/mygo/lock"
 )
 
 const (
@@ -72,9 +74,52 @@ func BuildTeamInfoLockCacheKey(teamID int64) string {
 	return fmt.Sprintf("%s:%d", teamInfoLockCacheKeyPrefix, teamID)
 }
 
+func (c *DashboardCache) getTeamInfoMutex(teamID int64) (*redsync.Mutex, bool) {
+	value, ok := c.teamInfoLocks.Load(teamID)
+	if !ok {
+		return nil, false
+	}
+
+	mutex, ok := value.(*redsync.Mutex)
+	if !ok || mutex == nil {
+		c.teamInfoLocks.Delete(teamID)
+		return nil, false
+	}
+
+	return mutex, true
+}
+
+func (c *DashboardCache) setTeamInfoMutex(teamID int64, mutex *redsync.Mutex) {
+	if mutex == nil {
+		c.teamInfoLocks.Delete(teamID)
+		return
+	}
+
+	c.teamInfoLocks.Store(teamID, mutex)
+}
+
 // AcquireTeamInfoLock 尝试对队伍信息加锁，成功返回 true。
 func (c *DashboardCache) AcquireTeamInfoLock(ctx context.Context, teamID int64, ttl time.Duration) (bool, error) {
-	return c.rdb.SetNX(ctx, BuildTeamInfoLockCacheKey(teamID), 1, ttl).Result()
+	if ttl <= 0 {
+		return false, nil
+	}
+
+	mutex := lock.Pick().NewMutex(
+		BuildTeamInfoLockCacheKey(teamID),
+		redsync.WithExpiry(ttl),
+		redsync.WithTries(1),
+	)
+
+	err := mutex.LockContext(ctx)
+	if errors.Is(err, redsync.ErrFailed) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+
+	c.setTeamInfoMutex(teamID, mutex)
+	return true, nil
 }
 
 // SetTeamInfoLockTTL 覆盖写入队伍信息锁及过期时间。
@@ -83,10 +128,46 @@ func (c *DashboardCache) SetTeamInfoLockTTL(ctx context.Context, teamID int64, t
 		return c.ReleaseTeamInfoLock(ctx, teamID)
 	}
 
-	return c.rdb.Set(ctx, BuildTeamInfoLockCacheKey(teamID), 1, ttl).Err()
+	current, ok := c.getTeamInfoMutex(teamID)
+	if !ok {
+		return nil
+	}
+
+	mutex := lock.Pick().NewMutex(
+		BuildTeamInfoLockCacheKey(teamID),
+		redsync.WithExpiry(ttl),
+		redsync.WithTries(1),
+		redsync.WithValue(current.Value()),
+	)
+
+	extended, err := mutex.ExtendContext(ctx)
+	if err != nil {
+		return err
+	}
+	if !extended {
+		return nil
+	}
+
+	c.setTeamInfoMutex(teamID, mutex)
+	return nil
 }
 
 // ReleaseTeamInfoLock 释放队伍信息锁。
 func (c *DashboardCache) ReleaseTeamInfoLock(ctx context.Context, teamID int64) error {
-	return c.rdb.Del(ctx, BuildTeamInfoLockCacheKey(teamID)).Err()
+	mutex, ok := c.getTeamInfoMutex(teamID)
+	if !ok {
+		return nil
+	}
+
+	defer c.teamInfoLocks.Delete(teamID)
+
+	unlocked, err := mutex.UnlockContext(ctx)
+	if err != nil {
+		return err
+	}
+	if !unlocked {
+		return nil
+	}
+
+	return nil
 }

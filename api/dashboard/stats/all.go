@@ -67,17 +67,17 @@ func ensureRouteStat(routeStats map[string]*RouteStatItem, routeOrder *[]string,
 }
 
 func applyStatus(stat *RouteStatItem, walkStatus string, count int) {
-	// 将 walk_status 聚合口径映射到前端展示字段。
+	// Map walk_status to frontend display fields.
 	switch walkStatus {
-	case "未开始", "已放弃":
+	case "notStart", "abandoned":
 		stat.NotPresent += count
-	case "待出发":
+	case "pending":
 		stat.UnDeparted += count
-	case "进行中":
+	case "inProgress":
 		stat.Started += count
-	case "已下撤":
+	case "withdrawn":
 		stat.Withdrawn += count
-	case "已完成", "已违规":
+	case "completed", "violated":
 		stat.Finished += count
 	}
 }

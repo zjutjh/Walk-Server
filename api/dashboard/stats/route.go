@@ -56,11 +56,11 @@ type RouteApiResponse struct {
 
 func applyRouteStatus(stat *StatusStat, walkStatus string, count int) {
 	switch walkStatus {
-	case "未开始", "待出发", "已放弃":
+	case "notStart", "pending", "abandoned":
 		stat.UnPresented += count
-	case "进行中":
+	case "inProgress":
 		stat.Walking += count
-	case "已下撤":
+	case "withdrawn":
 		stat.Withdrawn += count
 	}
 }

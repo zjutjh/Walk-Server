@@ -50,9 +50,9 @@ type RoutesRes struct {
 
 func applyOverviewStatus(route *RoutesRes, walkStatus string, count int) {
 	switch walkStatus {
-	case "进行中":
+	case "inProgress":
 		route.Walking += count
-	case "已完成", "已违规":
+	case "completed", "violated":
 		route.Finished += count
 	}
 }

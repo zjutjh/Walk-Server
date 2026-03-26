@@ -1,6 +1,11 @@
 package register
 
 import (
+	api "app/api/admin"
+	"app/api/dashboard"
+	"app/api/dashboard/stats"
+	"app/api/dashboard/teams"
+	"app/middleware"
 	"slices"
 
 	"github.com/gin-gonic/gin"
@@ -9,13 +14,6 @@ import (
 	"github.com/zjutjh/mygo/session"
 	midsession "github.com/zjutjh/mygo/session/middleware"
 	"github.com/zjutjh/mygo/swagger"
-
-	"app/api"
-	"app/api/dashboard"
-	"app/api/dashboard/stats"
-	"app/api/dashboard/teams"
-
-	"app/middleware"
 )
 
 func Route(router *gin.Engine) {
@@ -25,16 +23,15 @@ func Route(router *gin.Engine) {
 	r := router.Group(routePrefix())
 	{
 		routeBase(r, router)
-		//routeTest(r, router)
+		// routeTest(r, router)
 
 		// 注册业务逻辑接口
-
-		dashboardGroup := r.Group("/dashboard", midsession.Auth[int64](true)) //go强类型断言，int不通过
+		dashboardGroup := r.Group("/dashboard", midsession.Auth[int64](true)) // go强类型断言，int不通过
 		{
 			dashboardGroup.GET("/overview", middleware.NeedPerm("internal"), dashboard.OverviewHandler())
 			dashboardGroup.GET("/checkpoint", middleware.NeedPerm("internal"), dashboard.CheckpointHandler())
 			dashboardGroup.GET("/segment", middleware.NeedPerm("internal"), dashboard.SegmentHandler())
-			dashboardGroup.GET("/permission", dashboard.PermissionHandler()) //不用限制权限等级
+			dashboardGroup.GET("/permission", dashboard.PermissionHandler()) // 不用限制权限等级
 
 			teamGroup := dashboardGroup.Group("/teams")
 			{
@@ -62,12 +59,13 @@ func routeBase(r *gin.RouterGroup, router *gin.Engine) {
 	r.POST("/admin/auth", api.AuthAdminHandler())
 	r.POST("/admin/user/update", midsession.Auth[int](true), api.UpdateUserHandler())
 	r.POST("/admin/team/bind", midsession.Auth[int](true), api.BindCodeHandler())
+	r.POST("/admin/team/update", midsession.Auth[int](true), api.UpdateTeamHandler())
 	r.POST("/admin/team/violation/mark", midsession.Auth[int](true), api.MarkTeamViolationHandler())
 	r.POST("/admin/destination/confirm", midsession.Auth[int](true), api.ConfirmDestinationHandler())
-	r.POST("/admin/team/regroup", midsession.Auth[int](true), api.RegroupHandler())
+	r.POST("/admin/team/regroup", midsession.Auth[int](true), middleware.RequireSuperAdmin(), api.RegroupHandler())
 	r.GET("/admin/team/status", midsession.Auth[int](true), api.GetTeamStatusHandler())
-	r.GET("/admin/user/info/code", midsession.Auth[int](true), api.GetUserInfoByScanHandler())
-	r.GET("/admin/user/info", midsession.Auth[int](true), api.GetUserInfoByIDHandler())
+	r.GET("/admin/user/info/code", midsession.Auth[int](true), middleware.RequireSuperAdmin(), api.GetUserInfoByScanHandler())
+	r.GET("/admin/user/info", midsession.Auth[int](true), middleware.RequireSuperAdmin(), api.GetUserInfoByIDHandler())
 }
 
 func routeTest(r *gin.RouterGroup, router *gin.Engine) {

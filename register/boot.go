@@ -7,6 +7,7 @@ import (
 	"github.com/zjutjh/mygo/feishu"
 	"github.com/zjutjh/mygo/foundation/kernel"
 	"github.com/zjutjh/mygo/kit"
+	"github.com/zjutjh/mygo/lock"
 	"github.com/zjutjh/mygo/ndb"
 	"github.com/zjutjh/mygo/nedis"
 	"github.com/zjutjh/mygo/nesty"
@@ -28,8 +29,9 @@ func Boot() kernel.BootList {
 
 		// Client引导器
 		ndb.Boot(),   // DB
+		nedis.Boot(), // Redis
+		lock.Boot(),  // Redis Lock
 		nesty.Boot(), // HTTP Client
-		nedis.Boot(), // Redis Client
 
 		// 业务引导器
 		BizConfBoot(),
@@ -52,7 +54,6 @@ func BizConfBoot() func() error {
 // AppBoot 应用定制引导器
 func AppBoot() func() error {
 	return func() error {
-		// 可以在这里编写业务初始引导逻辑
 		return nil
 	}
 }

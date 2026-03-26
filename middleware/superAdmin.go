@@ -7,7 +7,7 @@ import (
 	"github.com/zjutjh/mygo/session"
 
 	"app/comm"
-	"app/dao/repo"
+	repo "app/dao/repo/admin"
 )
 
 func RequireSuperAdmin() gin.HandlerFunc {

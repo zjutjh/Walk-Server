@@ -13,7 +13,7 @@ import (
 	"github.com/zjutjh/mygo/swagger"
 
 	"app/comm"
-	"app/dao/repo"
+	repo "app/dao/repo/admin"
 )
 
 func AuthAdminHandler() gin.HandlerFunc {

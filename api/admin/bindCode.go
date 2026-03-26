@@ -12,7 +12,7 @@ import (
 
 	"app/comm"
 	"app/dao/model"
-	"app/dao/repo"
+	repo "app/dao/repo/admin"
 )
 
 func BindCodeHandler() gin.HandlerFunc {

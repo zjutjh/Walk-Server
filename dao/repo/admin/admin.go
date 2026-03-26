@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/zjutjh/mygo/ndb"
 	"gorm.io/gorm"
 
 	admincache "app/dao/cache/admin"
@@ -17,7 +18,7 @@ type AdminRepo struct {
 
 func NewAdminRepo() *AdminRepo {
 	return &AdminRepo{
-		query: newQuery(),
+		query: query.Use(ndb.Pick()),
 	}
 }
 

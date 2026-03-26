@@ -51,6 +51,19 @@ func (u *UpdateUserApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodePeopleNotFound
 	}
 
+	if user.TeamID > 0 {
+		mutex := comm.NewTeamMutex(user.TeamID)
+		if err := mutex.Lock(); err != nil {
+			nlog.Pick().WithContext(ctx).WithError(err).Warn("获取队伍成员状态更新锁失败")
+			return comm.CodeTooFrequently
+		}
+		defer func() {
+			if _, err := mutex.Unlock(); err != nil {
+				nlog.Pick().WithContext(ctx).WithError(err).Warn("释放队伍成员状态更新锁失败")
+			}
+		}()
+	}
+
 	err = teamRepo.UpdateUserStatus(ctx, user, u.Request.Body.Status)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

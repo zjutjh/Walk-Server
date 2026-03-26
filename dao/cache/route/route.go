@@ -3,6 +3,7 @@ package routecache
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -11,26 +12,31 @@ import (
 	"app/dao/model"
 )
 
-const routeCacheTTL = time.Hour
+const (
+	routeCacheKeyPrefix       = "walk:route"
+	routeEdgeCacheKeyPrefix   = "walk:route_edge"
+	pointRoutesCacheKeyPrefix = "walk:point:routes"
+	routeCacheTTL             = time.Hour
+)
 
 func client() redis.UniversalClient {
 	return nedis.Pick("redis")
 }
 
-func routeKey(routeName string) string {
-	return "walk:route:" + routeName
+func BuildRouteCacheKey(routeName string) string {
+	return fmt.Sprintf("%s:%s", routeCacheKeyPrefix, routeName)
 }
 
-func routeEdgeKey(routeName, pointName string) string {
-	return "walk:route_edge:" + routeName + ":" + pointName
+func BuildRouteEdgeCacheKey(routeName, pointName string) string {
+	return fmt.Sprintf("%s:%s:%s", routeEdgeCacheKeyPrefix, routeName, pointName)
 }
 
-func pointRoutesKey(pointName string) string {
-	return "walk:point:routes:" + pointName
+func BuildPointRoutesCacheKey(pointName string) string {
+	return fmt.Sprintf("%s:%s", pointRoutesCacheKeyPrefix, pointName)
 }
 
 func GetRoute(ctx context.Context, routeName string) (*model.Route, bool, error) {
-	value, err := client().Get(ctx, routeKey(routeName)).Result()
+	value, err := client().Get(ctx, BuildRouteCacheKey(routeName)).Result()
 	if err == redis.Nil {
 		return nil, false, nil
 	}
@@ -54,11 +60,11 @@ func SetRoute(ctx context.Context, route *model.Route) error {
 	if err != nil {
 		return err
 	}
-	return client().Set(ctx, routeKey(route.Name), payload, routeCacheTTL).Err()
+	return client().Set(ctx, BuildRouteCacheKey(route.Name), payload, routeCacheTTL).Err()
 }
 
 func GetRouteEdge(ctx context.Context, routeName, pointName string) (*model.RouteEdge, bool, error) {
-	value, err := client().Get(ctx, routeEdgeKey(routeName, pointName)).Result()
+	value, err := client().Get(ctx, BuildRouteEdgeCacheKey(routeName, pointName)).Result()
 	if err == redis.Nil {
 		return nil, false, nil
 	}
@@ -82,11 +88,11 @@ func SetRouteEdge(ctx context.Context, routeEdge *model.RouteEdge) error {
 	if err != nil {
 		return err
 	}
-	return client().Set(ctx, routeEdgeKey(routeEdge.RouteName, routeEdge.PointName), payload, routeCacheTTL).Err()
+	return client().Set(ctx, BuildRouteEdgeCacheKey(routeEdge.RouteName, routeEdge.PointName), payload, routeCacheTTL).Err()
 }
 
 func GetPointRoutes(ctx context.Context, pointName string) ([]string, bool, error) {
-	value, err := client().Get(ctx, pointRoutesKey(pointName)).Result()
+	value, err := client().Get(ctx, BuildPointRoutesCacheKey(pointName)).Result()
 	if err == redis.Nil {
 		return nil, false, nil
 	}
@@ -106,5 +112,5 @@ func SetPointRoutes(ctx context.Context, pointName string, routeNames []string) 
 	if err != nil {
 		return err
 	}
-	return client().Set(ctx, pointRoutesKey(pointName), payload, routeCacheTTL).Err()
+	return client().Set(ctx, BuildPointRoutesCacheKey(pointName), payload, routeCacheTTL).Err()
 }

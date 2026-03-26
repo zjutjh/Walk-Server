@@ -59,6 +59,17 @@ func (u *UpdateTeamApi) Run(ctx *gin.Context) kit.Code {
 		return *code
 	}
 
+	mutex := comm.NewTeamMutex(team.ID)
+	if err := mutex.Lock(); err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("获取队伍打卡锁失败")
+		return comm.CodeTooFrequently
+	}
+	defer func() {
+		if _, err := mutex.Unlock(); err != nil {
+			nlog.Pick().WithContext(ctx).WithError(err).Warn("释放队伍打卡锁失败")
+		}
+	}()
+
 	if err := teamRepo.ClearLostStatus(ctx, team.ID); err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("清除队伍失联状态失败")
 		return comm.CodeDatabaseError
@@ -185,6 +196,9 @@ func (u *UpdateTeamApi) handleRoutePointCheckin(ctx *gin.Context, team *model.Te
 	}
 
 	if len(pointRoutes) == 1 && pointRoutes[0] != team.RouteName {
+		if err := teamRepo.UpdateTeamWrongRoute(ctx, team.ID, 1); err != nil {
+			return nil, err
+		}
 		return &routePointCheckinResult{code: &comm.CodeWrongRouteAlert}, nil
 	}
 

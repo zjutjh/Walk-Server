@@ -49,6 +49,17 @@ func (b *BindCodeApi) Run(ctx *gin.Context) kit.Code {
 		return *code
 	}
 
+	mutex := comm.NewTeamMutex(team.ID)
+	if err := mutex.Lock(); err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("获取队伍绑定签到码锁失败")
+		return comm.CodeTooFrequently
+	}
+	defer func() {
+		if _, err := mutex.Unlock(); err != nil {
+			nlog.Pick().WithContext(ctx).WithError(err).Warn("释放队伍绑定签到码锁失败")
+		}
+	}()
+
 	code = b.validatePendingMemberCount(ctx, team.ID)
 	if code != nil {
 		return *code

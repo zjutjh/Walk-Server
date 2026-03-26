@@ -43,12 +43,15 @@ db:
   password: "jh_pass"
   database: "jh_db"
 
-# # Redis 配置 开启前请在 register/boot.go 中进行 nedis.Boot()
-# redis:
-#   addrs:
-#     - "127.0.0.1:6379"
-#   db: 0
-#   password: "jh_pass"
+# Redis 配置 开启前请在 register/boot.go 中进行 nedis.Boot()
+redis:
+  addrs:
+    - "127.0.0.1:6379"
+  db: 0
+  password: "jh_pass"
+
+lock:
+  redis: "redis"
 
 # 飞书告警配置
 feishu:

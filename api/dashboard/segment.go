@@ -15,7 +15,7 @@ import (
 	"app/comm"
 	cachedao "app/dao/cache/dashboard"
 	repodao "app/dao/repo/dashboard"
-	"app/middleware"
+	repo "app/dao/repo/admin"
 )
 
 // SegmentHandler API router注册点
@@ -48,7 +48,7 @@ func (s *SegmentApi) Run(ctx *gin.Context) kit.Code {
 	// Key: walk:dashboard:segment:{campus}:{prevPoint}:{toPoint}
 	// Type: String(JSON)
 	// TTL: 15s
-	admin, ok := middleware.GetAdminInfo(ctx)
+	admin, ok := repo.GetAdminInfo(ctx)
 	if !ok {
 		return comm.CodeUnknownError
 	}

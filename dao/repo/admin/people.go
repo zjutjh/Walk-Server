@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/zjutjh/mygo/ndb"
 	"gorm.io/gorm"
 
 	"app/comm"
@@ -17,7 +18,7 @@ type PeopleRepo struct {
 
 func NewPeopleRepo() *PeopleRepo {
 	return &PeopleRepo{
-		query: newQuery(),
+		query: query.Use(ndb.Pick()),
 	}
 }
 

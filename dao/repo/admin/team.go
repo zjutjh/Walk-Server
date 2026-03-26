@@ -7,6 +7,7 @@ import (
 	"errors"
 	"slices"
 
+	"github.com/zjutjh/mygo/ndb"
 	"gorm.io/gorm"
 
 	"app/comm"
@@ -20,8 +21,9 @@ type TeamRepo struct {
 
 func NewTeamRepo() *TeamRepo {
 	return &TeamRepo{
-		query: newQuery(),
+		query: query.Use(ndb.Pick()),
 	}
+
 }
 
 // FindTeamByID 根据ID查询队伍

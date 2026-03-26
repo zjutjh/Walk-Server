@@ -13,7 +13,7 @@ import (
 	"gorm.io/gorm"
 
 	"app/comm"
-	"app/dao/repo"
+	repo "app/dao/repo/admin"
 )
 
 func UpdateUserHandler() gin.HandlerFunc {

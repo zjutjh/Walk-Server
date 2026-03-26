@@ -83,7 +83,7 @@ func (r *TeamRepo) createRegroupTeam(ctx context.Context, tx *query.Query, membe
 		PrevPointName: "",
 		Status:        comm.TeamStatusNotStart,
 		IsWrongRoute:  0,
-		IDReunite:     1,
+		IsReunite:     1,
 		Code:          "",
 		IsLost:        0,
 	}
@@ -126,6 +126,16 @@ func (r *TeamRepo) updateTeamStatus(ctx context.Context, tx *query.Query, teamID
 		Where(t.ID.Eq(teamID)).
 		Update(t.Status, status)
 	return err
+}
+
+func (r *TeamRepo) UpdateTeamWrongRoute(ctx context.Context, teamID int64, isWrongRoute int8) error {
+	return r.query.Transaction(func(tx *query.Query) error {
+		t := tx.Team
+		_, err := t.WithContext(ctx).
+			Where(t.ID.Eq(teamID)).
+			Update(t.IsWrongRoute, isWrongRoute)
+		return err
+	})
 }
 
 func (r *TeamRepo) ClearLostStatus(ctx context.Context, teamID int64) error {

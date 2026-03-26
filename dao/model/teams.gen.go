@@ -24,7 +24,7 @@ type Team struct {
 	PrevPointName string    `gorm:"column:prev_point_name;comment:上一经过点位ID" json:"prev_point_name"`                                         // 上一经过点位ID
 	Status        string    `gorm:"column:status;not null;comment:活动状态(notStart未出发，inProgress进行中，completed已完成，withdrawn已下撤)" json:"status"` // 活动状态(notStart未出发，inProgress进行中，completed已完成，withdrawn已下撤)
 	IsWrongRoute  int8      `gorm:"column:is_wrong_route;not null;comment:是否走错" json:"is_wrong_route"`                                      // 是否走错
-	IDReunite     int8      `gorm:"column:id_reunite;not null;comment:是否重组" json:"id_reunite"`                                              // 是否重组
+	IsReunite     int8      `gorm:"column:is_reunite;not null;comment:是否重组" json:"is_reunite"`                                              // 是否重组
 	Code          string    `gorm:"column:code;comment:签到二维码绑定码" json:"code"`                                                               // 签到二维码绑定码
 	Time          time.Time `gorm:"column:time;comment:队伍状态更新时间" json:"time"`                                                               // 队伍状态更新时间
 	IsLost        int8      `gorm:"column:is_lost;not null;comment:是否失联" json:"is_lost"`                                                    // 是否失联

@@ -1,5 +1,37 @@
 package comm
 
+const (
+	WalkStatusNotStart  = "notStart"
+	WalkStatusPending   = "pending"
+	WalkStatusAbandoned = "abandoned"
+	WalkStatusViolated  = "violated"
+	WalkStatusCompleted = "completed"
+)
+
+const (
+	RoleUnbind  = "unbind"
+	RoleCaptain = "captain"
+	RoleMember  = "member"
+)
+
+const (
+	CodeChekin = "checkin"
+	CodeTeam   = "team"
+)
+
+const (
+	AdminPermissionSuper    = "super"
+	AdminPermissionManager  = "manager"
+	AdminPermissionInternal = "internal"
+	AdminPermissionExternal = "external"
+)
+
+const (
+	TeamStatusNotStart  = "notStart"
+	TeamStatusCompleted = "completed"
+	TeamStatusWithDrawn = "withDrawn"
+)
+
 type Gender string
 
 const (

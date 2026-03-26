@@ -7,6 +7,7 @@ import (
 	"github.com/zjutjh/mygo/feishu"
 	"github.com/zjutjh/mygo/foundation/kernel"
 	"github.com/zjutjh/mygo/kit"
+	"github.com/zjutjh/mygo/lock"
 	"github.com/zjutjh/mygo/ndb"
 	"github.com/zjutjh/mygo/nedis"
 	"github.com/zjutjh/mygo/nesty"
@@ -26,6 +27,7 @@ func Boot() kernel.BootList {
 		// Client引导器
 		ndb.Boot(),   // DB
 		nedis.Boot(), // Redis
+		lock.Boot(),  // Redis Lock
 		nesty.Boot(), // HTTP Client
 
 		// 业务引导器

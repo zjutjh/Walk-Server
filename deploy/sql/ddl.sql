@@ -155,7 +155,6 @@ CREATE TABLE `user` (
     `password`   VARCHAR(255)    NOT NULL COMMENT '密码',
     `created_at` TIMESTAMP(3)    NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
     `updated_at` TIMESTAMP(3)    NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
-    `deleted_at` BIGINT          NOT NULL DEFAULT 0 COMMENT '删除时间 (软删除)',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_username` (`username`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='系统用户表';

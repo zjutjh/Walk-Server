@@ -401,7 +401,7 @@ func toTeamInfoTeamView(team *repo.Team) *TeamInfoTeamView {
 		RouteID:    team.RouteID,
 		PointID:    team.PointID,
 		Submit:     team.Submit,
-		Status:     formatTeamStatus(team.Status),
+		Status:     comm.FormatTeamStatus(team.Status),
 		IsLost:     team.IsLost,
 	}
 }
@@ -412,18 +412,18 @@ func toTeamInfoMemberViews(members []repo.Person) []TeamInfoMemberView {
 		result = append(result, TeamInfoMemberView{
 			ID:         member.ID,
 			Name:       member.Name,
-			Gender:     formatGender(member.Gender),
+			Gender:     comm.FormatGender(member.Gender),
 			StuID:      member.StuID,
-			Campus:     formatCampus(member.Campus),
+			Campus:     comm.FormatCampus(member.Campus),
 			Identity:   member.Identity,
-			TeamRole:   formatTeamRole(member.Role),
+			TeamRole:   comm.FormatTeamRole(member.Role),
 			QQ:         member.QQ,
 			Wechat:     member.Wechat,
 			College:    member.College,
 			Tel:        member.Tel,
 			TeamID:     member.TeamID,
-			MemberType: formatMemberType(member.Type),
-			WalkStatus: formatWalkStatus(member.WalkStatus),
+			MemberType: comm.FormatMemberType(member.Type),
+			WalkStatus: comm.FormatWalkStatus(member.WalkStatus),
 		})
 	}
 	return result

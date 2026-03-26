@@ -7,7 +7,6 @@ import (
 	"github.com/zjutjh/mygo/foundation/command"
 	"github.com/zjutjh/mygo/ndb"
 	"gorm.io/gen"
-	"gorm.io/gen/field"
 	"gorm.io/gorm"
 
 	"app/register"
@@ -49,23 +48,8 @@ func main() {
 	}
 	g.WithDataTypeMap(m)
 
-	// 有软删除的表
-	softDeleteTables := map[string]bool{
-		"user": true,
-	}
-
 	for _, table := range tables {
-		var opts []gen.ModelOpt
-		if softDeleteTables[table] {
-			opts = append(opts,
-				gen.FieldType("deleted_at", "soft_delete.DeletedAt"),
-				gen.FieldGORMTag("deleted_at", func(tag field.GormTag) field.GormTag {
-					return tag.Set("softDelete", "milli")
-				}),
-				gen.FieldJSONTag("deleted_at", "-"),
-			)
-		}
-		tableName := g.GenerateModel(table, opts...)
+		tableName := g.GenerateModel(table)
 		g.ApplyBasic(tableName)
 	}
 

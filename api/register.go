@@ -2,32 +2,19 @@ package api
 
 import (
 	"errors"
-	"fmt"
 	"reflect"
 	"runtime"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	mysqlDriver "github.com/go-sql-driver/mysql"
-	"github.com/redis/go-redis/v9"
 	"github.com/zjutjh/mygo/foundation/reply"
 	"github.com/zjutjh/mygo/kit"
-	"github.com/zjutjh/mygo/nedis"
 	"github.com/zjutjh/mygo/nlog"
 	"github.com/zjutjh/mygo/swagger"
 
 	"app/comm"
 	"app/dao/repo"
 )
-
-const registerLockTTL = 5 * time.Second
-
-var registerLockReleaseScript = redis.NewScript(`
-if redis.call("get", KEYS[1]) == ARGV[1] then
-	return redis.call("del", KEYS[1])
-end
-return 0
-`)
 
 func RegisterStudentHandler() gin.HandlerFunc {
 	api := RegisterStudentApi{}
@@ -102,12 +89,12 @@ func (h *RegisterAlumnusApi) Run(ctx *gin.Context) kit.Code {
 }
 
 func doRegister(ctx *gin.Context, req RegisterCommonRequest, personType uint8) kit.Code {
-	gender, ok := parseGender(req.Gender)
+	gender, ok := comm.ParseGender(req.Gender)
 	if !ok {
 		return comm.CodeParameterInvalid
 	}
 
-	campus, ok := parseCampus(req.Campus)
+	campus, ok := comm.ParseCampus(req.Campus)
 	if !ok {
 		return comm.CodeParameterInvalid
 	}
@@ -116,20 +103,6 @@ func doRegister(ctx *gin.Context, req RegisterCommonRequest, personType uint8) k
 	if openID == "" {
 		return comm.CodeOpenIDEmpty
 	}
-
-	lockValue, locked, err := acquireRegisterLock(ctx, openID)
-	if err != nil {
-		nlog.Pick().WithContext(ctx).WithError(err).Error("获取报名锁失败")
-		return comm.CodeRedisError
-	}
-	if !locked {
-		return comm.CodeTooFrequently
-	}
-	defer func() {
-		if err = releaseRegisterLock(ctx, openID, lockValue); err != nil {
-			nlog.Pick().WithContext(ctx).WithError(err).Warn("释放报名锁失败")
-		}
-	}()
 
 	peopleRepo := repo.NewPeopleRepo()
 	existing, err := peopleRepo.FindByOpenID(ctx, openID)
@@ -203,27 +176,6 @@ func hfRegisterStudent(ctx *gin.Context) {
 			reply.Fail(ctx, code)
 		}
 	}
-}
-
-func acquireRegisterLock(ctx *gin.Context, openID string) (string, bool, error) {
-	lockKey := fmt.Sprintf("walk:user:register:lock:%s", openID)
-	lockValue := fmt.Sprintf("%s:%d", openID, time.Now().UnixNano())
-
-	locked, err := nedis.Pick().SetNX(ctx, lockKey, lockValue, registerLockTTL).Result()
-	if err != nil {
-		return "", false, err
-	}
-
-	return lockValue, locked, nil
-}
-
-func releaseRegisterLock(ctx *gin.Context, openID, lockValue string) error {
-	if lockValue == "" {
-		return nil
-	}
-
-	lockKey := fmt.Sprintf("walk:user:register:lock:%s", openID)
-	return registerLockReleaseScript.Run(ctx, nedis.Pick(), []string{lockKey}, lockValue).Err()
 }
 
 func isDuplicateEntryError(err error) bool {

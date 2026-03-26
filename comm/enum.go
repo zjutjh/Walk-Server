@@ -1,4 +1,4 @@
-package api
+package comm
 
 type Gender string
 
@@ -52,7 +52,7 @@ const (
 	TeamStatusWithdrawn  TeamStatus = "withdrawn"
 )
 
-func parseGender(raw string) (int8, bool) {
+func ParseGender(raw string) (int8, bool) {
 	switch Gender(raw) {
 	case GenderMale:
 		return 1, true
@@ -63,7 +63,7 @@ func parseGender(raw string) (int8, bool) {
 	}
 }
 
-func parseCampus(raw string) (uint8, bool) {
+func ParseCampus(raw string) (uint8, bool) {
 	switch Campus(raw) {
 	case CampusChaohui:
 		return 1, true
@@ -76,7 +76,7 @@ func parseCampus(raw string) (uint8, bool) {
 	}
 }
 
-func formatGender(value int8) string {
+func FormatGender(value int8) string {
 	switch value {
 	case 1:
 		return string(GenderMale)
@@ -87,7 +87,7 @@ func formatGender(value int8) string {
 	}
 }
 
-func formatCampus(value uint8) string {
+func FormatCampus(value uint8) string {
 	switch value {
 	case 1:
 		return string(CampusChaohui)
@@ -100,7 +100,7 @@ func formatCampus(value uint8) string {
 	}
 }
 
-func formatMemberType(value uint8) string {
+func FormatMemberType(value uint8) string {
 	switch value {
 	case 1:
 		return string(MemberTypeStudent)
@@ -113,7 +113,7 @@ func formatMemberType(value uint8) string {
 	}
 }
 
-func formatTeamRole(value uint8) string {
+func FormatTeamRole(value uint8) string {
 	switch value {
 	case 0:
 		return string(TeamRoleNone)
@@ -126,7 +126,7 @@ func formatTeamRole(value uint8) string {
 	}
 }
 
-func formatWalkStatus(value uint8) string {
+func FormatWalkStatus(value uint8) string {
 	switch value {
 	case 1:
 		return string(WalkStatusNotStarted)
@@ -147,7 +147,7 @@ func formatWalkStatus(value uint8) string {
 	}
 }
 
-func formatTeamStatus(value uint8) string {
+func FormatTeamStatus(value uint8) string {
 	switch value {
 	case 1:
 		return string(TeamStatusNotStarted)

@@ -9,7 +9,6 @@ var (
 	CodeUnknownError           = kit.NewCode(10000, "未知错误")
 	CodeThirdServiceError      = kit.NewCode(10001, "三方服务错误")
 	CodeDatabaseError          = kit.NewCode(10002, "数据库错误")
-	CodeRedisError             = kit.NewCode(10003, "Redis错误")
 	CodeMiddlewareServiceError = kit.NewCode(10004, "中间件服务错误")
 )
 
@@ -23,7 +22,6 @@ var (
 	CodeDataNotFound       = kit.NewCode(20005, "数据不存在")
 	CodeDataConflict       = kit.NewCode(20006, "数据冲突")
 	CodeServiceMaintenance = kit.NewCode(20007, "系统维护中")
-	CodeTooFrequently      = kit.NewCode(20008, "操作过于频繁/未获得锁")
 )
 
 // 业务错误码 从 30000 开始

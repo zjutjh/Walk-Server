@@ -73,14 +73,15 @@ func (f *FilterApi) Run(ctx *gin.Context) kit.Code {
 	key := strings.TrimSpace(f.Request.Query.Key)
 	searchType := strings.ToLower(strings.TrimSpace(f.Request.Query.SearchType))
 
+	// 参数校验
 	if campus == "" {
-		return comm.CodeParameterInvalid
+		return comm.CodeInsufficientParams
 	}
 	if key == "" && toPointName == "" {
-		return comm.CodeParameterInvalid
+		return comm.CodeInsufficientParams
 	}
 	if toPointName == "" && prevPointName != "" {
-		return comm.CodeParameterInvalid
+		return comm.CodeInsufficientParams
 	}
 
 	if key != "" {
@@ -100,6 +101,7 @@ func (f *FilterApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeParameterInvalid
 	}
 
+	
 	limit := f.Request.Query.Limit
 	if limit <= 0 {
 		limit = 20

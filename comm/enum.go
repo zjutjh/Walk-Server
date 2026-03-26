@@ -1,24 +1,30 @@
 package comm
 
+// 人员活动状态枚举
 const (
-	WalkStatusNotStart  = "notStart"
-	WalkStatusPending   = "pending"
-	WalkStatusAbandoned = "abandoned"
-	WalkStatusViolated  = "violated"
-	WalkStatusCompleted = "completed"
+	WalkStatusNotStart   = "notStart"
+	WalkStatusPending    = "pending"
+	WalkStatusAbandoned  = "abandoned"
+	WalkStatusInProgress = "inProgress"
+	WalkStatusWithdrawn  = "withdrawn"
+	WalkStatusViolated   = "violated"
+	WalkStatusCompleted  = "completed"
 )
 
+// role枚举
 const (
 	RoleUnbind  = "unbind"
 	RoleCaptain = "captain"
 	RoleMember  = "member"
 )
 
+// codeType枚举
 const (
 	CodeChekin = "checkin"
 	CodeTeam   = "team"
 )
 
+// admin_permission枚举
 const (
 	AdminPermissionSuper    = "super"
 	AdminPermissionManager  = "manager"
@@ -26,10 +32,12 @@ const (
 	AdminPermissionExternal = "external"
 )
 
+// TeamStatus枚举
 const (
-	TeamStatusNotStart  = "notStart"
-	TeamStatusCompleted = "completed"
-	TeamStatusWithDrawn = "withDrawn"
+	TeamStatusNotStart   = "notStart"
+	TeamStatusInProgress = "inProgress"
+	TeamStatusCompleted  = "completed"
+	TeamStatusWithDrawn  = "withDrawn"
 )
 
 type Gender string
@@ -61,27 +69,6 @@ const (
 	TeamRoleNone    TeamRole = "none"
 	TeamRoleMember  TeamRole = "member"
 	TeamRoleCaptain TeamRole = "captain"
-)
-
-type WalkStatus string
-
-const (
-	WalkStatusNotStarted WalkStatus = "not_started"
-	WalkStatusReady      WalkStatus = "ready"
-	WalkStatusInProgress WalkStatus = "in_progress"
-	WalkStatusQuit       WalkStatus = "quit"
-	WalkStatusWithdrawn  WalkStatus = "withdrawn"
-	WalkStatusViolation  WalkStatus = "violation"
-	WalkStatusFinished   WalkStatus = "finished"
-)
-
-type TeamStatus string
-
-const (
-	TeamStatusNotStarted TeamStatus = "not_started"
-	TeamStatusInProgress TeamStatus = "in_progress"
-	TeamStatusFinished   TeamStatus = "finished"
-	TeamStatusWithdrawn  TeamStatus = "withdrawn"
 )
 
 func ParseGender(raw string) (int8, bool) {
@@ -161,19 +148,19 @@ func FormatTeamRole(value uint8) string {
 func FormatWalkStatus(value uint8) string {
 	switch value {
 	case 1:
-		return string(WalkStatusNotStarted)
+		return WalkStatusNotStart
 	case 2:
-		return string(WalkStatusReady)
+		return WalkStatusPending
 	case 3:
-		return string(WalkStatusInProgress)
+		return WalkStatusInProgress
 	case 4:
-		return string(WalkStatusQuit)
+		return WalkStatusAbandoned
 	case 5:
-		return string(WalkStatusWithdrawn)
+		return WalkStatusWithdrawn
 	case 6:
-		return string(WalkStatusViolation)
+		return WalkStatusViolated
 	case 7:
-		return string(WalkStatusFinished)
+		return WalkStatusCompleted
 	default:
 		return ""
 	}
@@ -182,13 +169,13 @@ func FormatWalkStatus(value uint8) string {
 func FormatTeamStatus(value uint8) string {
 	switch value {
 	case 1:
-		return string(TeamStatusNotStarted)
+		return TeamStatusNotStart
 	case 2:
-		return string(TeamStatusInProgress)
+		return TeamStatusInProgress
 	case 3:
-		return string(TeamStatusFinished)
+		return TeamStatusCompleted
 	case 4:
-		return string(TeamStatusWithdrawn)
+		return TeamStatusWithDrawn
 	default:
 		return ""
 	}

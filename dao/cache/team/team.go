@@ -2,6 +2,7 @@ package teamcache
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -9,18 +10,21 @@ import (
 	"github.com/zjutjh/mygo/nedis"
 )
 
-const teamCacheTTL = time.Hour
+const (
+	teamIDByCodeCacheKeyPrefix = "walk:team_id_by_code"
+	teamCacheTTL               = time.Hour
+)
 
 func client() redis.UniversalClient {
 	return nedis.Pick("redis")
 }
 
-func teamIDByCodeKey(code string) string {
-	return "walk:team_id_by_code:" + code
+func BuildTeamIDByCodeCacheKey(code string) string {
+	return fmt.Sprintf("%s:%s", teamIDByCodeCacheKeyPrefix, code)
 }
 
 func GetTeamIDByCode(ctx context.Context, code string) (int64, bool, error) {
-	value, err := client().Get(ctx, teamIDByCodeKey(code)).Result()
+	value, err := client().Get(ctx, BuildTeamIDByCodeCacheKey(code)).Result()
 	if err == redis.Nil {
 		return 0, false, nil
 	}
@@ -36,5 +40,5 @@ func GetTeamIDByCode(ctx context.Context, code string) (int64, bool, error) {
 }
 
 func SetTeamIDByCode(ctx context.Context, code string, teamID int64) error {
-	return client().Set(ctx, teamIDByCodeKey(code), strconv.FormatInt(teamID, 10), teamCacheTTL).Err()
+	return client().Set(ctx, BuildTeamIDByCodeCacheKey(code), strconv.FormatInt(teamID, 10), teamCacheTTL).Err()
 }

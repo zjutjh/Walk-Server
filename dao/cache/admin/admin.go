@@ -3,7 +3,7 @@ package admincache
 import (
 	"context"
 	"encoding/json"
-	"strconv"
+	"fmt"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -12,18 +12,21 @@ import (
 	"app/dao/model"
 )
 
-const adminCacheTTL = time.Hour
+const (
+	adminCacheKeyPrefix = "walk:admin"
+	adminCacheTTL       = time.Hour
+)
 
 func client() redis.UniversalClient {
 	return nedis.Pick("redis")
 }
 
-func adminKey(adminID int64) string {
-	return "walk:admin:" + strconv.FormatInt(adminID, 10)
+func BuildAdminCacheKey(adminID int64) string {
+	return fmt.Sprintf("%s:%d", adminCacheKeyPrefix, adminID)
 }
 
 func GetAdmin(ctx context.Context, adminID int64) (*model.Admin, bool, error) {
-	value, err := client().Get(ctx, adminKey(adminID)).Result()
+	value, err := client().Get(ctx, BuildAdminCacheKey(adminID)).Result()
 	if err == redis.Nil {
 		return nil, false, nil
 	}
@@ -47,5 +50,5 @@ func SetAdmin(ctx context.Context, admin *model.Admin) error {
 	if err != nil {
 		return err
 	}
-	return client().Set(ctx, adminKey(admin.ID), payload, adminCacheTTL).Err()
+	return client().Set(ctx, BuildAdminCacheKey(admin.ID), payload, adminCacheTTL).Err()
 }

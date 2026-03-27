@@ -40,39 +40,31 @@ const (
 	TeamStatusWithDrawn  = "withDrawn"
 )
 
-type Gender string
-
 const (
-	GenderMale   Gender = "male"
-	GenderFemale Gender = "female"
+	GenderMale   = "male"
+	GenderFemale = "female"
 )
 
-type Campus string
-
 const (
-	CampusChaohui   Campus = "chaohui"
-	CampusPingfeng  Campus = "pingfeng"
-	CampusMoganshan Campus = "moganshan"
+	CampusChaohui   = "zh"
+	CampusPingfeng  = "pf"
+	CampusMoganshan = "mgs"
 )
 
-type MemberType string
-
 const (
-	MemberTypeStudent MemberType = "student"
-	MemberTypeTeacher MemberType = "teacher"
-	MemberTypeAlumnus MemberType = "alumnus"
+	MemberTypeStudent = "student"
+	MemberTypeTeacher = "teacher"
+	MemberTypeAlumnus = "alumnus"
 )
 
-type TeamRole string
-
 const (
-	TeamRoleNone    TeamRole = "none"
-	TeamRoleMember  TeamRole = "member"
-	TeamRoleCaptain TeamRole = "captain"
+	TeamRoleNone    = "none"
+	TeamRoleMember  = "member"
+	TeamRoleCaptain = "captain"
 )
 
 func ParseGender(raw string) (int8, bool) {
-	switch Gender(raw) {
+	switch raw {
 	case GenderMale:
 		return 1, true
 	case GenderFemale:
@@ -82,85 +74,25 @@ func ParseGender(raw string) (int8, bool) {
 	}
 }
 
-func ParseCampus(raw string) (uint8, bool) {
-	switch Campus(raw) {
+func ParseCampus(raw string) (string, bool) {
+	switch raw {
 	case CampusChaohui:
-		return 1, true
+		return CampusChaohui, true
 	case CampusPingfeng:
-		return 2, true
+		return CampusPingfeng, true
 	case CampusMoganshan:
-		return 3, true
+		return CampusMoganshan, true
 	default:
-		return 0, false
+		return "", false
 	}
 }
 
 func FormatGender(value int8) string {
 	switch value {
 	case 1:
-		return string(GenderMale)
+		return GenderMale
 	case 2:
-		return string(GenderFemale)
-	default:
-		return ""
-	}
-}
-
-func FormatCampus(value uint8) string {
-	switch value {
-	case 1:
-		return string(CampusChaohui)
-	case 2:
-		return string(CampusPingfeng)
-	case 3:
-		return string(CampusMoganshan)
-	default:
-		return ""
-	}
-}
-
-func FormatMemberType(value uint8) string {
-	switch value {
-	case 1:
-		return string(MemberTypeStudent)
-	case 2:
-		return string(MemberTypeTeacher)
-	case 3:
-		return string(MemberTypeAlumnus)
-	default:
-		return ""
-	}
-}
-
-func FormatTeamRole(value uint8) string {
-	switch value {
-	case 0:
-		return string(TeamRoleNone)
-	case 1:
-		return string(TeamRoleMember)
-	case 2:
-		return string(TeamRoleCaptain)
-	default:
-		return ""
-	}
-}
-
-func FormatWalkStatus(value uint8) string {
-	switch value {
-	case 1:
-		return WalkStatusNotStart
-	case 2:
-		return WalkStatusPending
-	case 3:
-		return WalkStatusInProgress
-	case 4:
-		return WalkStatusAbandoned
-	case 5:
-		return WalkStatusWithdrawn
-	case 6:
-		return WalkStatusViolated
-	case 7:
-		return WalkStatusCompleted
+		return GenderFemale
 	default:
 		return ""
 	}

@@ -42,7 +42,7 @@ type WechatLoginApiResponse struct {
 	HasRegister bool   `json:"has_register" desc:"是否已完成报名"`
 }
 
-func (h *WechatLoginApi) Init(ctx *gin.Context) (err error) {
+func (h *WechatLoginApi) Init(ctx *gin.Context) error {
 	return ctx.ShouldBindQuery(&h.Request)
 }
 

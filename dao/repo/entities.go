@@ -8,9 +8,9 @@ type Person struct {
 	Name       string    `gorm:"column:name"`
 	Gender     int8      `gorm:"column:gender"`
 	StuID      string    `gorm:"column:stu_id"`
-	Campus     uint8     `gorm:"column:campus"`
+	Campus     string    `gorm:"column:campus"`
 	Identity   string    `gorm:"column:identity"`
-	Role       uint8     `gorm:"column:role"`
+	Role       string    `gorm:"column:role"`
 	QQ         string    `gorm:"column:qq"`
 	Wechat     string    `gorm:"column:wechat"`
 	College    string    `gorm:"column:college"`
@@ -18,34 +18,35 @@ type Person struct {
 	CreatedOp  uint8     `gorm:"column:created_op"`
 	JoinOp     uint8     `gorm:"column:join_op"`
 	TeamID     int64     `gorm:"column:team_id"`
-	Type       uint8     `gorm:"column:type"`
-	WalkStatus uint8     `gorm:"column:walk_status"`
+	Type       string    `gorm:"column:type"`
+	WalkStatus string    `gorm:"column:walk_status"`
 	CreatedAt  time.Time `gorm:"column:created_at"`
 	UpdatedAt  time.Time `gorm:"column:updated_at"`
 }
 
 func (Person) TableName() string {
-	return "people"
+	return "peoples"
 }
 
 type Team struct {
-	ID         int64      `gorm:"column:id;primaryKey"`
-	Name       string     `gorm:"column:name"`
-	Num        uint8      `gorm:"column:num"`
-	Password   string     `gorm:"column:password"`
-	Slogan     string     `gorm:"column:slogan"`
-	AllowMatch bool       `gorm:"column:allow_match"`
-	Captain    string     `gorm:"column:captain"`
-	RouteID    int64      `gorm:"column:route_id"`
-	PointID    int8       `gorm:"column:point_id"`
-	StartNum   uint32     `gorm:"column:start_num"`
-	Submit     bool       `gorm:"column:submit"`
-	Status     uint8      `gorm:"column:status"`
-	Code       string     `gorm:"column:code"`
-	Time       *time.Time `gorm:"column:time"`
-	IsLost     bool       `gorm:"column:is_lost"`
-	CreatedAt  time.Time  `gorm:"column:created_at"`
-	UpdatedAt  time.Time  `gorm:"column:updated_at"`
+	ID            int64      `gorm:"column:id;primaryKey"`
+	Name          string     `gorm:"column:name"`
+	Num           uint8      `gorm:"column:num"`
+	Password      string     `gorm:"column:password"`
+	Slogan        string     `gorm:"column:slogan"`
+	AllowMatch    bool       `gorm:"column:allow_match"`
+	Captain       string     `gorm:"column:captain"`
+	RouteName     string     `gorm:"column:route_name"`
+	PrevPointName string     `gorm:"column:prev_point_name"`
+	Submit        bool       `gorm:"column:submit"`
+	Status        string     `gorm:"column:status"`
+	IsWrongRoute  bool       `gorm:"column:is_wrong_route"`
+	IsReunite     bool       `gorm:"column:is_reunite"`
+	Code          string     `gorm:"column:code"`
+	Time          *time.Time `gorm:"column:time"`
+	IsLost        bool       `gorm:"column:is_lost"`
+	CreatedAt     time.Time  `gorm:"column:created_at"`
+	UpdatedAt     time.Time  `gorm:"column:updated_at"`
 }
 
 func (Team) TableName() string {

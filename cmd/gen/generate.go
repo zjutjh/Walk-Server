@@ -13,8 +13,7 @@ import (
 )
 
 var tables = []string{
-	"user",
-	"people",
+	"peoples",
 	"teams",
 	"points",
 	"routes",
@@ -49,7 +48,7 @@ func main() {
 	g.WithDataTypeMap(m)
 
 	for _, table := range tables {
-		tableName := g.GenerateModel(table)
+		tableName := g.GenerateModel(table, gen.FieldJSONTag("deleted_at", "-"))
 		g.ApplyBasic(tableName)
 	}
 

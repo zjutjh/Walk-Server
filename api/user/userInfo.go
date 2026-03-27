@@ -36,9 +36,9 @@ type UserInfoPerson struct {
 	Name       string `json:"name"`
 	Gender     string `json:"gender" desc:"字符串枚举: male|female"`
 	StuID      string `json:"stu_id"`
-	Campus     string `json:"campus" desc:"字符串枚举: chaohui|pingfeng|moganshan"`
+	Campus     string `json:"campus" desc:"字符串枚举: zh|pf|mgs"`
 	Identity   string `json:"identity"`
-	TeamRole   string `json:"team_role" desc:"字符串枚举: none|member|captain"`
+	TeamRole   string `json:"team_role" desc:"字符串枚举: unbind|member|captain"`
 	QQ         string `json:"qq"`
 	Wechat     string `json:"wechat"`
 	College    string `json:"college"`
@@ -47,21 +47,21 @@ type UserInfoPerson struct {
 	JoinOp     uint8  `json:"join_op"`
 	TeamID     int64  `json:"team_id"`
 	MemberType string `json:"member_type" desc:"字符串枚举: student|teacher|alumnus"`
-	WalkStatus string `json:"walk_status" desc:"字符串枚举: not_started|ready|in_progress|quit|withdrawn|violation|finished"`
+	WalkStatus string `json:"walk_status" desc:"字符串枚举: notStart|pending|abandoned|inProgress|withdrawn|violated|completed"`
 }
 
 type UserInfoTeam struct {
-	ID         int64  `json:"id"`
-	Name       string `json:"name"`
-	Num        uint8  `json:"num"`
-	Slogan     string `json:"slogan"`
-	AllowMatch bool   `json:"allow_match"`
-	Captain    string `json:"captain"`
-	RouteID    int64  `json:"route_id"`
-	PointID    int8   `json:"point_id"`
-	Submit     bool   `json:"submit"`
-	Status     string `json:"status" desc:"字符串枚举: not_started|in_progress|finished|withdrawn"`
-	IsLost     bool   `json:"is_lost"`
+	ID            int64  `json:"id"`
+	Name          string `json:"name"`
+	Num           uint8  `json:"num"`
+	Slogan        string `json:"slogan"`
+	AllowMatch    bool   `json:"allow_match"`
+	Captain       string `json:"captain"`
+	RouteName     string `json:"route_name"`
+	PrevPointName string `json:"prev_point_name"`
+	Submit        bool   `json:"submit"`
+	Status        string `json:"status" desc:"字符串枚举: notStart|inProgress|completed|withDrawn"`
+	IsLost        bool   `json:"is_lost"`
 }
 
 func (h *UserInfoApi) Init(ctx *gin.Context) (err error) {
@@ -106,9 +106,9 @@ func toUserInfoPerson(person *repo.Person) *UserInfoPerson {
 		Name:       person.Name,
 		Gender:     comm.FormatGender(person.Gender),
 		StuID:      person.StuID,
-		Campus:     comm.FormatCampus(person.Campus),
+		Campus:     person.Campus,
 		Identity:   person.Identity,
-		TeamRole:   comm.FormatTeamRole(person.Role),
+		TeamRole:   person.Role,
 		QQ:         person.QQ,
 		Wechat:     person.Wechat,
 		College:    person.College,
@@ -116,8 +116,8 @@ func toUserInfoPerson(person *repo.Person) *UserInfoPerson {
 		CreatedOp:  person.CreatedOp,
 		JoinOp:     person.JoinOp,
 		TeamID:     person.TeamID,
-		MemberType: comm.FormatMemberType(person.Type),
-		WalkStatus: comm.FormatWalkStatus(person.WalkStatus),
+		MemberType: person.Type,
+		WalkStatus: person.WalkStatus,
 	}
 }
 
@@ -126,17 +126,17 @@ func toUserInfoTeam(team *repo.Team) *UserInfoTeam {
 		return nil
 	}
 	return &UserInfoTeam{
-		ID:         team.ID,
-		Name:       team.Name,
-		Num:        team.Num,
-		Slogan:     team.Slogan,
-		AllowMatch: team.AllowMatch,
-		Captain:    team.Captain,
-		RouteID:    team.RouteID,
-		PointID:    team.PointID,
-		Submit:     team.Submit,
-		Status:     comm.FormatTeamStatus(team.Status),
-		IsLost:     team.IsLost,
+		ID:            team.ID,
+		Name:          team.Name,
+		Num:           team.Num,
+		Slogan:        team.Slogan,
+		AllowMatch:    team.AllowMatch,
+		Captain:       team.Captain,
+		RouteName:     team.RouteName,
+		PrevPointName: team.PrevPointName,
+		Submit:        team.Submit,
+		Status:        team.Status,
+		IsLost:        team.IsLost,
 	}
 }
 

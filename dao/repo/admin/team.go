@@ -85,7 +85,7 @@ func (r *TeamRepo) createRegroupTeam(ctx context.Context, tx *query.Query, membe
 		PrevPointName: "",
 		Status:        comm.TeamStatusNotStart,
 		IsWrongRoute:  0,
-		IDReunite:     1,
+		IsReunite:     1,
 		Code:          "",
 		IsLost:        0,
 	}

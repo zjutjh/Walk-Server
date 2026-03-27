@@ -179,7 +179,7 @@ func (u *UpdateTeamApi) handleStartPointCheckin(ctx *gin.Context, team *model.Te
 func (u *UpdateTeamApi) handleRoutePointCheckin(ctx *gin.Context, team *model.Team, pointName string, routeEdge *model.RouteEdge) (*routePointCheckinResult, error) {
 	teamRepo := repo.NewTeamRepo()
 
-	if team.Status != string(comm.TeamStatusInProgress) {
+	if team.Status != comm.TeamStatusInProgress {
 		return &routePointCheckinResult{code: &comm.CodeTeamCheckinClosed}, nil
 	}
 

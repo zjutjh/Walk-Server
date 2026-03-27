@@ -49,35 +49,3 @@ func AdminTeamsKey() string {
 func AdminUserStatusKey(userID int64) string {
 	return fmt.Sprintf("walk:admin:user:status:%d", userID)
 }
-
-func DashboardStatsRouteAllKey() string {
-	return "walk:dashboard:stats:route:all"
-}
-
-func DashboardStatsRouteDetailKey(campus, routeName string) string {
-	return fmt.Sprintf("walk:dashboard:stats:route:detail:%s:%s", campus, routeName)
-}
-
-func DashboardOverviewKey(campus string) string {
-	return fmt.Sprintf("walk:dashboard:overview:%s", campus)
-}
-
-func DashboardCheckpointKey(campus, pointName string) string {
-	return fmt.Sprintf("walk:dashboard:checkpoint:%s:%s", campus, pointName)
-}
-
-func DashboardSegmentKey(campus, prevPoint, toPoint string) string {
-	return fmt.Sprintf("walk:dashboard:segment:%s:%s:%s", campus, prevPoint, toPoint)
-}
-
-func DashboardTeamsInfoKey(teamID int64) string {
-	return fmt.Sprintf("walk:dashboard:teams:info:%d", teamID)
-}
-
-func DashboardTeamsFilterKey(campus, queryHash string) string {
-	return fmt.Sprintf("walk:dashboard:teams:filter:%s:%s", campus, queryHash)
-}
-
-func DashboardTeamsLockKey(teamID int64) string {
-	return fmt.Sprintf("walk:dashboard:teams:lock:%d", teamID)
-}

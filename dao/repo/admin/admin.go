@@ -3,8 +3,12 @@ package repo
 import (
 	"context"
 	"errors"
+	"app/comm"
 
 	"github.com/zjutjh/mygo/ndb"
+	"github.com/zjutjh/mygo/session"
+	"github.com/zjutjh/mygo/foundation/reply"
+	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
 	adminCache "app/dao/cache/admin"
@@ -56,4 +60,44 @@ func (r *AdminRepo) FindByAccount(ctx context.Context, account string) (*model.A
 // Create 创建管理员
 func (r *AdminRepo) Create(ctx context.Context, admin *model.Admin) error {
 	return r.query.Admin.WithContext(ctx).Create(admin)
+}
+
+
+// 从session反查id
+func GetAdminID(ctx *gin.Context) (int64, bool) {
+	// if !hasSessionCookie(ctx) {
+	// 	reply.Fail(ctx, comm.CodeNotLoggedIn)
+	// 	return 0, false
+	// }
+	adminID, err := session.GetIdentity[int64](ctx)
+	//fmt.Println("middleware get adminID:", adminID)
+	//fmt.Println("err:", err)
+
+	if err != nil {
+		reply.Fail(ctx, comm.CodeNotLoggedIn)
+		return 0, false
+	}
+	return adminID, true
+}
+
+// GetAdmin 获取当前登录的管理员信息
+func GetAdminInfo(ctx *gin.Context) (*model.Admin, bool) {
+	adminID, ok := GetAdminID(ctx)
+	if !ok {
+		return nil, false
+	}
+
+	adminRepo := NewAdminRepo()
+
+	admin, err := adminRepo.FindByID(ctx, adminID)
+	if err != nil {
+		reply.Fail(ctx, comm.CodeUnknownError)
+		return nil, false
+	}
+	if admin == nil {
+		reply.Fail(ctx, comm.CodeNotLoggedIn)
+		return nil, false
+	}
+
+	return admin, true
 }

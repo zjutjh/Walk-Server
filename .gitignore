@@ -32,7 +32,7 @@ go.work.sum
 .vscode/
 
 # config file
-/config/config.yaml
+/conf/config.yaml
 
 # log
 /logs

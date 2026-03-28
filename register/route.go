@@ -52,7 +52,13 @@ func Route(router *gin.Engine) {
 			}
 		}
 
+<<<<<<< HEAD
 		dashboardGroup := r.Group("/dashboard", midsession.Auth[int64](true))
+=======
+		// 注册业务逻辑接口
+		dashboardGroup := r.Group("/dashboard", midsession.Auth[int64](true)) // go强类型断言，int不通过
+		user := r.Group("/user")
+>>>>>>> origin/dev
 		{
 			dashboardGroup.GET("/overview", middleware.NeedPerm("internal"), dashboard.OverviewHandler())
 			dashboardGroup.GET("/checkpoint", middleware.NeedPerm("internal"), dashboard.CheckpointHandler())
@@ -104,3 +110,27 @@ func routeBase(r *gin.RouterGroup, router *gin.Engine) {
 		r.GET("/swagger.json", swagger.DocumentHandler(router))
 	}
 }
+<<<<<<< HEAD
+=======
+
+func routeTest(r *gin.RouterGroup, router *gin.Engine) {
+	// 测试接口，不要鉴权
+	dashboardGroup := r.Group("/dashboard")
+	{
+		dashboardGroup.GET("/overview", dashboard.OverviewHandler())
+		dashboardGroup.GET("/checkpoint", dashboard.CheckpointHandler())
+		dashboardGroup.GET("/segment", dashboard.SegmentHandler())
+		dashboardGroup.GET("/permission", dashboard.PermissionHandler())
+
+		teamGroup := dashboardGroup.Group("/teams")
+		{
+			teamGroup.GET("", teams.TeamHandler())
+			teamGroup.POST("/lost", teams.LostHandler())
+			teamGroup.GET("/filter", teams.FilterHandler())
+		}
+
+		dashboardGroup.GET("/stats/route/all", stats.AllHandler())
+		dashboardGroup.GET("/stats/route", stats.RouteHandler())
+	}
+}
+>>>>>>> origin/dev

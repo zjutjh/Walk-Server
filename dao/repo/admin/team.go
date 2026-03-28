@@ -1,11 +1,12 @@
 package repo
 
 import (
-	routecache "app/dao/cache/route"
-	teamcache "app/dao/cache/team"
+	routeCache "app/dao/cache/route"
+	teamCache "app/dao/cache/team"
 	"context"
 	"errors"
 	"slices"
+	"time"
 
 	"github.com/zjutjh/mygo/ndb"
 	"gorm.io/gorm"
@@ -37,13 +38,13 @@ func (r *TeamRepo) FindTeamByID(ctx context.Context, id int64) (*model.Team, err
 		return nil, err
 	}
 	if record.Code != "" {
-		_ = teamcache.SetTeamIDByCode(ctx, record.Code, record.ID)
+		_ = teamCache.SetTeamIDByCode(ctx, record.Code, record.ID)
 	}
 	return record, nil
 }
 
 func (r *TeamRepo) FindByCode(ctx context.Context, code string) (*model.Team, error) {
-	if teamID, hit, err := teamcache.GetTeamIDByCode(ctx, code); err == nil && hit {
+	if teamID, hit, err := teamCache.GetTeamIDByCode(ctx, code); err == nil && hit {
 		return r.FindTeamByID(ctx, teamID)
 	}
 
@@ -55,7 +56,7 @@ func (r *TeamRepo) FindByCode(ctx context.Context, code string) (*model.Team, er
 	if err != nil {
 		return nil, err
 	}
-	_ = teamcache.SetTeamIDByCode(ctx, record.Code, record.ID)
+	_ = teamCache.SetTeamIDByCode(ctx, record.Code, record.ID)
 	return record, nil
 }
 
@@ -71,7 +72,7 @@ func (r *TeamRepo) findTeamByID(ctx context.Context, tx *query.Query, id int64) 
 	return record, nil
 }
 
-func (r *TeamRepo) createRegroupTeam(ctx context.Context, tx *query.Query, memberCount int, routeName string) (*model.Team, error) {
+func (r *TeamRepo) createRegroupTeam(ctx context.Context, tx *query.Query, memberCount int, routeName string, captainOpenID string) (*model.Team, error) {
 	t := tx.Team
 	team := &model.Team{
 		Name:          "",
@@ -79,7 +80,7 @@ func (r *TeamRepo) createRegroupTeam(ctx context.Context, tx *query.Query, membe
 		Password:      "",
 		Slogan:        "",
 		AllowMatch:    0,
-		Captain:       "",
+		Captain:       captainOpenID,
 		Submit:        1,
 		RouteName:     routeName,
 		PrevPointName: "",
@@ -87,6 +88,7 @@ func (r *TeamRepo) createRegroupTeam(ctx context.Context, tx *query.Query, membe
 		IsWrongRoute:  0,
 		IsReunite:     1,
 		Code:          "",
+		Time:          time.Now(),
 		IsLost:        0,
 	}
 	if err := t.WithContext(ctx).Create(team); err != nil {
@@ -114,6 +116,14 @@ func (r *TeamRepo) updateTeamCaptain(ctx context.Context, tx *query.Query, teamI
 	return err
 }
 
+func (r *TeamRepo) updateTeamNum(ctx context.Context, tx *query.Query, teamID int64, memberCount int64) error {
+	t := tx.Team
+	_, err := t.WithContext(ctx).
+		Where(t.ID.Eq(teamID)).
+		Update(t.Num, int8(memberCount))
+	return err
+}
+
 func (r *TeamRepo) bindCode(ctx context.Context, tx *query.Query, teamID int64, content string) error {
 	t := tx.Team
 	_, err := t.WithContext(ctx).
@@ -130,6 +140,17 @@ func (r *TeamRepo) updateTeamStatus(ctx context.Context, tx *query.Query, teamID
 	return err
 }
 
+func (r *TeamRepo) CreateCheckin(ctx context.Context, adminID, teamID int64, pointName, routeName string) error {
+	checkin := &model.Checkin{
+		AdminID:   adminID,
+		TeamID:    teamID,
+		PointName: pointName,
+		RouteName: routeName,
+		Time:      time.Now(),
+	}
+	return r.query.Checkin.WithContext(ctx).Create(checkin)
+}
+
 func (r *TeamRepo) UpdateTeamWrongRoute(ctx context.Context, teamID int64, isWrongRoute int8) error {
 	return r.query.Transaction(func(tx *query.Query) error {
 		t := tx.Team
@@ -138,6 +159,16 @@ func (r *TeamRepo) UpdateTeamWrongRoute(ctx context.Context, teamID int64, isWro
 			Update(t.IsWrongRoute, isWrongRoute)
 		return err
 	})
+}
+
+func (r *TeamRepo) CreateWrongRouteRecord(ctx context.Context, teamID int64, routeName, wrongRouteName string, adminID int64) error {
+	record := &model.WrongRouteRecord{
+		TeamID:         teamID,
+		RouteName:      routeName,
+		WrongRouteName: wrongRouteName,
+		AdminID:        adminID,
+	}
+	return r.query.WrongRouteRecord.WithContext(ctx).Create(record)
 }
 
 func (r *TeamRepo) ClearLostStatus(ctx context.Context, teamID int64) error {
@@ -154,7 +185,7 @@ func (r *TeamRepo) ClearLostStatus(ctx context.Context, teamID int64) error {
 }
 
 func (r *TeamRepo) FindRouteByName(ctx context.Context, routeName string) (*model.Route, error) {
-	if route, hit, err := routecache.GetRoute(ctx, routeName); err == nil && hit {
+	if route, hit, err := routeCache.GetRoute(ctx, routeName); err == nil && hit {
 		return route, nil
 	}
 
@@ -166,12 +197,12 @@ func (r *TeamRepo) FindRouteByName(ctx context.Context, routeName string) (*mode
 	if err != nil {
 		return nil, err
 	}
-	_ = routecache.SetRoute(ctx, record)
+	_ = routeCache.SetRoute(ctx, record)
 	return record, nil
 }
 
 func (r *TeamRepo) FindRouteEdge(ctx context.Context, routeName, pointName string) (*model.RouteEdge, error) {
-	if routeEdge, hit, err := routecache.GetRouteEdge(ctx, routeName, pointName); err == nil && hit {
+	if routeEdge, hit, err := routeCache.GetRouteEdge(ctx, routeName, pointName); err == nil && hit {
 		return routeEdge, nil
 	}
 
@@ -188,12 +219,12 @@ func (r *TeamRepo) FindRouteEdge(ctx context.Context, routeName, pointName strin
 	if err != nil {
 		return nil, err
 	}
-	_ = routecache.SetRouteEdge(ctx, record)
+	_ = routeCache.SetRouteEdge(ctx, record)
 	return record, nil
 }
 
 func (r *TeamRepo) FindPointRoutes(ctx context.Context, pointName string) ([]string, error) {
-	if routeNames, hit, err := routecache.GetPointRoutes(ctx, pointName); err == nil && hit {
+	if routeNames, hit, err := routeCache.GetPointRoutes(ctx, pointName); err == nil && hit {
 		return routeNames, nil
 	}
 
@@ -205,7 +236,7 @@ func (r *TeamRepo) FindPointRoutes(ctx context.Context, pointName string) ([]str
 	if err != nil {
 		return nil, err
 	}
-	_ = routecache.SetPointRoutes(ctx, pointName, routeNames)
+	_ = routeCache.SetPointRoutes(ctx, pointName, routeNames)
 	return routeNames, nil
 }
 
@@ -245,7 +276,7 @@ func (r *TeamRepo) BindCodeAndStartPendingMembers(ctx context.Context, teamID in
 		if err := r.bindCode(ctx, tx, teamID, content); err != nil {
 			return err
 		}
-		if err := peopleRepo.startPendingMembers(ctx, tx, teamID); err != nil {
+		if err := peopleRepo.updateMembersWalkStatusByCurrent(ctx, tx, teamID, comm.WalkStatusPending, comm.WalkStatusInProgress); err != nil {
 			return err
 		}
 		inProgressCount, err := peopleRepo.countInProgressMembers(ctx, tx, teamID)
@@ -263,7 +294,7 @@ func (r *TeamRepo) BindCodeAndStartPendingMembers(ctx context.Context, teamID in
 	if err != nil {
 		return err
 	}
-	_ = teamcache.SetTeamIDByCode(ctx, content, teamID)
+	_ = teamCache.SetTeamIDByCode(ctx, content, teamID)
 	return nil
 }
 
@@ -272,7 +303,7 @@ func (r *TeamRepo) ConfirmDestination(ctx context.Context, teamID int64) error {
 	peopleRepo := NewPeopleRepo()
 
 	return r.query.Transaction(func(tx *query.Query) error {
-		if err := peopleRepo.completeAllMembers(ctx, tx, teamID); err != nil {
+		if err := peopleRepo.updateMembersWalkStatusByCurrent(ctx, tx, teamID, comm.WalkStatusInProgress, comm.WalkStatusCompleted); err != nil {
 			return err
 		}
 		return r.updateTeamStatus(ctx, tx, teamID, comm.TeamStatusCompleted)
@@ -287,7 +318,7 @@ func (r *TeamRepo) MarkViolation(ctx context.Context, teamID int64) error {
 		if err := r.updateTeamStatus(ctx, tx, teamID, comm.TeamStatusCompleted); err != nil {
 			return err
 		}
-		return peopleRepo.violateInProgressMembers(ctx, tx, teamID)
+		return peopleRepo.updateMembersWalkStatusByCurrent(ctx, tx, teamID, comm.WalkStatusInProgress, comm.WalkStatusViolated)
 	})
 }
 
@@ -302,6 +333,24 @@ func (r *TeamRepo) UpdateUserStatus(ctx context.Context, user *model.People, sta
 		team, err := r.findTeamByID(ctx, tx, user.TeamID)
 		if err != nil {
 			return err
+		}
+		if team == nil {
+			return gorm.ErrRecordNotFound
+		}
+
+		if team.Status == comm.TeamStatusNotStart {
+			memberCount, err := peopleRepo.countMembersByTeamID(ctx, tx, user.TeamID)
+			if err != nil {
+				return err
+			}
+			abandonedCount, err := peopleRepo.countMembersByStatus(ctx, tx, user.TeamID, comm.WalkStatusAbandoned)
+			if err != nil {
+				return err
+			}
+			if memberCount > 0 && memberCount == abandonedCount {
+				return r.updateTeamStatus(ctx, tx, user.TeamID, comm.TeamStatusCompleted)
+			}
+			return nil
 		}
 
 		inProgressCount, err := peopleRepo.countInProgressMembers(ctx, tx, user.TeamID)
@@ -327,7 +376,7 @@ func (r *TeamRepo) UpdateUserStatus(ctx context.Context, user *model.People, sta
 	})
 }
 
-// Regroup 创建新队伍，将成员原队伍状态改成 completed，并更新成员 team_id
+// Regroup 创建新队伍
 func (r *TeamRepo) Regroup(ctx context.Context, memberIDs []int64, routeName string) (int64, error) {
 	peopleRepo := NewPeopleRepo()
 
@@ -341,6 +390,16 @@ func (r *TeamRepo) Regroup(ctx context.Context, memberIDs []int64, routeName str
 			return gorm.ErrRecordNotFound
 		}
 
+		memberMap := make(map[int64]*model.People, len(members))
+		for _, member := range members {
+			memberMap[member.ID] = member
+		}
+
+		newCaptain, ok := memberMap[memberIDs[0]]
+		if !ok {
+			return gorm.ErrRecordNotFound
+		}
+
 		oldTeamIDs := make([]int64, 0, len(members))
 		for _, member := range members {
 			if member.TeamID > 0 {
@@ -350,7 +409,7 @@ func (r *TeamRepo) Regroup(ctx context.Context, memberIDs []int64, routeName str
 		slices.Sort(oldTeamIDs)
 		oldTeamIDs = slices.Compact(oldTeamIDs)
 
-		newTeam, err := r.createRegroupTeam(ctx, tx, len(memberIDs), routeName)
+		newTeam, err := r.createRegroupTeam(ctx, tx, len(memberIDs), routeName, newCaptain.OpenID)
 		if err != nil {
 			return err
 		}
@@ -361,16 +420,32 @@ func (r *TeamRepo) Regroup(ctx context.Context, memberIDs []int64, routeName str
 		if err := peopleRepo.updateRoleByUserIDs(ctx, tx, memberIDs, comm.RoleMember); err != nil {
 			return err
 		}
+		if err := peopleRepo.updateRoleByUserID(ctx, tx, newCaptain.ID, comm.RoleCaptain); err != nil {
+			return err
+		}
 
 		var deleteTeamIDs []int64
 		for _, oldTeamID := range oldTeamIDs {
-			remainingCount, err := peopleRepo.countInProgressMembers(ctx, tx, oldTeamID)
+			remainingCount, err := peopleRepo.countMembersByTeamID(ctx, tx, oldTeamID)
 			if err != nil {
 				return err
 			}
 			if remainingCount == 0 {
 				deleteTeamIDs = append(deleteTeamIDs, oldTeamID)
 				continue
+			}
+			if err := r.updateTeamNum(ctx, tx, oldTeamID, remainingCount); err != nil {
+				return err
+			}
+
+			inProgressCount, err := peopleRepo.countInProgressMembers(ctx, tx, oldTeamID)
+			if err != nil {
+				return err
+			}
+			if inProgressCount == 0 {
+				if err := r.updateTeamStatus(ctx, tx, oldTeamID, comm.TeamStatusCompleted); err != nil {
+					return err
+				}
 			}
 
 			remainingMembers, err := peopleRepo.findPeopleByTeamID(ctx, tx, oldTeamID)

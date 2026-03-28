@@ -1,3 +1,4 @@
+-- Active: 1773747872536@@127.0.0.1@3306@jh_db
 CREATE TABLE `admins` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `open_id` varchar(64) DEFAULT NULL COMMENT '微信OpenID',

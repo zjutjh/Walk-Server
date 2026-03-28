@@ -41,8 +41,10 @@ type RegroupApiResponse struct {
 
 // Run Api业务逻辑执行点
 func (r *RegroupApi) Run(ctx *gin.Context) kit.Code {
-	if len(r.Request.Body.Members) < 3 || len(r.Request.Body.Members) > 6 {
-		return comm.CodeParameterInvalid
+	if len(r.Request.Body.Members) < 3 {
+		return comm.CodeTeamMemberInsufficient
+	} else if len(r.Request.Body.Members) > 6 {
+		return comm.CodeTeamMemberExceeded
 	}
 
 	memberIDs := make([]int64, 0, len(r.Request.Body.Members))
@@ -57,7 +59,7 @@ func (r *RegroupApi) Run(ctx *gin.Context) kit.Code {
 			return comm.CodeDataNotFound
 		}
 		nlog.Pick().WithContext(ctx).WithError(err).Error("重组队伍失败")
-		return comm.CodeDatabaseError
+		return comm.CodeUnknownError
 	}
 
 	r.Response.TeamID = int(teamID)

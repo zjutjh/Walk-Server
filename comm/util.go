@@ -5,6 +5,7 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -20,8 +21,23 @@ type JwtClaims struct {
 	jwt.RegisteredClaims
 }
 
+func jwtSecret() (string, error) {
+	if BizConf == nil {
+		return "", errors.New("biz config is not initialized")
+	}
+	if strings.TrimSpace(BizConf.JWTSecret) == "" {
+		return "", errors.New("jwt secret is empty")
+	}
+	return BizConf.JWTSecret, nil
+}
+
 // GenerateToken 生成 JWT Token
 func GenerateToken(openID string) (string, error) {
+	secret, err := jwtSecret()
+	if err != nil {
+		return "", err
+	}
+
 	claims := &JwtClaims{
 		OpenID: openID,
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -32,16 +48,21 @@ func GenerateToken(openID string) (string, error) {
 		},
 	}
 	tokenClaims := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return tokenClaims.SignedString([]byte(BizConf.JWTSecret))
+	return tokenClaims.SignedString([]byte(secret))
 }
 
 // ParseToken 解析 JWT Token
 func ParseToken(tokenStr string) (*JwtClaims, error) {
+	secret, err := jwtSecret()
+	if err != nil {
+		return nil, err
+	}
+
 	tokenClaims, err := jwt.ParseWithClaims(tokenStr, &JwtClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if token.Method == nil || token.Method.Alg() != jwt.SigningMethodHS256.Alg() {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-		return []byte(BizConf.JWTSecret), nil
+		return []byte(secret), nil
 	})
 	if tokenClaims != nil {
 		if claims, ok := tokenClaims.Claims.(*JwtClaims); ok && tokenClaims.Valid {
@@ -109,6 +130,9 @@ func padKey(key string) string {
 
 // IsExpired 判断是否已过报名截止时间
 func IsExpired() bool {
+	if BizConf == nil {
+		return false
+	}
 	if BizConf.ExpiredDate == "" {
 		return false
 	}

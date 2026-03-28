@@ -89,7 +89,7 @@ func (r *PeopleRepo) countInProgressMembers(ctx context.Context, tx *query.Query
 	return p.WithContext(ctx).
 		Where(
 			p.TeamID.Eq(teamID),
-			p.WalkStatus.Eq(string(comm.WalkStatusInProgress)),
+			p.WalkStatus.Eq(comm.WalkStatusInProgress),
 		).
 		Count()
 }
@@ -146,7 +146,7 @@ func (r *PeopleRepo) startPendingMembers(ctx context.Context, tx *query.Query, t
 			p.TeamID.Eq(teamID),
 			p.WalkStatus.Eq(comm.WalkStatusPending),
 		).
-		Update(p.WalkStatus, string(comm.WalkStatusInProgress))
+		Update(p.WalkStatus, comm.WalkStatusInProgress)
 	return err
 }
 
@@ -174,7 +174,7 @@ func (r *PeopleRepo) violateInProgressMembers(ctx context.Context, tx *query.Que
 	_, err := p.WithContext(ctx).
 		Where(
 			p.TeamID.Eq(teamID),
-			p.WalkStatus.Eq(string(comm.WalkStatusInProgress)),
+			p.WalkStatus.Eq(comm.WalkStatusInProgress),
 		).
 		Update(p.WalkStatus, comm.WalkStatusViolated)
 	return err

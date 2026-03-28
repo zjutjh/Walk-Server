@@ -7,6 +7,7 @@ import (
 	"github.com/zjutjh/mygo/foundation/command"
 	"github.com/zjutjh/mygo/ndb"
 	"gorm.io/gen"
+	"gorm.io/gen/field"
 	"gorm.io/gorm"
 
 	"app/register"
@@ -48,7 +49,14 @@ func main() {
 	g.WithDataTypeMap(m)
 
 	for _, table := range tables {
-		tableName := g.GenerateModel(table, gen.FieldJSONTag("deleted_at", "-"))
+		tableName := g.GenerateModel(
+			table,
+			gen.FieldType("deleted_at", "soft_delete.DeletedAt"),
+			gen.FieldGORMTag("deleted_at", func(tag field.GormTag) field.GormTag {
+				return tag.Set("softDelete", "milli")
+			}),
+			gen.FieldJSONTag("deleted_at", "-"),
+		)
 		g.ApplyBasic(tableName)
 	}
 

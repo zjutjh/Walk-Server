@@ -253,7 +253,7 @@ func (r *TeamRepo) BindCodeAndStartPendingMembers(ctx context.Context, teamID in
 			return err
 		}
 		if inProgressCount > 0 {
-			err = r.updateTeamStatus(ctx, tx, teamID, string(comm.TeamStatusInProgress))
+			err = r.updateTeamStatus(ctx, tx, teamID, comm.TeamStatusInProgress)
 			if err != nil {
 				return err
 			}
@@ -309,13 +309,13 @@ func (r *TeamRepo) UpdateUserStatus(ctx context.Context, user *model.People, sta
 			return err
 		}
 		if inProgressCount > 0 {
-			if team.Status != string(comm.TeamStatusInProgress) {
-				return r.updateTeamStatus(ctx, tx, user.TeamID, string(comm.TeamStatusInProgress))
+			if team.Status != comm.TeamStatusInProgress {
+				return r.updateTeamStatus(ctx, tx, user.TeamID, comm.TeamStatusInProgress)
 			}
 			return nil
 		}
 
-		if status != string(comm.WalkStatusWithdrawn) {
+		if status != comm.WalkStatusWithdrawn {
 			return r.updateTeamStatus(ctx, tx, user.TeamID, comm.TeamStatusCompleted)
 		}
 

@@ -16,7 +16,7 @@ import (
 	"github.com/zjutjh/mygo/swagger"
 
 	"app/comm"
-	cachedao "app/dao/cache/dashboard"
+	teamCache "app/dao/cache/team"
 	repodao "app/dao/repo/dashboard"
 )
 
@@ -125,11 +125,10 @@ func (f *FilterApi) Run(ctx *gin.Context) kit.Code {
 		Offset:        cursor,
 	}
 
-	dashboardCache := cachedao.NewDashboardCache()
 	queryHash := buildFilterQueryHash(filterQuery)
 
 	// 先走缓存，命中则直接返回。
-	cached, found, err := dashboardCache.GetTeamFilter(ctx, campus, queryHash)
+	cached, found, err := teamCache.GetTeamFilter(ctx, campus, queryHash)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("读取队伍筛选缓存失败")
 	} else if found {
@@ -188,7 +187,7 @@ func (f *FilterApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeOK
 	}
 
-	err = dashboardCache.SetTeamFilter(ctx, campus, queryHash, cacheBody)
+	err = teamCache.SetTeamFilter(ctx, campus, queryHash, cacheBody)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("写入队伍筛选缓存失败")
 	}

@@ -13,7 +13,7 @@ import (
 	"github.com/zjutjh/mygo/swagger"
 
 	"app/comm"
-	cachedao "app/dao/cache/dashboard"
+	routeCache "app/dao/cache/route"
 	repodao "app/dao/repo/dashboard"
 )
 
@@ -68,10 +68,8 @@ func (o *OverviewApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeParameterInvalid
 	}
 
-	dashboardCache := cachedao.NewDashboardCache()
-
 	// 先走缓存，命中则直接返回。
-	cached, found, err := dashboardCache.GetOverview(ctx, campus)
+	cached, found, err := routeCache.GetOverview(ctx, campus)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("读取总览缓存失败")
 	} else if found {
@@ -147,7 +145,7 @@ func (o *OverviewApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeOK
 	}
 
-	err = dashboardCache.SetOverview(ctx, campus, cacheBody)
+	err = routeCache.SetOverview(ctx, campus, cacheBody)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("写入总览缓存失败")
 	}

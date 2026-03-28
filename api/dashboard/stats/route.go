@@ -13,7 +13,7 @@ import (
 	"github.com/zjutjh/mygo/swagger"
 
 	"app/comm"
-	cachedao "app/dao/cache/dashboard"
+	routeCache "app/dao/cache/route"
 	repodao "app/dao/repo/dashboard"
 )
 
@@ -76,10 +76,8 @@ func (r *RouteApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeParameterInvalid
 	}
 
-	dashboardCache := cachedao.NewDashboardCache()
-
 	// 先走缓存，命中则直接返回。
-	cached, found, err := dashboardCache.GetRouteDetailStats(ctx, routeName)
+	cached, found, err := routeCache.GetRouteDetailStats(ctx, routeName)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("读取单路线统计缓存失败")
 	} else if found {
@@ -180,7 +178,7 @@ func (r *RouteApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeOK
 	}
 
-	err = dashboardCache.SetRouteDetailStats(ctx, routeName, cacheBody)
+	err = routeCache.SetRouteDetailStats(ctx, routeName, cacheBody)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("写入单路线统计缓存失败")
 	}

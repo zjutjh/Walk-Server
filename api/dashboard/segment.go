@@ -13,7 +13,7 @@ import (
 	"github.com/zjutjh/mygo/swagger"
 
 	"app/comm"
-	cachedao "app/dao/cache/dashboard"
+	routeCache "app/dao/cache/route"
 	repodao "app/dao/repo/dashboard"
 	repo "app/dao/repo/admin"
 )
@@ -60,10 +60,8 @@ func (s *SegmentApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeParameterInvalid
 	}
 
-	dashboardCache := cachedao.NewDashboardCache()
-
 	// 先走缓存，命中则直接返回。
-	cached, found, err := dashboardCache.GetSegment(ctx, campus, prevPointName, toPointName)
+	cached, found, err := routeCache.GetSegment(ctx, campus, prevPointName, toPointName)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("读取路段人数缓存失败")
 	} else if found {
@@ -92,7 +90,7 @@ func (s *SegmentApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeOK
 	}
 
-	err = dashboardCache.SetSegment(ctx, campus, prevPointName, toPointName, cacheBody)
+	err = routeCache.SetSegment(ctx, campus, prevPointName, toPointName, cacheBody)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("写入路段人数缓存失败")
 	}

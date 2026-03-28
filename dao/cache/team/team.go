@@ -1,4 +1,4 @@
-package teamcache
+package teamCache
 
 import (
 	"context"

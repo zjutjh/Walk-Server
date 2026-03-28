@@ -24,6 +24,7 @@ var (
 	CodeDataConflict       = kit.NewCode(20006, "数据冲突")
 	CodeServiceMaintenance = kit.NewCode(20007, "系统维护中")
 	CodeTooFrequently      = kit.NewCode(20008, "操作过于频繁/未获得锁")
+	CodeInsufficientParams = kit.NewCode(20009, "参数不足")
 )
 
 // 业务错误码 从 30000 开始

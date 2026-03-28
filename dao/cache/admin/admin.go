@@ -1,4 +1,4 @@
-package admincache
+package adminCache
 
 import (
 	"context"

@@ -1,4 +1,4 @@
--- Active: 1753940332076@@127.0.0.1@3306@jh_db
+-- Active: 1773747872536@@127.0.0.1@3306@jh_db
 CREATE TABLE `peoples` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `open_id` varchar(64) NOT NULL COMMENT '微信OpenID',

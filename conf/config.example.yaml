@@ -69,6 +69,7 @@ feishu:
   notice_webhook: ""
   notice_secret: ""
 
+# 会话配置
 session:
   driver: "memory" # 底层驱动 memory(内存) | redis
   name: "session" # 名称

@@ -7,7 +7,7 @@ import (
 	"github.com/zjutjh/mygo/ndb"
 	"gorm.io/gorm"
 
-	admincache "app/dao/cache/admin"
+	adminCache "app/dao/cache/admin"
 	"app/dao/model"
 	"app/dao/query"
 )
@@ -24,7 +24,7 @@ func NewAdminRepo() *AdminRepo {
 
 // FindByID 根据ID查询管理员
 func (r *AdminRepo) FindByID(ctx context.Context, id int64) (*model.Admin, error) {
-	if record, hit, err := admincache.GetAdmin(ctx, id); err == nil && hit {
+	if record, hit, err := adminCache.GetAdmin(ctx, id); err == nil && hit {
 		return record, nil
 	}
 
@@ -36,7 +36,7 @@ func (r *AdminRepo) FindByID(ctx context.Context, id int64) (*model.Admin, error
 	if err != nil {
 		return nil, err
 	}
-	_ = admincache.SetAdmin(ctx, record)
+	_ = adminCache.SetAdmin(ctx, record)
 	return record, nil
 }
 

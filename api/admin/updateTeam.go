@@ -81,7 +81,7 @@ func (u *UpdateTeamApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeDatabaseError
 	}
 	if routeEdge != nil && routeEdge.PrevPointName == "" {
-		if err := u.handleStartPointCheckin(ctx, team, admin.PointName); err != nil {
+		if err := u.handleStartPointCheckin(ctx, team, admin.ID, admin.PointName); err != nil {
 			nlog.Pick().WithContext(ctx).WithError(err).Error("起点打卡失败")
 			return comm.CodeDatabaseError
 		}
@@ -89,7 +89,7 @@ func (u *UpdateTeamApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeOK
 	}
 
-	result, err := u.handleRoutePointCheckin(ctx, team, admin.PointName, routeEdge)
+	result, err := u.handleRoutePointCheckin(ctx, team, admin.ID, admin.PointName, routeEdge)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("普通点位打卡失败")
 		return comm.CodeDatabaseError
@@ -171,12 +171,15 @@ func (u *UpdateTeamApi) resolveTeam(ctx *gin.Context, admin *model.Admin) (*mode
 	return team, nil
 }
 
-func (u *UpdateTeamApi) handleStartPointCheckin(ctx *gin.Context, team *model.Team, pointName string) error {
+func (u *UpdateTeamApi) handleStartPointCheckin(ctx *gin.Context, team *model.Team, adminID int64, pointName string) error {
 	teamRepo := repo.NewTeamRepo()
-	return teamRepo.StartPointCheckin(ctx, team.ID, pointName)
+	if err := teamRepo.StartPointCheckin(ctx, team.ID, pointName); err != nil {
+		return err
+	}
+	return teamRepo.CreateCheckin(ctx, adminID, team.ID, pointName, team.RouteName)
 }
 
-func (u *UpdateTeamApi) handleRoutePointCheckin(ctx *gin.Context, team *model.Team, pointName string, routeEdge *model.RouteEdge) (*routePointCheckinResult, error) {
+func (u *UpdateTeamApi) handleRoutePointCheckin(ctx *gin.Context, team *model.Team, adminID int64, pointName string, routeEdge *model.RouteEdge) (*routePointCheckinResult, error) {
 	teamRepo := repo.NewTeamRepo()
 
 	if team.Status != comm.TeamStatusInProgress {
@@ -184,6 +187,9 @@ func (u *UpdateTeamApi) handleRoutePointCheckin(ctx *gin.Context, team *model.Te
 	}
 
 	if err := teamRepo.UpdatePrevPointName(ctx, team.ID, pointName); err != nil {
+		return nil, err
+	}
+	if err := teamRepo.CreateCheckin(ctx, adminID, team.ID, pointName, team.RouteName); err != nil {
 		return nil, err
 	}
 
@@ -197,6 +203,9 @@ func (u *UpdateTeamApi) handleRoutePointCheckin(ctx *gin.Context, team *model.Te
 
 	if len(pointRoutes) == 1 && pointRoutes[0] != team.RouteName {
 		if err := teamRepo.UpdateTeamWrongRoute(ctx, team.ID, 1); err != nil {
+			return nil, err
+		}
+		if err := teamRepo.CreateWrongRouteRecord(ctx, team.ID, team.RouteName, pointRoutes[0], adminID); err != nil {
 			return nil, err
 		}
 		return &routePointCheckinResult{code: &comm.CodeWrongRouteAlert}, nil

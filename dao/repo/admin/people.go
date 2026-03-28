@@ -65,10 +65,6 @@ func (r *PeopleRepo) FindPeopleByTeamID(ctx context.Context, teamID int64) ([]*m
 		Find()
 }
 
-func (r *PeopleRepo) FindByTeamID(ctx context.Context, teamID int64) ([]*model.People, error) {
-	return r.FindPeopleByTeamID(ctx, teamID)
-}
-
 func (r *PeopleRepo) findPeopleByIDs(ctx context.Context, tx *query.Query, ids []int64) ([]*model.People, error) {
 	p := tx.People
 	return p.WithContext(ctx).
@@ -90,6 +86,23 @@ func (r *PeopleRepo) countInProgressMembers(ctx context.Context, tx *query.Query
 		Where(
 			p.TeamID.Eq(teamID),
 			p.WalkStatus.Eq(comm.WalkStatusInProgress),
+		).
+		Count()
+}
+
+func (r *PeopleRepo) countMembersByTeamID(ctx context.Context, tx *query.Query, teamID int64) (int64, error) {
+	p := tx.People
+	return p.WithContext(ctx).
+		Where(p.TeamID.Eq(teamID)).
+		Count()
+}
+
+func (r *PeopleRepo) countMembersByStatus(ctx context.Context, tx *query.Query, teamID int64, walkStatus string) (int64, error) {
+	p := tx.People
+	return p.WithContext(ctx).
+		Where(
+			p.TeamID.Eq(teamID),
+			p.WalkStatus.Eq(walkStatus),
 		).
 		Count()
 }
@@ -139,17 +152,6 @@ func (r *PeopleRepo) updateRoleByUserIDs(ctx context.Context, tx *query.Query, u
 	return err
 }
 
-func (r *PeopleRepo) startPendingMembers(ctx context.Context, tx *query.Query, teamID int64) error {
-	p := tx.People
-	_, err := p.WithContext(ctx).
-		Where(
-			p.TeamID.Eq(teamID),
-			p.WalkStatus.Eq(comm.WalkStatusPending),
-		).
-		Update(p.WalkStatus, comm.WalkStatusInProgress)
-	return err
-}
-
 func (r *PeopleRepo) setAllMembersPending(ctx context.Context, tx *query.Query, teamID int64) error {
 	p := tx.People
 	_, err := p.WithContext(ctx).
@@ -158,24 +160,13 @@ func (r *PeopleRepo) setAllMembersPending(ctx context.Context, tx *query.Query, 
 	return err
 }
 
-func (r *PeopleRepo) completeAllMembers(ctx context.Context, tx *query.Query, teamID int64) error {
+func (r *PeopleRepo) updateMembersWalkStatusByCurrent(ctx context.Context, tx *query.Query, teamID int64, fromStatus string, toStatus string) error {
 	p := tx.People
 	_, err := p.WithContext(ctx).
 		Where(
 			p.TeamID.Eq(teamID),
-			p.WalkStatus.Neq(comm.WalkStatusCompleted),
+			p.WalkStatus.Eq(fromStatus),
 		).
-		Update(p.WalkStatus, comm.WalkStatusCompleted)
-	return err
-}
-
-func (r *PeopleRepo) violateInProgressMembers(ctx context.Context, tx *query.Query, teamID int64) error {
-	p := tx.People
-	_, err := p.WithContext(ctx).
-		Where(
-			p.TeamID.Eq(teamID),
-			p.WalkStatus.Eq(comm.WalkStatusInProgress),
-		).
-		Update(p.WalkStatus, comm.WalkStatusViolated)
+		Update(p.WalkStatus, toStatus)
 	return err
 }

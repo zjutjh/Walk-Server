@@ -15,7 +15,7 @@ import (
 	"gorm.io/gorm"
 
 	"app/comm"
-	cachedao "app/dao/cache/dashboard"
+	teamCache "app/dao/cache/team"
 	repodao "app/dao/repo/dashboard"
 )
 
@@ -52,12 +52,10 @@ func (l *LostApi) Run(ctx *gin.Context) kit.Code {
 
 	var lockAcquired bool
 	var keepLock bool
-	dashboardCache := cachedao.NewDashboardCache()
-
 	// 仅当 is_lost=true 时需要加锁
 	if l.Request.Body.IsLost {
 		var lockErr error
-		lockAcquired, lockErr = dashboardCache.AcquireTeamInfoLock(ctx, teamID, lostUpdateLockTTL)
+		lockAcquired, lockErr = teamCache.AcquireTeamInfoLock(ctx, teamID, lostUpdateLockTTL)
 		if lockErr != nil {
 			nlog.Pick().WithContext(ctx).WithError(lockErr).Warn("队伍失联状态加锁失败，降级走数据库校验")
 		}
@@ -71,7 +69,7 @@ func (l *LostApi) Run(ctx *gin.Context) kit.Code {
 		if !lockAcquired || keepLock {
 			return
 		}
-		releaseErr := dashboardCache.ReleaseTeamInfoLock(ctx, teamID)
+		releaseErr := teamCache.ReleaseTeamInfoLock(ctx, teamID)
 		if releaseErr != nil {
 			nlog.Pick().WithContext(ctx).WithError(releaseErr).Warn("释放队伍失联状态锁失败")
 		}
@@ -94,7 +92,7 @@ func (l *LostApi) Run(ctx *gin.Context) kit.Code {
 	if l.Request.Body.IsLost && !team.Time.IsZero() && now.Before(team.Time.Add(lostUpdateLockTTL)) {
 		remaining := time.Until(team.Time.Add(lostUpdateLockTTL))
 		if remaining > 0 {
-			setErr := dashboardCache.SetTeamInfoLockTTL(ctx, teamID, remaining)
+			setErr := teamCache.SetTeamInfoLockTTL(ctx, teamID, remaining)
 			if setErr != nil {
 				nlog.Pick().WithContext(ctx).WithError(setErr).Warn("回写队伍失联状态锁失败")
 			}
@@ -118,7 +116,7 @@ func (l *LostApi) Run(ctx *gin.Context) kit.Code {
 		keepLock = true
 	}
 
-	err = dashboardCache.DeleteTeamInfo(ctx, teamID)
+	err = teamCache.DeleteTeamInfo(ctx, teamID)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("删除队伍详情缓存失败")
 	}

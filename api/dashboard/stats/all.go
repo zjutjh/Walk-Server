@@ -13,7 +13,7 @@ import (
 	"github.com/zjutjh/mygo/swagger"
 
 	"app/comm"
-	cachedao "app/dao/cache/dashboard"
+	routeCache "app/dao/cache/route"
 	repodao "app/dao/repo/dashboard"
 )
 
@@ -89,10 +89,8 @@ func (a *AllApi) Run(ctx *gin.Context) kit.Code {
 	// Type: String(JSON)
 	// TTL: 15s
 	// 1) 使用 cache dao 先尝试读取 Redis。
-	dashboardCache := cachedao.NewDashboardCache()
-
 	// 先走缓存，命中后直接返回，降低统计查询压力。
-	cached, found, err := dashboardCache.GetAllRouteStats(ctx)
+	cached, found, err := routeCache.GetAllRouteStats(ctx)
 	if err != nil {
 		// 非未命中错误时仅告警，继续回源数据库。
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("读取路线统计缓存失败")
@@ -174,7 +172,7 @@ func (a *AllApi) Run(ctx *gin.Context) kit.Code {
 	}
 
 	// 3) 回填短 TTL 缓存，后续请求直接命中缓存。
-	err = dashboardCache.SetAllRouteStats(ctx, cacheBody)
+	err = routeCache.SetAllRouteStats(ctx, cacheBody)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("写入路线统计缓存失败")
 	}

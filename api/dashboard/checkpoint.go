@@ -13,7 +13,7 @@ import (
 	"github.com/zjutjh/mygo/swagger"
 
 	"app/comm"
-	cachedao "app/dao/cache/dashboard"
+	routeCache "app/dao/cache/route"
 	repodao "app/dao/repo/dashboard"
 	repo "app/dao/repo/admin"
 )
@@ -59,10 +59,8 @@ func (c *CheckpointApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeParameterInvalid
 	}
 
-	dashboardCache := cachedao.NewDashboardCache()
-
 	// 先走缓存，命中则直接返回。
-	cached, found, err := dashboardCache.GetCheckpoint(ctx, campus, pointName)
+	cached, found, err := routeCache.GetCheckpoint(ctx, campus, pointName)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("读取点位详情缓存失败")
 	} else if found {
@@ -92,7 +90,7 @@ func (c *CheckpointApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeOK
 	}
 
-	err = dashboardCache.SetCheckpoint(ctx, campus, pointName, cacheBody)
+	err = routeCache.SetCheckpoint(ctx, campus, pointName, cacheBody)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("写入点位详情缓存失败")
 	}

@@ -7,12 +7,14 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/zjutjh/mygo/foundation/reply"
 	"github.com/zjutjh/mygo/kit"
+	"github.com/zjutjh/mygo/ndb"
 	"github.com/zjutjh/mygo/nlog"
 	"github.com/zjutjh/mygo/swagger"
+	"gorm.io/gorm"
 
 	"app/comm"
 	"app/dao/model"
-	repo "app/dao/repo/admin"
+	repo "app/dao/repo"
 )
 
 func BindCodeHandler() gin.HandlerFunc {
@@ -91,23 +93,43 @@ func (b *BindCodeApi) getTeam(ctx *gin.Context) (*model.Team, *kit.Code) {
 func (b *BindCodeApi) validatePendingMemberCount(ctx *gin.Context, teamID int64) *kit.Code {
 	peopleRepo := repo.NewPeopleRepo()
 
-	pendingCount, err := peopleRepo.CountPendingMembers(ctx, teamID)
+	pendingCount, err := peopleRepo.CountMembersByStatus(ctx, teamID, comm.WalkStatusPending)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("统计待出发人数失败")
 		return &comm.CodeDatabaseError
 	}
 	if pendingCount < minTeamMemberCount {
-		return &comm.CodeTeamMemberInsufficient
+		return &comm.CodeTeamNotEnough
 	}
 	if pendingCount > maxTeamMemberCount {
-		return &comm.CodeTeamMemberExceeded
+		return &comm.CodeTeamFull
 	}
 	return nil
 }
 
 func (b *BindCodeApi) bindCode(ctx *gin.Context, teamID int64) error {
-	teamRepo := repo.NewTeamRepo()
-	return teamRepo.BindCodeAndStartPendingMembers(ctx, teamID, b.Request.Body.Content)
+	return ndb.Pick().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		txTeamRepo := repo.NewTeamRepoWithDB(tx)
+		txPeopleRepo := repo.NewPeopleRepoWithDB(tx)
+
+		if err := txTeamRepo.UpdateByID(ctx, teamID, map[string]any{"code": b.Request.Body.Content}); err != nil {
+			return err
+		}
+		if err := txPeopleRepo.UpdateMembersWalkStatusByCurrent(ctx, teamID, comm.WalkStatusPending, comm.WalkStatusInProgress); err != nil {
+			return err
+		}
+
+		inProgressCount, err := txPeopleRepo.CountMembersByStatus(ctx, teamID, comm.WalkStatusInProgress)
+		if err != nil {
+			return err
+		}
+		if inProgressCount > 0 {
+			if err := txTeamRepo.UpdateByID(ctx, teamID, map[string]any{"status": comm.TeamStatusInProgress}); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 // Run Api初始化 进行参数校验和绑定

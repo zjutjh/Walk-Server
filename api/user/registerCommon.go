@@ -9,6 +9,7 @@ import (
 	"github.com/zjutjh/mygo/nlog"
 
 	"app/comm"
+	"app/dao/model"
 	"app/dao/repo"
 )
 
@@ -41,7 +42,7 @@ func doRegister(ctx *gin.Context, req RegisterCommonRequest, personType string) 
 	}
 
 	peopleRepo := repo.NewPeopleRepo()
-	existing, err := peopleRepo.FindByOpenID(ctx, openID)
+	existing, err := peopleRepo.FindPeopleByOpenID(ctx, openID)
 	if err != nil {
 		return comm.CodeDatabaseError
 	}
@@ -49,7 +50,7 @@ func doRegister(ctx *gin.Context, req RegisterCommonRequest, personType string) 
 		return comm.CodeAlreadyRegistered
 	}
 
-	byIdentity, err := peopleRepo.FindByIdentity(ctx, req.Identity)
+	byIdentity, err := peopleRepo.FindPeopleByIdentity(ctx, req.Identity)
 	if err != nil {
 		return comm.CodeDatabaseError
 	}
@@ -58,7 +59,7 @@ func doRegister(ctx *gin.Context, req RegisterCommonRequest, personType string) 
 	}
 
 	if personType == comm.MemberTypeStudent && req.StuID != "" {
-		byStuID, err := peopleRepo.FindByStuID(ctx, req.StuID)
+		byStuID, err := peopleRepo.FindPeopleByStuID(ctx, req.StuID)
 		if err != nil {
 			return comm.CodeDatabaseError
 		}
@@ -67,7 +68,7 @@ func doRegister(ctx *gin.Context, req RegisterCommonRequest, personType string) 
 		}
 	}
 
-	err = peopleRepo.Create(ctx, &repo.Person{
+	err = peopleRepo.Create(ctx, &model.People{
 		OpenID:     openID,
 		Name:       req.Name,
 		Gender:     gender,
@@ -75,7 +76,7 @@ func doRegister(ctx *gin.Context, req RegisterCommonRequest, personType string) 
 		Campus:     campus,
 		Identity:   req.Identity,
 		Role:       comm.RoleUnbind,
-		QQ:         req.QQ,
+		Qq:         req.QQ,
 		Wechat:     req.Wechat,
 		College:    req.College,
 		Tel:        req.Tel,

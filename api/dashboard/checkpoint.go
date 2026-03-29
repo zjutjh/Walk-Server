@@ -14,8 +14,7 @@ import (
 
 	"app/comm"
 	routeCache "app/dao/cache/route"
-	repodao "app/dao/repo/dashboard"
-	repo "app/dao/repo/admin"
+	repo "app/dao/repo"
 )
 
 // CheckpointHandler API router注册点
@@ -74,8 +73,8 @@ func (c *CheckpointApi) Run(ctx *gin.Context) kit.Code {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("解析点位详情缓存失败")
 	}
 
-	dashboardRepo := repodao.NewDashboardRepo()
-	passedCount, notArrivedCount, err := dashboardRepo.GetCheckpointPeopleCounts(ctx, campus, pointName)
+	routeRepo := repo.NewRouteRepo()
+	passedCount, notArrivedCount, err := routeRepo.GetCheckpointPeopleCounts(ctx, campus, pointName)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询点位详情统计失败")
 		return comm.CodeDatabaseError

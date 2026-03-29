@@ -16,7 +16,7 @@ import (
 
 	"app/comm"
 	teamCache "app/dao/cache/team"
-	repodao "app/dao/repo/dashboard"
+	repo "app/dao/repo"
 )
 
 const lostUpdateLockTTL = 5 * time.Minute
@@ -75,8 +75,8 @@ func (l *LostApi) Run(ctx *gin.Context) kit.Code {
 		}
 	}()
 
-	dashboardRepo := repodao.NewDashboardRepo()
-	team, err := dashboardRepo.GetTeamByID(ctx, teamID)
+	teamRepo := repo.NewTeamRepo()
+	team, err := teamRepo.GetTeamByID(ctx, teamID)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		keepLock = false
 		return comm.CodeDataNotFound
@@ -101,7 +101,7 @@ func (l *LostApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeTooFrequently
 	}
 
-	updated, err := dashboardRepo.UpdateTeamLostStatus(ctx, teamID, l.Request.Body.IsLost, now)
+	updated, err := teamRepo.UpdateTeamLostStatus(ctx, teamID, l.Request.Body.IsLost, now)
 	if err != nil {
 		keepLock = false
 		nlog.Pick().WithContext(ctx).WithError(err).Error("更新队伍失联状态失败")

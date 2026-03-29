@@ -15,6 +15,7 @@ import (
 	"gorm.io/gorm"
 
 	"app/comm"
+	"app/dao/model"
 	"app/dao/repo"
 )
 
@@ -60,7 +61,7 @@ func (h *TeamCreateApi) Run(ctx *gin.Context) kit.Code {
 	peopleRepo := repo.NewPeopleRepo()
 	teamRepo := repo.NewTeamRepo()
 
-	person, err := peopleRepo.FindByOpenID(ctx, openID)
+	person, err := peopleRepo.FindPeopleByOpenID(ctx, openID)
 	if err != nil {
 		return comm.CodeDatabaseError
 	}
@@ -74,7 +75,7 @@ func (h *TeamCreateApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeNoCreateChance
 	}
 
-	duplicated, err := teamRepo.FindByName(ctx, teamName)
+	duplicated, err := teamRepo.FindTeamByName(ctx, teamName)
 	if err != nil {
 		return comm.CodeDatabaseError
 	}
@@ -86,18 +87,18 @@ func (h *TeamCreateApi) Run(ctx *gin.Context) kit.Code {
 		txPeopleRepo := repo.NewPeopleRepoWithDB(tx)
 		txTeamRepo := repo.NewTeamRepoWithDB(tx)
 
-		team := &repo.Team{
+		team := &model.Team{
 			Name:       teamName,
 			Num:        1,
 			Password:   h.Request.Password,
 			Slogan:     h.Request.Slogan,
-			AllowMatch: h.Request.AllowMatch,
+			AllowMatch: boolToInt8(h.Request.AllowMatch),
 			Captain:    openID,
 			RouteName:  h.Request.RouteName,
-			Submit:     false,
+			Submit:     0,
 			Status:     comm.TeamStatusNotStart,
 			Code:       "",
-			IsLost:     false,
+			IsLost:     0,
 		}
 		if errTx := txTeamRepo.Create(ctx, team); errTx != nil {
 			if isDuplicateEntryError(errTx) {

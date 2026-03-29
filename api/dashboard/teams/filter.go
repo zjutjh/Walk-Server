@@ -17,7 +17,7 @@ import (
 
 	"app/comm"
 	teamCache "app/dao/cache/team"
-	repodao "app/dao/repo/dashboard"
+	repo "app/dao/repo"
 )
 
 // FilterHandler API router注册点
@@ -115,7 +115,7 @@ func (f *FilterApi) Run(ctx *gin.Context) kit.Code {
 		cursor = 0
 	}
 
-	filterQuery := repodao.TeamFilterQuery{
+	filterQuery := repo.TeamFilterQuery{
 		Campus:        campus,
 		ToPointName:   toPointName,
 		PrevPointName: prevPointName,
@@ -142,15 +142,15 @@ func (f *FilterApi) Run(ctx *gin.Context) kit.Code {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("解析队伍筛选缓存失败")
 	}
 
-	dashboardRepo := repodao.NewDashboardRepo()
+	teamRepo := repo.NewTeamRepo()
 
-	totalCount, err := dashboardRepo.CountTeamsByFilter(ctx, filterQuery)
+	totalCount, err := teamRepo.CountTeamsByFilter(ctx, filterQuery)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("统计队伍筛选结果失败")
 		return comm.CodeDatabaseError
 	}
 
-	teams, err := dashboardRepo.ListTeamsByFilter(ctx, filterQuery)
+	teams, err := teamRepo.ListTeamsByFilter(ctx, filterQuery)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询队伍筛选列表失败")
 		return comm.CodeDatabaseError
@@ -195,7 +195,7 @@ func (f *FilterApi) Run(ctx *gin.Context) kit.Code {
 	return comm.CodeOK
 }
 
-func buildFilterQueryHash(query repodao.TeamFilterQuery) string {
+func buildFilterQueryHash(query repo.TeamFilterQuery) string {
 	raw := query.Campus + "|" + query.ToPointName + "|" + query.PrevPointName + "|" + query.Key + "|" + query.SearchType + "|" + strconv.Itoa(query.Limit) + "|" + strconv.Itoa(query.Offset)
 	hash := sha1.Sum([]byte(raw))
 	return hex.EncodeToString(hash[:])

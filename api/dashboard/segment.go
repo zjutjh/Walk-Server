@@ -14,8 +14,7 @@ import (
 
 	"app/comm"
 	routeCache "app/dao/cache/route"
-	repodao "app/dao/repo/dashboard"
-	repo "app/dao/repo/admin"
+	repo "app/dao/repo"
 )
 
 // SegmentHandler API router注册点
@@ -75,8 +74,8 @@ func (s *SegmentApi) Run(ctx *gin.Context) kit.Code {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("解析路段人数缓存失败")
 	}
 
-	dashboardRepo := repodao.NewDashboardRepo()
-	peopleCount, err := dashboardRepo.CountPeopleOnSegment(ctx, campus, prevPointName, toPointName)
+	routeRepo := repo.NewRouteRepo()
+	peopleCount, err := routeRepo.CountPeopleOnSegment(ctx, campus, prevPointName, toPointName)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询路段人数失败")
 		return comm.CodeDatabaseError

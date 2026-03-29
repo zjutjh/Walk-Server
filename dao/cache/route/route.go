@@ -1,4 +1,4 @@
-package routeCache
+package cache
 
 import (
 	"context"
@@ -15,10 +15,11 @@ import (
 
 const (
 	routeCacheKeyPrefix       = "walk:route"
+	routeCacheTTL			 = time.Hour
 	routeEdgeCacheKeyPrefix   = "walk:route_edge"
+	routeEdgeCacheTTL		=time.Hour	
 	pointRoutesCacheKeyPrefix = "walk:point:routes"
-	routeCacheTTL             = time.Hour
-
+	pointRoutesCacheTTL         = time.Hour
 	allRouteStatsCacheKey         = "dashboard:stats:route:all"
 	allRouteStatsCacheTTL         = 15 * time.Second
 	overviewCacheKeyPrefix        = "dashboard:overview"
@@ -116,7 +117,7 @@ func SetRouteEdge(ctx context.Context, routeEdge *model.RouteEdge) error {
 	if err != nil {
 		return err
 	}
-	return client().Set(ctx, BuildRouteEdgeCacheKey(routeEdge.RouteName, routeEdge.PointName), payload, routeCacheTTL).Err()
+	return client().Set(ctx, BuildRouteEdgeCacheKey(routeEdge.RouteName, routeEdge.PointName), payload, routeEdgeCacheTTL).Err()
 }
 
 func GetPointRoutes(ctx context.Context, pointName string) ([]string, bool, error) {
@@ -140,7 +141,7 @@ func SetPointRoutes(ctx context.Context, pointName string, routeNames []string) 
 	if err != nil {
 		return err
 	}
-	return client().Set(ctx, BuildPointRoutesCacheKey(pointName), payload, routeCacheTTL).Err()
+	return client().Set(ctx, BuildPointRoutesCacheKey(pointName), payload, pointRoutesCacheTTL).Err()
 }
 
 func GetAllRouteStats(ctx context.Context) ([]byte, bool, error) {

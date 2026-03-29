@@ -3,19 +3,22 @@ package api
 import (
 	"reflect"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/zjutjh/mygo/foundation/reply"
 	"github.com/zjutjh/mygo/kit"
+	"github.com/zjutjh/mygo/ndb"
 	"github.com/zjutjh/mygo/nlog"
 	"github.com/zjutjh/mygo/session"
 	"github.com/zjutjh/mygo/swagger"
+	"gorm.io/gorm"
 
 	"app/comm"
 	"app/dao/model"
-	repo "app/dao/repo/admin"
+	repo "app/dao/repo"
 )
 
 func UpdateTeamHandler() gin.HandlerFunc {
@@ -70,9 +73,37 @@ func (u *UpdateTeamApi) Run(ctx *gin.Context) kit.Code {
 		}
 	}()
 
-	if err := teamRepo.ClearLostStatus(ctx, team.ID); err != nil {
+	if err := ndb.Pick().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		return repo.NewTeamRepoWithDB(tx).ClearLostStatus(ctx, team.ID)
+	}); err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("清除队伍失联状态失败")
 		return comm.CodeDatabaseError
+	}
+
+	if team.PrevPointName == admin.PointName {
+		return comm.CodeDuplicateCheckin
+	}
+
+	pointRoutes, err := teamRepo.FindPointRoutes(ctx, admin.PointName)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Error("查询点位所属路线失败")
+		return comm.CodeDatabaseError
+	}
+	if len(pointRoutes) == 0 {
+		return comm.CodeDataNotFound
+	}
+
+	if !slices.Contains(pointRoutes, team.RouteName) {
+		result, err := u.handleWrongRoutePointCheckin(ctx, team, admin.ID, admin.PointName, pointRoutes[0])
+		if err != nil {
+			nlog.Pick().WithContext(ctx).WithError(err).Error("错路点位打卡失败")
+			return comm.CodeDatabaseError
+		}
+		if result.code != nil {
+			return *result.code
+		}
+		u.Response.TeamID = int(team.ID)
+		return comm.CodeOK
 	}
 
 	routeEdge, err := teamRepo.FindRouteEdge(ctx, team.RouteName, admin.PointName)
@@ -80,7 +111,11 @@ func (u *UpdateTeamApi) Run(ctx *gin.Context) kit.Code {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询路线边失败")
 		return comm.CodeDatabaseError
 	}
+
 	if routeEdge != nil && routeEdge.PrevPointName == "" {
+		if team.Status != comm.TeamStatusNotStart {
+			return comm.CodeTeamCheckinClosed
+		}
 		if err := u.handleStartPointCheckin(ctx, team, admin.ID, admin.PointName); err != nil {
 			nlog.Pick().WithContext(ctx).WithError(err).Error("起点打卡失败")
 			return comm.CodeDatabaseError
@@ -171,44 +206,37 @@ func (u *UpdateTeamApi) resolveTeam(ctx *gin.Context, admin *model.Admin) (*mode
 	return team, nil
 }
 
+func (u *UpdateTeamApi) handlePointCheckin(ctx *gin.Context, team *model.Team, adminID int64, pointName string) error {
+	return ndb.Pick().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		txTeamRepo := repo.NewTeamRepoWithDB(tx)
+		if err := txTeamRepo.UpdatePrevPointName(ctx, team.ID, pointName); err != nil {
+			return err
+		}
+		return txTeamRepo.CreateCheckin(ctx, adminID, team.ID, pointName, team.RouteName)
+	})
+}
+
 func (u *UpdateTeamApi) handleStartPointCheckin(ctx *gin.Context, team *model.Team, adminID int64, pointName string) error {
-	teamRepo := repo.NewTeamRepo()
-	if err := teamRepo.StartPointCheckin(ctx, team.ID, pointName); err != nil {
-		return err
-	}
-	return teamRepo.CreateCheckin(ctx, adminID, team.ID, pointName, team.RouteName)
+	return ndb.Pick().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		teamRepo := repo.NewTeamRepoWithDB(tx)
+		peopleRepo := repo.NewPeopleRepoWithDB(tx)
+		if err := teamRepo.UpdatePrevPointName(ctx, team.ID, pointName); err != nil {
+			return err
+		}
+		if err := teamRepo.CreateCheckin(ctx, adminID, team.ID, pointName, team.RouteName); err != nil {
+			return err
+		}
+		return peopleRepo.UpdateByTeamID(ctx, team.ID, map[string]any{"walk_status": comm.WalkStatusPending})
+	})
 }
 
 func (u *UpdateTeamApi) handleRoutePointCheckin(ctx *gin.Context, team *model.Team, adminID int64, pointName string, routeEdge *model.RouteEdge) (*routePointCheckinResult, error) {
-	teamRepo := repo.NewTeamRepo()
-
 	if team.Status != comm.TeamStatusInProgress {
 		return &routePointCheckinResult{code: &comm.CodeTeamCheckinClosed}, nil
 	}
 
-	if err := teamRepo.UpdatePrevPointName(ctx, team.ID, pointName); err != nil {
+	if err := u.handlePointCheckin(ctx, team, adminID, pointName); err != nil {
 		return nil, err
-	}
-	if err := teamRepo.CreateCheckin(ctx, adminID, team.ID, pointName, team.RouteName); err != nil {
-		return nil, err
-	}
-
-	pointRoutes, err := teamRepo.FindPointRoutes(ctx, pointName)
-	if err != nil {
-		return nil, err
-	}
-	if len(pointRoutes) == 0 {
-		return &routePointCheckinResult{code: &comm.CodeDataNotFound}, nil
-	}
-
-	if len(pointRoutes) == 1 && pointRoutes[0] != team.RouteName {
-		if err := teamRepo.UpdateTeamWrongRoute(ctx, team.ID, 1); err != nil {
-			return nil, err
-		}
-		if err := teamRepo.CreateWrongRouteRecord(ctx, team.ID, team.RouteName, pointRoutes[0], adminID); err != nil {
-			return nil, err
-		}
-		return &routePointCheckinResult{code: &comm.CodeWrongRouteAlert}, nil
 	}
 
 	if routeEdge == nil || routeEdge.PrevPointName != team.PrevPointName {
@@ -216,6 +244,31 @@ func (u *UpdateTeamApi) handleRoutePointCheckin(ctx *gin.Context, team *model.Te
 	}
 
 	return &routePointCheckinResult{}, nil
+}
+
+func (u *UpdateTeamApi) handleWrongRoutePointCheckin(ctx *gin.Context, team *model.Team, adminID int64, pointName string, wrongRouteName string) (*routePointCheckinResult, error) {
+	if team.Status != comm.TeamStatusInProgress {
+		return &routePointCheckinResult{code: &comm.CodeTeamCheckinClosed}, nil
+	}
+
+	err := ndb.Pick().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		txTeamRepo := repo.NewTeamRepoWithDB(tx)
+		if err := txTeamRepo.UpdatePrevPointName(ctx, team.ID, pointName); err != nil {
+			return err
+		}
+		if err := txTeamRepo.CreateCheckin(ctx, adminID, team.ID, pointName, team.RouteName); err != nil {
+			return err
+		}
+		if err := txTeamRepo.UpdateTeamWrongRoute(ctx, team.ID, 1); err != nil {
+			return err
+		}
+		return txTeamRepo.CreateWrongRouteRecord(ctx, team.ID, team.RouteName, wrongRouteName, adminID)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &routePointCheckinResult{code: &comm.CodeWrongRouteAlert}, nil
 }
 
 // Run Api初始化 进行参数校验和绑定

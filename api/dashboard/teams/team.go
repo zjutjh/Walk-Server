@@ -19,7 +19,7 @@ import (
 
 	"app/comm"
 	teamCache "app/dao/cache/team"
-	repodao "app/dao/repo/dashboard"
+	repo "app/dao/repo"
 )
 
 // TeamHandler API router注册点
@@ -87,9 +87,9 @@ func (t *TeamApi) Run(ctx *gin.Context) kit.Code {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("解析队伍详情缓存失败")
 	}
 
-	dashboardRepo := repodao.NewDashboardRepo()
+	teamRepo := repo.NewTeamRepo()
 	//fmt.Println("1")
-	team, err := dashboardRepo.GetTeamByID(ctx, teamID)
+	team, err := teamRepo.GetTeamByID(ctx, teamID)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return comm.CodeDataNotFound
 	}
@@ -98,7 +98,7 @@ func (t *TeamApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeDatabaseError
 	}
 
-	members, err := dashboardRepo.ListTeamMembers(ctx, teamID)
+	members, err := teamRepo.ListTeamMembers(ctx, teamID)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询队伍成员失败")
 		return comm.CodeDatabaseError

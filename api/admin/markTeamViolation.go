@@ -7,11 +7,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/zjutjh/mygo/foundation/reply"
 	"github.com/zjutjh/mygo/kit"
+	"github.com/zjutjh/mygo/ndb"
 	"github.com/zjutjh/mygo/nlog"
 	"github.com/zjutjh/mygo/swagger"
+	"gorm.io/gorm"
 
 	"app/comm"
-	repo "app/dao/repo/admin"
+	repo "app/dao/repo"
 )
 
 func MarkTeamViolationHandler() gin.HandlerFunc {
@@ -36,9 +38,16 @@ type MarkTeamViolationApiResponse struct {
 }
 
 func (m *MarkTeamViolationApi) Run(ctx *gin.Context) kit.Code {
-	teamRepo := repo.NewTeamRepo()
+	err := ndb.Pick().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		txTeamRepo := repo.NewTeamRepoWithDB(tx)
+		txPeopleRepo := repo.NewPeopleRepoWithDB(tx)
+		teamID := int64(m.Request.Body.TeamID)
 
-	err := teamRepo.MarkViolation(ctx, int64(m.Request.Body.TeamID))
+		if err := txTeamRepo.UpdateByID(ctx, teamID, map[string]any{"status": comm.TeamStatusCompleted}); err != nil {
+			return err
+		}
+		return txPeopleRepo.UpdateMembersWalkStatusByCurrent(ctx, teamID, comm.WalkStatusInProgress, comm.WalkStatusViolated)
+	})
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("标记队伍违规失败")
 		return comm.CodeDatabaseError

@@ -1,9 +1,8 @@
 package api
 
 import (
+	"app/dao/model"
 	"errors"
-
-	"app/dao/repo"
 )
 
 var (
@@ -48,26 +47,26 @@ type TeamInfoMemberView struct {
 	WalkStatus string `json:"walk_status" desc:"字符串枚举: notStart|pending|abandoned|inProgress|withdrawn|violated|completed"`
 }
 
-func toTeamInfoTeamView(team *repo.Team) *TeamInfoTeamView {
+func toTeamInfoTeamView(team *model.Team) *TeamInfoTeamView {
 	if team == nil {
 		return nil
 	}
 	return &TeamInfoTeamView{
 		ID:            team.ID,
 		Name:          team.Name,
-		Num:           team.Num,
+		Num:           uint8(team.Num),
 		Slogan:        team.Slogan,
-		AllowMatch:    team.AllowMatch,
+		AllowMatch:    team.AllowMatch == 1,
 		Captain:       team.Captain,
 		RouteName:     team.RouteName,
 		PrevPointName: team.PrevPointName,
-		Submit:        team.Submit,
+		Submit:        team.Submit == 1,
 		Status:        team.Status,
-		IsLost:        team.IsLost,
+		IsLost:        team.IsLost == 1,
 	}
 }
 
-func toTeamInfoMemberViews(members []repo.Person) []TeamInfoMemberView {
+func toTeamInfoMemberViews(members []model.People) []TeamInfoMemberView {
 	result := make([]TeamInfoMemberView, 0, len(members))
 	for _, member := range members {
 		result = append(result, TeamInfoMemberView{
@@ -78,7 +77,7 @@ func toTeamInfoMemberViews(members []repo.Person) []TeamInfoMemberView {
 			Campus:     member.Campus,
 			Identity:   member.Identity,
 			TeamRole:   member.Role,
-			QQ:         member.QQ,
+			QQ:         member.Qq,
 			Wechat:     member.Wechat,
 			College:    member.College,
 			Tel:        member.Tel,
@@ -98,4 +97,11 @@ func formatGender(value int8) string {
 		return "female"
 	}
 	return ""
+}
+
+func boolToInt8(value bool) int8 {
+	if value {
+		return 1
+	}
+	return 0
 }

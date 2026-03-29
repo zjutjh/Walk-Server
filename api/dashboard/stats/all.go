@@ -14,7 +14,7 @@ import (
 
 	"app/comm"
 	routeCache "app/dao/cache/route"
-	repodao "app/dao/repo/dashboard"
+	repo "app/dao/repo"
 )
 
 // AllHandler API router注册点
@@ -106,10 +106,10 @@ func (a *AllApi) Run(ctx *gin.Context) kit.Code {
 	}
 
 	// 2) 缓存未命中或异常时，回源数据库做聚合计算。
-	dashboardRepo := repodao.NewDashboardRepo()
+	routeRepo := repo.NewRouteRepo()
 
 	// 2.1) 先查启用路线，保证没有报名数据的路线也能返回 0 统计。
-	routes, err := dashboardRepo.ListActiveRouteNames(ctx)
+	routes, err := routeRepo.ListActiveRouteNames(ctx)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询路线列表失败")
 		return comm.CodeDatabaseError
@@ -124,7 +124,7 @@ func (a *AllApi) Run(ctx *gin.Context) kit.Code {
 	}
 
 	// 2.3) 查询路线+人员状态聚合，得到总报名与各状态人数。
-	statusRows, err := dashboardRepo.ListRouteStatusCounts(ctx)
+	statusRows, err := routeRepo.ListRouteStatusCounts(ctx)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询路线状态统计失败")
 		return comm.CodeDatabaseError
@@ -139,7 +139,7 @@ func (a *AllApi) Run(ctx *gin.Context) kit.Code {
 	}
 
 	// 2.5) 走错人数单独聚合，避免与人员状态口径混淆。
-	wrongRows, err := dashboardRepo.ListRouteWrongCounts(ctx)
+	wrongRows, err := routeRepo.ListRouteWrongCounts(ctx)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询路线走错统计失败")
 		return comm.CodeDatabaseError

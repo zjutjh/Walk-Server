@@ -14,7 +14,7 @@ import (
 
 	"app/comm"
 	routeCache "app/dao/cache/route"
-	repodao "app/dao/repo/dashboard"
+	repo "app/dao/repo"
 )
 
 // OverviewHandler API router注册点
@@ -83,9 +83,9 @@ func (o *OverviewApi) Run(ctx *gin.Context) kit.Code {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("解析总览缓存失败")
 	}
 
-	dashboardRepo := repodao.NewDashboardRepo()
+	routeRepo := repo.NewRouteRepo()
 
-	routes, err := dashboardRepo.ListActiveRouteNamesByCampus(ctx, campus)
+	routes, err := routeRepo.ListActiveRouteNamesByCampus(ctx, campus)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询总览路线失败")
 		return comm.CodeDatabaseError
@@ -98,7 +98,7 @@ func (o *OverviewApi) Run(ctx *gin.Context) kit.Code {
 		routeStats[route.Name] = &RoutesRes{RouteName: route.Name}
 	}
 
-	statusRows, err := dashboardRepo.ListRouteStatusCountsByCampus(ctx, campus)
+	statusRows, err := routeRepo.ListRouteStatusCountsByCampus(ctx, campus)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询总览状态统计失败")
 		return comm.CodeDatabaseError
@@ -117,7 +117,7 @@ func (o *OverviewApi) Run(ctx *gin.Context) kit.Code {
 		applyOverviewStatus(stat, row.WalkStatus, count)
 	}
 
-	wrongRows, err := dashboardRepo.ListRouteWrongCountsByCampus(ctx, campus)
+	wrongRows, err := routeRepo.ListRouteWrongCountsByCampus(ctx, campus)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询总览走错统计失败")
 		return comm.CodeDatabaseError

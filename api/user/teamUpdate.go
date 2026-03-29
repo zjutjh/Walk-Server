@@ -53,7 +53,7 @@ func (h *TeamUpdateApi) Run(ctx *gin.Context) kit.Code {
 	peopleRepo := repo.NewPeopleRepo()
 	teamRepo := repo.NewTeamRepo()
 
-	person, err := peopleRepo.FindByOpenID(ctx, openID)
+	person, err := peopleRepo.FindPeopleByOpenID(ctx, openID)
 	if err != nil {
 		return comm.CodeDatabaseError
 	}
@@ -64,14 +64,14 @@ func (h *TeamUpdateApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeNotCaptain
 	}
 
-	team, err := teamRepo.FindByID(ctx, person.TeamID)
+	team, err := teamRepo.FindTeamByID(ctx, person.TeamID)
 	if err != nil {
 		return comm.CodeDatabaseError
 	}
 	if team == nil {
 		return comm.CodeDataNotFound
 	}
-	if team.Submit {
+	if team.Submit == 1 {
 		return comm.CodeTeamSubmitted
 	}
 

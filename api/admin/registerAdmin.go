@@ -13,7 +13,7 @@ import (
 
 	"app/comm"
 	"app/dao/model"
-	repo "app/dao/repo/admin"
+	repo "app/dao/repo"
 )
 
 func RegisterAdminHandler() gin.HandlerFunc {

@@ -9,6 +9,7 @@ import (
 	"github.com/zjutjh/mygo/nlog"
 
 	"app/comm"
+	"app/dao/model"
 	"app/dao/repo"
 )
 
@@ -67,7 +68,7 @@ func doRegister(ctx *gin.Context, req RegisterCommonRequest, personType string) 
 		}
 	}
 
-	err = peopleRepo.Create(ctx, &repo.Person{
+	err = peopleRepo.Create(ctx, &model.People{
 		OpenID:     openID,
 		Name:       req.Name,
 		Gender:     gender,
@@ -75,7 +76,7 @@ func doRegister(ctx *gin.Context, req RegisterCommonRequest, personType string) 
 		Campus:     campus,
 		Identity:   req.Identity,
 		Role:       comm.RoleUnbind,
-		QQ:         req.QQ,
+		Qq:         req.QQ,
 		Wechat:     req.Wechat,
 		College:    req.College,
 		Tel:        req.Tel,

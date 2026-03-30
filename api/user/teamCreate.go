@@ -12,9 +12,10 @@ import (
 	"github.com/zjutjh/mygo/ndb"
 	"github.com/zjutjh/mygo/nlog"
 	"github.com/zjutjh/mygo/swagger"
-	"gorm.io/gorm"
 
 	"app/comm"
+	"app/dao/model"
+	"app/dao/query"
 	"app/dao/repo"
 )
 
@@ -82,22 +83,22 @@ func (h *TeamCreateApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeTeamNameDuplicated
 	}
 
-	err = ndb.Pick().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		txPeopleRepo := repo.NewPeopleRepoWithDB(tx)
-		txTeamRepo := repo.NewTeamRepoWithDB(tx)
+	err = query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
+		txPeopleRepo := repo.NewPeopleRepoWithTx(tx)
+		txTeamRepo := repo.NewTeamRepoWithTx(tx)
 
-		team := &repo.Team{
+		team := &model.Team{
 			Name:       teamName,
 			Num:        1,
 			Password:   h.Request.Password,
 			Slogan:     h.Request.Slogan,
-			AllowMatch: h.Request.AllowMatch,
+			AllowMatch: boolToInt8(h.Request.AllowMatch),
 			Captain:    openID,
 			RouteName:  h.Request.RouteName,
-			Submit:     false,
+			Submit:     0,
 			Status:     comm.TeamStatusNotStart,
 			Code:       "",
-			IsLost:     false,
+			IsLost:     0,
 		}
 		if errTx := txTeamRepo.Create(ctx, team); errTx != nil {
 			if isDuplicateEntryError(errTx) {

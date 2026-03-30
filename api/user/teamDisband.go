@@ -10,9 +10,9 @@ import (
 	"github.com/zjutjh/mygo/ndb"
 	"github.com/zjutjh/mygo/nlog"
 	"github.com/zjutjh/mygo/swagger"
-	"gorm.io/gorm"
 
 	"app/comm"
+	"app/dao/query"
 	"app/dao/repo"
 )
 
@@ -59,13 +59,13 @@ func (h *TeamDisbandApi) Run(ctx *gin.Context) kit.Code {
 	if team == nil {
 		return comm.CodeDataNotFound
 	}
-	if team.Submit {
+	if team.Submit != 0 {
 		return comm.CodeTeamSubmitted
 	}
 
-	err = ndb.Pick().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		txPeopleRepo := repo.NewPeopleRepoWithDB(tx)
-		txTeamRepo := repo.NewTeamRepoWithDB(tx)
+	err = query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
+		txPeopleRepo := repo.NewPeopleRepoWithTx(tx)
+		txTeamRepo := repo.NewTeamRepoWithTx(tx)
 
 		if errTx := txPeopleRepo.UpdateByTeamID(ctx, team.ID, map[string]any{
 			"team_id": -1,

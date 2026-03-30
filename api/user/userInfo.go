@@ -11,6 +11,7 @@ import (
 	"github.com/zjutjh/mygo/swagger"
 
 	"app/comm"
+	"app/dao/model"
 	"app/dao/repo"
 )
 
@@ -97,7 +98,7 @@ func (h *UserInfoApi) Run(ctx *gin.Context) kit.Code {
 	return comm.CodeOK
 }
 
-func toUserInfoPerson(person *repo.Person) *UserInfoPerson {
+func toUserInfoPerson(person *model.People) *UserInfoPerson {
 	if person == nil {
 		return nil
 	}
@@ -109,34 +110,34 @@ func toUserInfoPerson(person *repo.Person) *UserInfoPerson {
 		Campus:     person.Campus,
 		Identity:   person.Identity,
 		TeamRole:   person.Role,
-		QQ:         person.QQ,
+		QQ:         person.Qq,
 		Wechat:     person.Wechat,
 		College:    person.College,
 		Tel:        person.Tel,
-		CreatedOp:  person.CreatedOp,
-		JoinOp:     person.JoinOp,
+		CreatedOp:  uint8(person.CreatedOp),
+		JoinOp:     uint8(person.JoinOp),
 		TeamID:     person.TeamID,
 		MemberType: person.Type,
 		WalkStatus: person.WalkStatus,
 	}
 }
 
-func toUserInfoTeam(team *repo.Team) *UserInfoTeam {
+func toUserInfoTeam(team *model.Team) *UserInfoTeam {
 	if team == nil {
 		return nil
 	}
 	return &UserInfoTeam{
 		ID:            team.ID,
 		Name:          team.Name,
-		Num:           team.Num,
+		Num:           uint8(team.Num),
 		Slogan:        team.Slogan,
-		AllowMatch:    team.AllowMatch,
+		AllowMatch:    team.AllowMatch != 0,
 		Captain:       team.Captain,
 		RouteName:     team.RouteName,
 		PrevPointName: team.PrevPointName,
-		Submit:        team.Submit,
+		Submit:        team.Submit != 0,
 		Status:        team.Status,
-		IsLost:        team.IsLost,
+		IsLost:        team.IsLost != 0,
 	}
 }
 

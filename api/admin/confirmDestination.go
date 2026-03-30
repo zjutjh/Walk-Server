@@ -10,9 +10,9 @@ import (
 	"github.com/zjutjh/mygo/ndb"
 	"github.com/zjutjh/mygo/nlog"
 	"github.com/zjutjh/mygo/swagger"
-	"gorm.io/gorm"
 
 	"app/comm"
+	"app/dao/query"
 	repo "app/dao/repo"
 )
 
@@ -38,9 +38,9 @@ type ConfirmDestinationApiResponse struct {
 }
 
 func (c *ConfirmDestinationApi) Run(ctx *gin.Context) kit.Code {
-	err := ndb.Pick().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		txTeamRepo := repo.NewTeamRepoWithDB(tx)
-		txPeopleRepo := repo.NewPeopleRepoWithDB(tx)
+	err := query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
+		txTeamRepo := repo.NewTeamRepoWithTx(tx)
+		txPeopleRepo := repo.NewPeopleRepoWithTx(tx)
 		teamID := int64(c.Request.Body.TeamID)
 
 		if err := txPeopleRepo.UpdateMembersWalkStatusByCurrent(ctx, teamID, comm.WalkStatusInProgress, comm.WalkStatusCompleted); err != nil {

@@ -22,12 +22,6 @@ func NewPeopleRepo() *PeopleRepo {
 	}
 }
 
-func NewPeopleRepoWithDB(db *gorm.DB) *PeopleRepo {
-	return &PeopleRepo{
-		query: query.Use(db),
-	}
-}
-
 func NewPeopleRepoWithTx(tx *query.Query) *PeopleRepo {
 	return &PeopleRepo{query: tx}
 }

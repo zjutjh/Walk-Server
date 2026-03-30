@@ -14,6 +14,7 @@ import (
 	"gorm.io/gorm"
 
 	"app/comm"
+	"app/dao/query"
 	repo "app/dao/repo"
 )
 
@@ -64,9 +65,9 @@ func (u *UpdateUserApi) Run(ctx *gin.Context) kit.Code {
 		}()
 	}
 
-	err = ndb.Pick().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		txTeamRepo := repo.NewTeamRepoWithDB(tx)
-		txPeopleRepo := repo.NewPeopleRepoWithDB(tx)
+	err = query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
+		txTeamRepo := repo.NewTeamRepoWithTx(tx)
+		txPeopleRepo := repo.NewPeopleRepoWithTx(tx)
 
 		if err := txPeopleRepo.UpdateWalkStatus(ctx, user.ID, u.Request.Body.Status); err != nil {
 			return err

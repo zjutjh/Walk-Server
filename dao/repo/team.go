@@ -60,13 +60,6 @@ func NewTeamRepo() *TeamRepo {
 
 }
 
-func NewTeamRepoWithDB(db *gorm.DB) *TeamRepo {
-	return &TeamRepo{
-		db:    db,
-		query: query.Use(db),
-	}
-}
-
 func NewTeamRepoWithTx(tx *query.Query) *TeamRepo {
 	return &TeamRepo{
 		db:    tx.Team.WithContext(context.Background()).UnderlyingDB(),

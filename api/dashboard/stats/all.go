@@ -13,8 +13,8 @@ import (
 	"github.com/zjutjh/mygo/swagger"
 
 	"app/comm"
-	cachedao "app/dao/cache/dashboard"
-	repodao "app/dao/repo/dashboard"
+	routeCache "app/dao/cache/route"
+	repo "app/dao/repo"
 )
 
 // AllHandler API router注册点
@@ -89,10 +89,8 @@ func (a *AllApi) Run(ctx *gin.Context) kit.Code {
 	// Type: String(JSON)
 	// TTL: 15s
 	// 1) 使用 cache dao 先尝试读取 Redis。
-	dashboardCache := cachedao.NewDashboardCache()
-
 	// 先走缓存，命中后直接返回，降低统计查询压力。
-	cached, found, err := dashboardCache.GetAllRouteStats(ctx)
+	cached, found, err := routeCache.GetAllRouteStats(ctx)
 	if err != nil {
 		// 非未命中错误时仅告警，继续回源数据库。
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("读取路线统计缓存失败")
@@ -108,10 +106,10 @@ func (a *AllApi) Run(ctx *gin.Context) kit.Code {
 	}
 
 	// 2) 缓存未命中或异常时，回源数据库做聚合计算。
-	dashboardRepo := repodao.NewDashboardRepo()
+	routeRepo := repo.NewRouteRepo()
 
 	// 2.1) 先查启用路线，保证没有报名数据的路线也能返回 0 统计。
-	routes, err := dashboardRepo.ListActiveRouteNames(ctx)
+	routes, err := routeRepo.ListActiveRouteNames(ctx)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询路线列表失败")
 		return comm.CodeDatabaseError
@@ -126,7 +124,7 @@ func (a *AllApi) Run(ctx *gin.Context) kit.Code {
 	}
 
 	// 2.3) 查询路线+人员状态聚合，得到总报名与各状态人数。
-	statusRows, err := dashboardRepo.ListRouteStatusCounts(ctx)
+	statusRows, err := routeRepo.ListRouteStatusCounts(ctx)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询路线状态统计失败")
 		return comm.CodeDatabaseError
@@ -141,7 +139,7 @@ func (a *AllApi) Run(ctx *gin.Context) kit.Code {
 	}
 
 	// 2.5) 走错人数单独聚合，避免与人员状态口径混淆。
-	wrongRows, err := dashboardRepo.ListRouteWrongCounts(ctx)
+	wrongRows, err := routeRepo.ListRouteWrongCounts(ctx)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询路线走错统计失败")
 		return comm.CodeDatabaseError
@@ -174,7 +172,7 @@ func (a *AllApi) Run(ctx *gin.Context) kit.Code {
 	}
 
 	// 3) 回填短 TTL 缓存，后续请求直接命中缓存。
-	err = dashboardCache.SetAllRouteStats(ctx, cacheBody)
+	err = routeCache.SetAllRouteStats(ctx, cacheBody)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("写入路线统计缓存失败")
 	}

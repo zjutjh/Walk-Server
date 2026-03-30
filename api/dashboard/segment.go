@@ -13,9 +13,8 @@ import (
 	"github.com/zjutjh/mygo/swagger"
 
 	"app/comm"
-	cachedao "app/dao/cache/dashboard"
-	repodao "app/dao/repo/dashboard"
-	repo "app/dao/repo/admin"
+	routeCache "app/dao/cache/route"
+	repo "app/dao/repo"
 )
 
 // SegmentHandler API router注册点
@@ -60,10 +59,8 @@ func (s *SegmentApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeParameterInvalid
 	}
 
-	dashboardCache := cachedao.NewDashboardCache()
-
 	// 先走缓存，命中则直接返回。
-	cached, found, err := dashboardCache.GetSegment(ctx, campus, prevPointName, toPointName)
+	cached, found, err := routeCache.GetSegment(ctx, campus, prevPointName, toPointName)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("读取路段人数缓存失败")
 	} else if found {
@@ -77,8 +74,8 @@ func (s *SegmentApi) Run(ctx *gin.Context) kit.Code {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("解析路段人数缓存失败")
 	}
 
-	dashboardRepo := repodao.NewDashboardRepo()
-	peopleCount, err := dashboardRepo.CountPeopleOnSegment(ctx, campus, prevPointName, toPointName)
+	routeRepo := repo.NewRouteRepo()
+	peopleCount, err := routeRepo.CountPeopleOnSegment(ctx, campus, prevPointName, toPointName)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询路段人数失败")
 		return comm.CodeDatabaseError
@@ -92,7 +89,7 @@ func (s *SegmentApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeOK
 	}
 
-	err = dashboardCache.SetSegment(ctx, campus, prevPointName, toPointName, cacheBody)
+	err = routeCache.SetSegment(ctx, campus, prevPointName, toPointName, cacheBody)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("写入路段人数缓存失败")
 	}

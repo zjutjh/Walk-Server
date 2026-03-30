@@ -42,7 +42,7 @@ func (h *TeamLeaveApi) Run(ctx *gin.Context) kit.Code {
 	peopleRepo := repo.NewPeopleRepo()
 	teamRepo := repo.NewTeamRepo()
 
-	person, err := peopleRepo.FindByOpenID(ctx, openID)
+	person, err := peopleRepo.FindPeopleByOpenID(ctx, openID)
 	if err != nil {
 		return comm.CodeDatabaseError
 	}
@@ -53,7 +53,7 @@ func (h *TeamLeaveApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodePermissionDenied
 	}
 
-	team, err := teamRepo.FindByID(ctx, person.TeamID)
+	team, err := teamRepo.FindTeamByID(ctx, person.TeamID)
 	if err != nil {
 		return comm.CodeDatabaseError
 	}

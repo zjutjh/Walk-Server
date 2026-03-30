@@ -18,8 +18,8 @@ import (
 	//"fmt"
 
 	"app/comm"
-	cachedao "app/dao/cache/dashboard"
-	repodao "app/dao/repo/dashboard"
+	teamCache "app/dao/cache/team"
+	repo "app/dao/repo"
 )
 
 // TeamHandler API router注册点
@@ -72,10 +72,8 @@ func (t *TeamApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeParameterInvalid
 	}
 
-	dashboardCache := cachedao.NewDashboardCache()
-
 	// 先走缓存，命中则直接返回。
-	cached, found, err := dashboardCache.GetTeamInfo(ctx, teamID)
+	cached, found, err := teamCache.GetTeamInfo(ctx, teamID)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("读取队伍详情缓存失败")
 	} else if found {
@@ -89,9 +87,9 @@ func (t *TeamApi) Run(ctx *gin.Context) kit.Code {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("解析队伍详情缓存失败")
 	}
 
-	dashboardRepo := repodao.NewDashboardRepo()
+	teamRepo := repo.NewTeamRepo()
 	//fmt.Println("1")
-	team, err := dashboardRepo.GetTeamByID(ctx, teamID)
+	team, err := teamRepo.GetTeamByID(ctx, teamID)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return comm.CodeDataNotFound
 	}
@@ -100,7 +98,7 @@ func (t *TeamApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeDatabaseError
 	}
 
-	members, err := dashboardRepo.ListTeamMembers(ctx, teamID)
+	members, err := teamRepo.ListTeamMembers(ctx, teamID)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询队伍成员失败")
 		return comm.CodeDatabaseError
@@ -130,7 +128,7 @@ func (t *TeamApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeOK
 	}
 
-	err = dashboardCache.SetTeamInfo(ctx, teamID, cacheBody)
+	err = teamCache.SetTeamInfo(ctx, teamID, cacheBody)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("写入队伍详情缓存失败")
 	}

@@ -64,7 +64,7 @@ func (h *WechatLoginApi) Run(ctx *gin.Context) kit.Code {
 	}
 
 	peopleRepo := repo.NewPeopleRepo()
-	person, err := peopleRepo.FindByOpenID(ctx, openID)
+	person, err := peopleRepo.FindPeopleByOpenID(ctx, openID)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询用户信息失败")
 		return comm.CodeDatabaseError

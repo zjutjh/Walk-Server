@@ -13,8 +13,8 @@ import (
 	"github.com/zjutjh/mygo/swagger"
 
 	"app/comm"
-	cachedao "app/dao/cache/dashboard"
-	repodao "app/dao/repo/dashboard"
+	routeCache "app/dao/cache/route"
+	repo "app/dao/repo"
 )
 
 // OverviewHandler API router注册点
@@ -68,10 +68,8 @@ func (o *OverviewApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeParameterInvalid
 	}
 
-	dashboardCache := cachedao.NewDashboardCache()
-
 	// 先走缓存，命中则直接返回。
-	cached, found, err := dashboardCache.GetOverview(ctx, campus)
+	cached, found, err := routeCache.GetOverview(ctx, campus)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("读取总览缓存失败")
 	} else if found {
@@ -85,9 +83,9 @@ func (o *OverviewApi) Run(ctx *gin.Context) kit.Code {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("解析总览缓存失败")
 	}
 
-	dashboardRepo := repodao.NewDashboardRepo()
+	routeRepo := repo.NewRouteRepo()
 
-	routes, err := dashboardRepo.ListActiveRouteNamesByCampus(ctx, campus)
+	routes, err := routeRepo.ListActiveRouteNamesByCampus(ctx, campus)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询总览路线失败")
 		return comm.CodeDatabaseError
@@ -100,7 +98,7 @@ func (o *OverviewApi) Run(ctx *gin.Context) kit.Code {
 		routeStats[route.Name] = &RoutesRes{RouteName: route.Name}
 	}
 
-	statusRows, err := dashboardRepo.ListRouteStatusCountsByCampus(ctx, campus)
+	statusRows, err := routeRepo.ListRouteStatusCountsByCampus(ctx, campus)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询总览状态统计失败")
 		return comm.CodeDatabaseError
@@ -119,7 +117,7 @@ func (o *OverviewApi) Run(ctx *gin.Context) kit.Code {
 		applyOverviewStatus(stat, row.WalkStatus, count)
 	}
 
-	wrongRows, err := dashboardRepo.ListRouteWrongCountsByCampus(ctx, campus)
+	wrongRows, err := routeRepo.ListRouteWrongCountsByCampus(ctx, campus)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询总览走错统计失败")
 		return comm.CodeDatabaseError
@@ -147,7 +145,7 @@ func (o *OverviewApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeOK
 	}
 
-	err = dashboardCache.SetOverview(ctx, campus, cacheBody)
+	err = routeCache.SetOverview(ctx, campus, cacheBody)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("写入总览缓存失败")
 	}

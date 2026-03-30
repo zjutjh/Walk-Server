@@ -81,6 +81,9 @@ func padKey(key string) string {
 
 // IsExpired 判断是否已过报名截止时间
 func IsExpired() bool {
+	if BizConf == nil {
+		return false
+	}
 	if BizConf.ExpiredDate == "" {
 		return false
 	}

@@ -13,8 +13,8 @@ import (
 	"github.com/zjutjh/mygo/swagger"
 
 	"app/comm"
-	cachedao "app/dao/cache/dashboard"
-	repodao "app/dao/repo/dashboard"
+	routeCache "app/dao/cache/route"
+	repo "app/dao/repo"
 )
 
 // RouteHandler API router注册点
@@ -76,10 +76,8 @@ func (r *RouteApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeParameterInvalid
 	}
 
-	dashboardCache := cachedao.NewDashboardCache()
-
 	// 先走缓存，命中则直接返回。
-	cached, found, err := dashboardCache.GetRouteDetailStats(ctx, routeName)
+	cached, found, err := routeCache.GetRouteDetailStats(ctx, routeName)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("读取单路线统计缓存失败")
 	} else if found {
@@ -93,9 +91,9 @@ func (r *RouteApi) Run(ctx *gin.Context) kit.Code {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("解析单路线统计缓存失败")
 	}
 
-	dashboardRepo := repodao.NewDashboardRepo()
+	routeRepo := repo.NewRouteRepo()
 
-	exists, err := dashboardRepo.ExistsActiveRoute(ctx, routeName)
+	exists, err := routeRepo.ExistsActiveRoute(ctx, routeName)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("校验路线存在失败")
 		return comm.CodeDatabaseError
@@ -104,13 +102,13 @@ func (r *RouteApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeDataNotFound
 	}
 
-	pointRows, err := dashboardRepo.ListRoutePoints(ctx, routeName)
+	pointRows, err := routeRepo.ListRoutePoints(ctx, routeName)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询路线点位失败")
 		return comm.CodeDatabaseError
 	}
 
-	passedRows, err := dashboardRepo.ListRoutePointPassedCounts(ctx, routeName)
+	passedRows, err := routeRepo.ListRoutePointPassedCounts(ctx, routeName)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询点位经过人数失败")
 		return comm.CodeDatabaseError
@@ -153,7 +151,7 @@ func (r *RouteApi) Run(ctx *gin.Context) kit.Code {
 		r.Response.PointStats[i].PassedCount = totalPassed
 	}
 
-	statusRows, err := dashboardRepo.ListSingleRouteStatusCounts(ctx, routeName)
+	statusRows, err := routeRepo.ListSingleRouteStatusCounts(ctx, routeName)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询路线状态统计失败")
 		return comm.CodeDatabaseError
@@ -166,7 +164,7 @@ func (r *RouteApi) Run(ctx *gin.Context) kit.Code {
 		applyRouteStatus(&status, row.WalkStatus, count)
 	}
 
-	wrongCount, err := dashboardRepo.CountSingleRouteWrongPeople(ctx, routeName)
+	wrongCount, err := routeRepo.CountSingleRouteWrongPeople(ctx, routeName)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询路线走错统计失败")
 		return comm.CodeDatabaseError
@@ -180,7 +178,7 @@ func (r *RouteApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeOK
 	}
 
-	err = dashboardCache.SetRouteDetailStats(ctx, routeName, cacheBody)
+	err = routeCache.SetRouteDetailStats(ctx, routeName, cacheBody)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("写入单路线统计缓存失败")
 	}

@@ -47,7 +47,7 @@ func (h *TeamJoinApi) Run(ctx *gin.Context) kit.Code {
 	peopleRepo := repo.NewPeopleRepo()
 	teamRepo := repo.NewTeamRepo()
 
-	person, err := peopleRepo.FindByOpenID(ctx, openID)
+	person, err := peopleRepo.FindPeopleByOpenID(ctx, openID)
 	if err != nil {
 		return comm.CodeDatabaseError
 	}
@@ -61,7 +61,7 @@ func (h *TeamJoinApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeNoJoinChance
 	}
 
-	team, err := teamRepo.FindByID(ctx, h.Request.TeamID)
+	team, err := teamRepo.FindTeamByID(ctx, h.Request.TeamID)
 	if err != nil {
 		return comm.CodeDatabaseError
 	}
@@ -104,7 +104,7 @@ func (h *TeamJoinApi) Run(ctx *gin.Context) kit.Code {
 	})
 	if err != nil {
 		if errors.Is(err, errTeamJoinConflict) {
-			latestTeam, latestErr := teamRepo.FindByID(ctx, h.Request.TeamID)
+			latestTeam, latestErr := teamRepo.FindTeamByID(ctx, h.Request.TeamID)
 			if latestErr != nil {
 				return comm.CodeDatabaseError
 			}

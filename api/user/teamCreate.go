@@ -61,7 +61,7 @@ func (h *TeamCreateApi) Run(ctx *gin.Context) kit.Code {
 	peopleRepo := repo.NewPeopleRepo()
 	teamRepo := repo.NewTeamRepo()
 
-	person, err := peopleRepo.FindByOpenID(ctx, openID)
+	person, err := peopleRepo.FindPeopleByOpenID(ctx, openID)
 	if err != nil {
 		return comm.CodeDatabaseError
 	}
@@ -75,7 +75,7 @@ func (h *TeamCreateApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeNoCreateChance
 	}
 
-	duplicated, err := teamRepo.FindByName(ctx, teamName)
+	duplicated, err := teamRepo.FindTeamByName(ctx, teamName)
 	if err != nil {
 		return comm.CodeDatabaseError
 	}

@@ -3,17 +3,18 @@ package peopleCache
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/zjutjh/mygo/nedis"
 
-	baseCache "app/dao/cache"
 	"app/dao/model"
 )
 
 const (
-	peopleCacheTTL = time.Hour
+	personByOpenIDCacheKeyPrefix = "walk:user:profile"
+	peopleCacheTTL               = time.Hour
 )
 
 func client() redis.UniversalClient {
@@ -21,7 +22,7 @@ func client() redis.UniversalClient {
 }
 
 func BuildPersonByOpenIDCacheKey(openID string) string {
-	return baseCache.UserProfileKey(openID)
+	return fmt.Sprintf("%s:%s", personByOpenIDCacheKeyPrefix, openID)
 }
 
 func GetPersonByOpenID(ctx context.Context, openID string) (*model.People, bool, error) {

@@ -57,6 +57,5 @@ var (
 	CodeTeamCheckinClosed      = kit.NewCode(30026, "该队伍已完成，无法进行点位打卡")
 	CodePrevPointInvalid       = kit.NewCode(30027, "上一签到点并非路线前序点位")
 	CodeWrongRouteAlert        = kit.NewCode(30028, "该团队路线走错，请立即提醒")
-	CodeTeamMemberInsufficient = kit.NewCode(30029, "团队人数不足")
-	CodeTeamMemberExceeded     = kit.NewCode(30030, "团队人数超过上限")
+	CodeDuplicateCheckin       = kit.NewCode(30031, "该点位已打卡，请勿重复打卡")
 )

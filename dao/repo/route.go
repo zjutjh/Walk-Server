@@ -8,12 +8,12 @@ import (
 	"app/dao/query"
 )
 
-type DashboardRepo struct {
+type RouteRepo struct {
 	query *query.Query
 }
 
-func NewDashboardRepo() *DashboardRepo {
-	return &DashboardRepo{
+func NewRouteRepo() *RouteRepo {
+	return &RouteRepo{
 		query: query.Use(ndb.Pick()),
 	}
 }
@@ -49,7 +49,7 @@ type PointPassedCountRow struct {
 }
 
 // ListActiveRouteNames 查询启用路线，保证没有报名数据的路线也能返回 0 统计。
-func (r *DashboardRepo) ListActiveRouteNames(ctx context.Context) ([]RouteNameRow, error) {
+func (r *RouteRepo) ListActiveRouteNames(ctx context.Context) ([]RouteNameRow, error) {
 	rows := make([]RouteNameRow, 0)
 
 	err := r.query.Route.WithContext(ctx).
@@ -67,7 +67,7 @@ func (r *DashboardRepo) ListActiveRouteNames(ctx context.Context) ([]RouteNameRo
 }
 
 // ListActiveRouteNamesByCampus 查询指定校区的启用路线。
-func (r *DashboardRepo) ListActiveRouteNamesByCampus(ctx context.Context, campus string) ([]RouteNameRow, error) {
+func (r *RouteRepo) ListActiveRouteNamesByCampus(ctx context.Context, campus string) ([]RouteNameRow, error) {
 	rows := make([]RouteNameRow, 0)
 
 	err := r.query.Route.WithContext(ctx).
@@ -85,7 +85,7 @@ func (r *DashboardRepo) ListActiveRouteNamesByCampus(ctx context.Context, campus
 }
 
 // ListRouteStatusCounts 查询路线+人员状态聚合，得到总报名与各状态人数。
-func (r *DashboardRepo) ListRouteStatusCounts(ctx context.Context) ([]RouteStatusCountRow, error) {
+func (r *RouteRepo) ListRouteStatusCounts(ctx context.Context) ([]RouteStatusCountRow, error) {
 	rows := make([]RouteStatusCountRow, 0)
 
 	err := r.query.People.WithContext(ctx).
@@ -104,7 +104,7 @@ func (r *DashboardRepo) ListRouteStatusCounts(ctx context.Context) ([]RouteStatu
 }
 
 // ListRouteStatusCountsByCampus 查询指定校区路线+人员状态聚合。
-func (r *DashboardRepo) ListRouteStatusCountsByCampus(ctx context.Context, campus string) ([]RouteStatusCountRow, error) {
+func (r *RouteRepo) ListRouteStatusCountsByCampus(ctx context.Context, campus string) ([]RouteStatusCountRow, error) {
 	rows := make([]RouteStatusCountRow, 0)
 
 	err := r.query.People.WithContext(ctx).
@@ -124,7 +124,7 @@ func (r *DashboardRepo) ListRouteStatusCountsByCampus(ctx context.Context, campu
 }
 
 // ListRouteWrongCounts 查询按路线聚合的走错人数。
-func (r *DashboardRepo) ListRouteWrongCounts(ctx context.Context) ([]RouteWrongCountRow, error) {
+func (r *RouteRepo) ListRouteWrongCounts(ctx context.Context) ([]RouteWrongCountRow, error) {
 	rows := make([]RouteWrongCountRow, 0)
 
 	err := r.query.People.WithContext(ctx).
@@ -143,7 +143,7 @@ func (r *DashboardRepo) ListRouteWrongCounts(ctx context.Context) ([]RouteWrongC
 }
 
 // ListRouteWrongCountsByCampus 查询指定校区按路线聚合的走错人数。
-func (r *DashboardRepo) ListRouteWrongCountsByCampus(ctx context.Context, campus string) ([]RouteWrongCountRow, error) {
+func (r *RouteRepo) ListRouteWrongCountsByCampus(ctx context.Context, campus string) ([]RouteWrongCountRow, error) {
 	rows := make([]RouteWrongCountRow, 0)
 
 	err := r.query.People.WithContext(ctx).
@@ -163,7 +163,7 @@ func (r *DashboardRepo) ListRouteWrongCountsByCampus(ctx context.Context, campus
 }
 
 // ExistsActiveRoute 校验路线是否存在且启用。
-func (r *DashboardRepo) ExistsActiveRoute(ctx context.Context, routeName string) (bool, error) {
+func (r *RouteRepo) ExistsActiveRoute(ctx context.Context, routeName string) (bool, error) {
 	var total int64
 	err := r.query.Route.WithContext(ctx).
 		UnderlyingDB().
@@ -178,7 +178,7 @@ func (r *DashboardRepo) ExistsActiveRoute(ctx context.Context, routeName string)
 }
 
 // ListRoutePoints 查询路线点位顺序。
-func (r *DashboardRepo) ListRoutePoints(ctx context.Context, routeName string) ([]RoutePointRow, error) {
+func (r *RouteRepo) ListRoutePoints(ctx context.Context, routeName string) ([]RoutePointRow, error) {
 	rows := make([]RoutePointRow, 0)
 
 	err := r.query.RouteEdge.WithContext(ctx).
@@ -198,7 +198,7 @@ func (r *DashboardRepo) ListRoutePoints(ctx context.Context, routeName string) (
 }
 
 // ListRoutePointPassedCounts 查询各点位经过人数（按 people 口径）。
-func (r *DashboardRepo) ListRoutePointPassedCounts(ctx context.Context, routeName string) ([]PointPassedCountRow, error) {
+func (r *RouteRepo) ListRoutePointPassedCounts(ctx context.Context, routeName string) ([]PointPassedCountRow, error) {
 	rows := make([]PointPassedCountRow, 0)
 
 	err := r.query.Checkin.WithContext(ctx).
@@ -221,7 +221,7 @@ func (r *DashboardRepo) ListRoutePointPassedCounts(ctx context.Context, routeNam
 }
 
 // ListSingleRouteStatusCounts 查询单路线的 walk_status 聚合。
-func (r *DashboardRepo) ListSingleRouteStatusCounts(ctx context.Context, routeName string) ([]WalkStatusCountRow, error) {
+func (r *RouteRepo) ListSingleRouteStatusCounts(ctx context.Context, routeName string) ([]WalkStatusCountRow, error) {
 	rows := make([]WalkStatusCountRow, 0)
 
 	err := r.query.People.WithContext(ctx).
@@ -240,7 +240,7 @@ func (r *DashboardRepo) ListSingleRouteStatusCounts(ctx context.Context, routeNa
 }
 
 // CountSingleRouteWrongPeople 查询单路线走错人数。
-func (r *DashboardRepo) CountSingleRouteWrongPeople(ctx context.Context, routeName string) (int64, error) {
+func (r *RouteRepo) CountSingleRouteWrongPeople(ctx context.Context, routeName string) (int64, error) {
 	var total int64
 	err := r.query.People.WithContext(ctx).
 		UnderlyingDB().
@@ -256,7 +256,7 @@ func (r *DashboardRepo) CountSingleRouteWrongPeople(ctx context.Context, routeNa
 }
 
 // CountPeopleOnSegment 统计指定路段上的人数（按 people 计数）。
-func (r *DashboardRepo) CountPeopleOnSegment(ctx context.Context, campus string, prevPointName string, toPointName string) (int64, error) {
+func (r *RouteRepo) CountPeopleOnSegment(ctx context.Context, campus string, prevPointName string, toPointName string) (int64, error) {
 	filterQuery := TeamFilterQuery{
 		Campus:        campus,
 		PrevPointName: prevPointName,
@@ -264,7 +264,7 @@ func (r *DashboardRepo) CountPeopleOnSegment(ctx context.Context, campus string,
 	}
 
 	var peopleCount int64
-	err := r.buildTeamFilterBaseQuery(ctx, filterQuery).
+	err := NewTeamRepo().buildTeamFilterBaseQuery(ctx, filterQuery).
 		Joins("JOIN peoples AS ps ON ps.team_id = t.id").
 		Count(&peopleCount).Error
 	if err != nil {
@@ -275,7 +275,7 @@ func (r *DashboardRepo) CountPeopleOnSegment(ctx context.Context, campus string,
 }
 
 // GetCheckpointPeopleCounts 统计点位已到达与未到达人数（按 people 计数）。
-func (r *DashboardRepo) GetCheckpointPeopleCounts(ctx context.Context, campus string, pointName string) (passedCount int64, notArrivedCount int64, err error) {
+func (r *RouteRepo) GetCheckpointPeopleCounts(ctx context.Context, campus string, pointName string) (passedCount int64, notArrivedCount int64, err error) {
 	baseTotal := r.query.Team.WithContext(ctx).
 		UnderlyingDB().
 		Table("teams AS t").

@@ -4,16 +4,20 @@ import (
 	"errors"
 	"reflect"
 	"runtime"
+	"slices"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/zjutjh/mygo/foundation/reply"
 	"github.com/zjutjh/mygo/kit"
+	"github.com/zjutjh/mygo/ndb"
 	"github.com/zjutjh/mygo/nlog"
 	"github.com/zjutjh/mygo/swagger"
 	"gorm.io/gorm"
 
 	"app/comm"
-	repo "app/dao/repo/admin"
+	"app/dao/model"
+	repo "app/dao/repo"
 )
 
 func RegroupHandler() gin.HandlerFunc {
@@ -42,9 +46,9 @@ type RegroupApiResponse struct {
 // Run Api业务逻辑执行点
 func (r *RegroupApi) Run(ctx *gin.Context) kit.Code {
 	if len(r.Request.Body.Members) < 3 {
-		return comm.CodeTeamMemberInsufficient
+		return comm.CodeTeamNotEnough
 	} else if len(r.Request.Body.Members) > 6 {
-		return comm.CodeTeamMemberExceeded
+		return comm.CodeTeamFull
 	}
 
 	memberIDs := make([]int64, 0, len(r.Request.Body.Members))
@@ -52,8 +56,124 @@ func (r *RegroupApi) Run(ctx *gin.Context) kit.Code {
 		memberIDs = append(memberIDs, int64(memberID))
 	}
 
-	teamRepo := repo.NewTeamRepo()
-	teamID, err := teamRepo.Regroup(ctx, memberIDs, r.Request.Body.RouteName)
+	var teamID int64
+	err := ndb.Pick().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		txTeamRepo := repo.NewTeamRepoWithDB(tx)
+		txPeopleRepo := repo.NewPeopleRepoWithDB(tx)
+
+		members, err := txPeopleRepo.FindPeopleByIDs(ctx, memberIDs)
+		if err != nil {
+			return err
+		}
+		if len(members) != len(memberIDs) {
+			return gorm.ErrRecordNotFound
+		}
+
+		memberMap := make(map[int64]*model.People, len(members))
+		for _, member := range members {
+			memberMap[member.ID] = member
+		}
+
+		newCaptain, ok := memberMap[memberIDs[0]]
+		if !ok {
+			return gorm.ErrRecordNotFound
+		}
+
+		oldTeamIDs := make([]int64, 0, len(members))
+		for _, member := range members {
+			if member.TeamID > 0 {
+				oldTeamIDs = append(oldTeamIDs, member.TeamID)
+			}
+		}
+		slices.Sort(oldTeamIDs)
+		oldTeamIDs = slices.Compact(oldTeamIDs)
+
+		newTeam := &model.Team{
+			Name:          "",
+			Num:           int8(len(memberIDs)),
+			Password:      "",
+			Slogan:        "",
+			AllowMatch:    0,
+			Captain:       newCaptain.OpenID,
+			Submit:        1,
+			RouteName:     r.Request.Body.RouteName,
+			PrevPointName: "",
+			Status:        comm.TeamStatusNotStart,
+			IsWrongRoute:  0,
+			IsReunite:     1,
+			Code:          "",
+			Time:          time.Now(),
+			IsLost:        0,
+		}
+		if err := txTeamRepo.Create(ctx, newTeam); err != nil {
+			return err
+		}
+
+		if err := txPeopleRepo.UpdateTeamIDByUserIDs(ctx, memberIDs, newTeam.ID); err != nil {
+			return err
+		}
+		if err := txPeopleRepo.UpdateRoleByUserIDs(ctx, memberIDs, comm.RoleMember); err != nil {
+			return err
+		}
+		if err := txPeopleRepo.UpdateRoleByUserID(ctx, newCaptain.ID, comm.RoleCaptain); err != nil {
+			return err
+		}
+
+		for _, oldTeamID := range oldTeamIDs {
+			remainingCount, err := txPeopleRepo.CountMembersByTeamID(ctx, oldTeamID)
+			if err != nil {
+				return err
+			}
+			if remainingCount == 0 {
+				if err := txTeamRepo.DeleteByID(ctx, oldTeamID); err != nil {
+					return err
+				}
+				continue
+			}
+
+			if err := txTeamRepo.UpdateByID(ctx, oldTeamID, map[string]any{"num": int8(remainingCount)}); err != nil {
+				return err
+			}
+
+			inProgressCount, err := txPeopleRepo.CountMembersByStatus(ctx, oldTeamID, comm.WalkStatusInProgress)
+			if err != nil {
+				return err
+			}
+			if inProgressCount == 0 {
+				if err := txTeamRepo.UpdateByID(ctx, oldTeamID, map[string]any{"status": comm.TeamStatusCompleted}); err != nil {
+					return err
+				}
+			}
+
+			remainingMembers, err := txPeopleRepo.FindPeopleByTeamID(ctx, oldTeamID)
+			if err != nil {
+				return err
+			}
+
+			captainStillExists := false
+			var nextCaptain *model.People
+			for _, member := range remainingMembers {
+				if member.Role == comm.RoleCaptain {
+					captainStillExists = true
+				}
+				if nextCaptain == nil {
+					nextCaptain = member
+				}
+			}
+
+			if !captainStillExists && nextCaptain != nil {
+				if err := txTeamRepo.UpdateByID(ctx, oldTeamID, map[string]any{"captain": nextCaptain.OpenID}); err != nil {
+					return err
+				}
+				if err := txPeopleRepo.UpdateRoleByUserID(ctx, nextCaptain.ID, comm.RoleCaptain); err != nil {
+					return err
+				}
+			}
+		}
+
+		teamID = newTeam.ID
+		return nil
+	})
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return comm.CodeDataNotFound

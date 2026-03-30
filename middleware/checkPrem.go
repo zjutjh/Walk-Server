@@ -3,7 +3,7 @@ package middleware
 import (
 	"app/comm"
 	//"app/dao/model"
-	repo "app/dao/repo/admin"
+	repo "app/dao/repo"
 	//"fmt"
 	"strings"
 
@@ -38,7 +38,6 @@ import (
 // 		ctx.Next()
 // 	}
 // }
-
 
 // 从session反查id 已经迁移到adminRepo里了，下面是原来的
 

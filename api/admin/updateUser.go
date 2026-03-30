@@ -8,12 +8,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/zjutjh/mygo/foundation/reply"
 	"github.com/zjutjh/mygo/kit"
+	"github.com/zjutjh/mygo/ndb"
 	"github.com/zjutjh/mygo/nlog"
 	"github.com/zjutjh/mygo/swagger"
 	"gorm.io/gorm"
 
 	"app/comm"
-	repo "app/dao/repo/admin"
+	repo "app/dao/repo"
 )
 
 func UpdateUserHandler() gin.HandlerFunc {
@@ -40,7 +41,6 @@ type UpdateUserApiResponse struct {
 
 func (u *UpdateUserApi) Run(ctx *gin.Context) kit.Code {
 	peopleRepo := repo.NewPeopleRepo()
-	teamRepo := repo.NewTeamRepo()
 
 	user, err := peopleRepo.FindPeopleByID(ctx, int64(u.Request.Body.UserID))
 	if err != nil {
@@ -64,7 +64,58 @@ func (u *UpdateUserApi) Run(ctx *gin.Context) kit.Code {
 		}()
 	}
 
-	err = teamRepo.UpdateUserStatus(ctx, user, u.Request.Body.Status)
+	err = ndb.Pick().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		txTeamRepo := repo.NewTeamRepoWithDB(tx)
+		txPeopleRepo := repo.NewPeopleRepoWithDB(tx)
+
+		if err := txPeopleRepo.UpdateWalkStatus(ctx, user.ID, u.Request.Body.Status); err != nil {
+			return err
+		}
+
+		team, err := txTeamRepo.FindTeamByID(ctx, user.TeamID)
+		if err != nil {
+			return err
+		}
+		if team == nil {
+			return gorm.ErrRecordNotFound
+		}
+
+		if team.Status == comm.TeamStatusNotStart {
+			memberCount, err := txPeopleRepo.CountMembersByTeamID(ctx, user.TeamID)
+			if err != nil {
+				return err
+			}
+			abandonedCount, err := txPeopleRepo.CountMembersByStatus(ctx, user.TeamID, comm.WalkStatusAbandoned)
+			if err != nil {
+				return err
+			}
+			if memberCount > 0 && memberCount == abandonedCount {
+				return txTeamRepo.UpdateByID(ctx, user.TeamID, map[string]any{"status": comm.TeamStatusCompleted})
+			}
+			return nil
+		}
+
+		inProgressCount, err := txPeopleRepo.CountMembersByStatus(ctx, user.TeamID, comm.WalkStatusInProgress)
+		if err != nil {
+			return err
+		}
+		if inProgressCount > 0 {
+			if team.Status != comm.TeamStatusInProgress {
+				return txTeamRepo.UpdateByID(ctx, user.TeamID, map[string]any{"status": comm.TeamStatusInProgress})
+			}
+			return nil
+		}
+
+		if u.Request.Body.Status != comm.WalkStatusWithdrawn {
+			return txTeamRepo.UpdateByID(ctx, user.TeamID, map[string]any{"status": comm.TeamStatusCompleted})
+		}
+
+		if team.Status != comm.TeamStatusCompleted {
+			return txTeamRepo.UpdateByID(ctx, user.TeamID, map[string]any{"status": comm.TeamStatusWithDrawn})
+		}
+
+		return nil
+	})
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return comm.CodeDataNotFound

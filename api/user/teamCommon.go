@@ -1,9 +1,8 @@
 package api
 
 import (
-	"errors"
-
 	"app/dao/model"
+	"errors"
 )
 
 var (
@@ -67,12 +66,9 @@ func toTeamInfoTeamView(team *model.Team) *TeamInfoTeamView {
 	}
 }
 
-func toTeamInfoMemberViews(members []*model.People) []TeamInfoMemberView {
+func toTeamInfoMemberViews(members []model.People) []TeamInfoMemberView {
 	result := make([]TeamInfoMemberView, 0, len(members))
 	for _, member := range members {
-		if member == nil {
-			continue
-		}
 		result = append(result, TeamInfoMemberView{
 			ID:         member.ID,
 			Name:       member.Name,

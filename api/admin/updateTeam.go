@@ -14,10 +14,10 @@ import (
 	"github.com/zjutjh/mygo/nlog"
 	"github.com/zjutjh/mygo/session"
 	"github.com/zjutjh/mygo/swagger"
-	"gorm.io/gorm"
 
 	"app/comm"
 	"app/dao/model"
+	"app/dao/query"
 	repo "app/dao/repo"
 )
 
@@ -73,8 +73,8 @@ func (u *UpdateTeamApi) Run(ctx *gin.Context) kit.Code {
 		}
 	}()
 
-	if err := ndb.Pick().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		return repo.NewTeamRepoWithDB(tx).ClearLostStatus(ctx, team.ID)
+	if err := query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
+		return repo.NewTeamRepoWithTx(tx).ClearLostStatus(ctx, team.ID)
 	}); err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("清除队伍失联状态失败")
 		return comm.CodeDatabaseError
@@ -207,8 +207,8 @@ func (u *UpdateTeamApi) resolveTeam(ctx *gin.Context, admin *model.Admin) (*mode
 }
 
 func (u *UpdateTeamApi) handlePointCheckin(ctx *gin.Context, team *model.Team, adminID int64, pointName string) error {
-	return ndb.Pick().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		txTeamRepo := repo.NewTeamRepoWithDB(tx)
+	return query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
+		txTeamRepo := repo.NewTeamRepoWithTx(tx)
 		if err := txTeamRepo.UpdatePrevPointName(ctx, team.ID, pointName); err != nil {
 			return err
 		}
@@ -217,9 +217,9 @@ func (u *UpdateTeamApi) handlePointCheckin(ctx *gin.Context, team *model.Team, a
 }
 
 func (u *UpdateTeamApi) handleStartPointCheckin(ctx *gin.Context, team *model.Team, adminID int64, pointName string) error {
-	return ndb.Pick().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		teamRepo := repo.NewTeamRepoWithDB(tx)
-		peopleRepo := repo.NewPeopleRepoWithDB(tx)
+	return query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
+		teamRepo := repo.NewTeamRepoWithTx(tx)
+		peopleRepo := repo.NewPeopleRepoWithTx(tx)
 		if err := teamRepo.UpdatePrevPointName(ctx, team.ID, pointName); err != nil {
 			return err
 		}
@@ -251,8 +251,8 @@ func (u *UpdateTeamApi) handleWrongRoutePointCheckin(ctx *gin.Context, team *mod
 		return &routePointCheckinResult{code: &comm.CodeTeamCheckinClosed}, nil
 	}
 
-	err := ndb.Pick().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		txTeamRepo := repo.NewTeamRepoWithDB(tx)
+	err := query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
+		txTeamRepo := repo.NewTeamRepoWithTx(tx)
 		if err := txTeamRepo.UpdatePrevPointName(ctx, team.ID, pointName); err != nil {
 			return err
 		}

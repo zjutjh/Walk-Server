@@ -10,10 +10,10 @@ import (
 	"github.com/zjutjh/mygo/ndb"
 	"github.com/zjutjh/mygo/nlog"
 	"github.com/zjutjh/mygo/swagger"
-	"gorm.io/gorm"
 
 	"app/comm"
 	"app/dao/model"
+	"app/dao/query"
 	repo "app/dao/repo"
 )
 
@@ -108,9 +108,9 @@ func (b *BindCodeApi) validatePendingMemberCount(ctx *gin.Context, teamID int64)
 }
 
 func (b *BindCodeApi) bindCode(ctx *gin.Context, teamID int64) error {
-	return ndb.Pick().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		txTeamRepo := repo.NewTeamRepoWithDB(tx)
-		txPeopleRepo := repo.NewPeopleRepoWithDB(tx)
+	return query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
+		txTeamRepo := repo.NewTeamRepoWithTx(tx)
+		txPeopleRepo := repo.NewPeopleRepoWithTx(tx)
 
 		if err := txTeamRepo.UpdateByID(ctx, teamID, map[string]any{"code": b.Request.Body.Content}); err != nil {
 			return err

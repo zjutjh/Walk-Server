@@ -17,6 +17,7 @@ import (
 
 	"app/comm"
 	"app/dao/model"
+	"app/dao/query"
 	repo "app/dao/repo"
 )
 
@@ -57,9 +58,9 @@ func (r *RegroupApi) Run(ctx *gin.Context) kit.Code {
 	}
 
 	var teamID int64
-	err := ndb.Pick().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		txTeamRepo := repo.NewTeamRepoWithDB(tx)
-		txPeopleRepo := repo.NewPeopleRepoWithDB(tx)
+	err := query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
+		txTeamRepo := repo.NewTeamRepoWithTx(tx)
+		txPeopleRepo := repo.NewPeopleRepoWithTx(tx)
 
 		members, err := txPeopleRepo.FindPeopleByIDs(ctx, memberIDs)
 		if err != nil {

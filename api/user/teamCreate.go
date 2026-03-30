@@ -12,10 +12,10 @@ import (
 	"github.com/zjutjh/mygo/ndb"
 	"github.com/zjutjh/mygo/nlog"
 	"github.com/zjutjh/mygo/swagger"
-	"gorm.io/gorm"
 
 	"app/comm"
 	"app/dao/model"
+	"app/dao/query"
 	"app/dao/repo"
 )
 
@@ -83,9 +83,9 @@ func (h *TeamCreateApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeTeamNameDuplicated
 	}
 
-	err = ndb.Pick().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		txPeopleRepo := repo.NewPeopleRepoWithDB(tx)
-		txTeamRepo := repo.NewTeamRepoWithDB(tx)
+	err = query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
+		txPeopleRepo := repo.NewPeopleRepoWithTx(tx)
+		txTeamRepo := repo.NewTeamRepoWithTx(tx)
 
 		team := &model.Team{
 			Name:       teamName,

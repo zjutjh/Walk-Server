@@ -131,13 +131,13 @@ func toUserInfoTeam(team *model.Team) *UserInfoTeam {
 		Name:          team.Name,
 		Num:           uint8(team.Num),
 		Slogan:        team.Slogan,
-		AllowMatch:    team.AllowMatch == 1,
+		AllowMatch:    team.AllowMatch != 0,
 		Captain:       team.Captain,
 		RouteName:     team.RouteName,
 		PrevPointName: team.PrevPointName,
-		Submit:        team.Submit == 1,
+		Submit:        team.Submit != 0,
 		Status:        team.Status,
-		IsLost:        team.IsLost == 1,
+		IsLost:        team.IsLost != 0,
 	}
 }
 

@@ -67,12 +67,30 @@ func NewTeamRepoWithDB(db *gorm.DB) *TeamRepo {
 	}
 }
 
+func NewTeamRepoWithTx(tx *query.Query) *TeamRepo {
+	return &TeamRepo{
+		db:    tx.Team.WithContext(context.Background()).UnderlyingDB(),
+		query: tx,
+	}
+}
+
 func (r *TeamRepo) Create(ctx context.Context, team *model.Team) error {
-	return r.query.Team.WithContext(ctx).Create(team)
+	if err := r.query.Team.WithContext(ctx).Create(team); err != nil {
+		return err
+	}
+	_ = teamCache.SetTeamByID(ctx, team)
+	if team.Code != "" {
+		_ = teamCache.SetTeamIDByCode(ctx, team.Code, team.ID)
+	}
+	return nil
 }
 
 // FindTeamByID 根据ID查询队伍
 func (r *TeamRepo) FindTeamByID(ctx context.Context, id int64) (*model.Team, error) {
+	if team, hit, err := teamCache.GetTeamByID(ctx, id); err == nil && hit {
+		return team, nil
+	}
+
 	t := r.query.Team
 	record, err := t.WithContext(ctx).Where(t.ID.Eq(id)).First()
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -81,6 +99,7 @@ func (r *TeamRepo) FindTeamByID(ctx context.Context, id int64) (*model.Team, err
 	if err != nil {
 		return nil, err
 	}
+	_ = teamCache.SetTeamByID(ctx, record)
 	if record.Code != "" {
 		_ = teamCache.SetTeamIDByCode(ctx, record.Code, record.ID)
 	}
@@ -149,17 +168,24 @@ func (r *TeamRepo) UpdateByID(ctx context.Context, id int64, updates map[string]
 	_, err := r.query.Team.WithContext(ctx).
 		Where(r.query.Team.ID.Eq(id)).
 		Updates(updates)
-	return err
+	if err != nil {
+		return err
+	}
+	_ = teamCache.DelTeamByID(ctx, id)
+	return nil
 }
 
 func (r *TeamRepo) IncrementNumIfAvailable(ctx context.Context, id int64, maxTeamSize int) (bool, error) {
 	result := r.db.WithContext(ctx).
 		Model(&model.Team{}).
 		Clauses(clause.Locking{Strength: "UPDATE"}).
-		Where("id = ? AND submit = ? AND num < ?", id, false, maxTeamSize).
+		Where("id = ? AND submit = ? AND num < ?", id, 0, maxTeamSize).
 		UpdateColumn("num", gorm.Expr("num + ?", 1))
 	if result.Error != nil {
 		return false, result.Error
+	}
+	if result.RowsAffected > 0 {
+		_ = teamCache.DelTeamByID(ctx, id)
 	}
 	return result.RowsAffected > 0, nil
 }
@@ -168,10 +194,13 @@ func (r *TeamRepo) DecrementNumIfPositive(ctx context.Context, id int64) (bool, 
 	result := r.db.WithContext(ctx).
 		Model(&model.Team{}).
 		Clauses(clause.Locking{Strength: "UPDATE"}).
-		Where("id = ? AND submit = ? AND num > 0", id, false).
+		Where("id = ? AND submit = ? AND num > 0", id, 0).
 		UpdateColumn("num", gorm.Expr("num - ?", 1))
 	if result.Error != nil {
 		return false, result.Error
+	}
+	if result.RowsAffected > 0 {
+		_ = teamCache.DelTeamByID(ctx, id)
 	}
 	return result.RowsAffected > 0, nil
 }
@@ -180,7 +209,11 @@ func (r *TeamRepo) DeleteByID(ctx context.Context, id int64) error {
 	_, err := r.query.Team.WithContext(ctx).
 		Where(r.query.Team.ID.Eq(id)).
 		Delete()
-	return err
+	if err != nil {
+		return err
+	}
+	_ = teamCache.DelTeamByID(ctx, id)
+	return nil
 }
 
 func (r *TeamRepo) CreateCheckin(ctx context.Context, adminID, teamID int64, pointName, routeName string) error {

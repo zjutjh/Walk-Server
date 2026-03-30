@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	peoplecache "app/dao/cache/people"
 	"github.com/zjutjh/mygo/ndb"
 	"gorm.io/gorm"
 
@@ -27,6 +28,10 @@ func NewPeopleRepoWithDB(db *gorm.DB) *PeopleRepo {
 	}
 }
 
+func NewPeopleRepoWithTx(tx *query.Query) *PeopleRepo {
+	return &PeopleRepo{query: tx}
+}
+
 // FindByID 根据ID查询人员
 func (r *PeopleRepo) FindPeopleByID(ctx context.Context, id int64) (*model.People, error) {
 	p := r.query.People
@@ -40,9 +45,12 @@ func (r *PeopleRepo) FindPeopleByID(ctx context.Context, id int64) (*model.Peopl
 	return record, nil
 }
 
-
 // FindByOpenID 根据OpenID查询人员
 func (r *PeopleRepo) FindPeopleByOpenID(ctx context.Context, openID string) (*model.People, error) {
+	if people, hit, err := peoplecache.GetPersonByOpenID(ctx, openID); err == nil && hit {
+		return people, nil
+	}
+
 	p := r.query.People
 	record, err := p.WithContext(ctx).Where(p.OpenID.Eq(openID)).First()
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -51,9 +59,9 @@ func (r *PeopleRepo) FindPeopleByOpenID(ctx context.Context, openID string) (*mo
 	if err != nil {
 		return nil, err
 	}
+	_ = peoplecache.SetPersonByOpenID(ctx, record)
 	return record, nil
 }
-
 
 func (r *PeopleRepo) FindPeopleByIdentity(ctx context.Context, identity string) (*model.People, error) {
 	p := r.query.People
@@ -83,7 +91,6 @@ func (r *PeopleRepo) FindPeopleByStuID(ctx context.Context, stuID string) (*mode
 	return record, nil
 }
 
-
 // FindByTeamID 查询队伍成员
 func (r *PeopleRepo) FindPeopleByTeamID(ctx context.Context, teamID int64) ([]*model.People, error) {
 	p := r.query.People
@@ -110,24 +117,47 @@ func (r *PeopleRepo) ListByTeamID(ctx context.Context, teamID int64) ([]model.Pe
 }
 
 func (r *PeopleRepo) Create(ctx context.Context, person *model.People) error {
-	return r.query.People.WithContext(ctx).Create(person)
+	if err := r.query.People.WithContext(ctx).Create(person); err != nil {
+		return err
+	}
+	_ = peoplecache.SetPersonByOpenID(ctx, person)
+	return nil
 }
 
 func (r *PeopleRepo) UpdateByOpenID(ctx context.Context, openID string, updates map[string]any) error {
 	_, err := r.query.People.WithContext(ctx).
 		Where(r.query.People.OpenID.Eq(openID)).
 		Updates(updates)
+	if err != nil {
+		return err
+	}
+	_ = peoplecache.DelPersonByOpenID(ctx, openID)
 	return err
 }
 
 func (r *PeopleRepo) UpdateByTeamID(ctx context.Context, teamID int64, updates map[string]any) error {
-	_, err := r.query.People.WithContext(ctx).
+	members, err := r.FindPeopleByTeamID(ctx, teamID)
+	if err != nil {
+		return err
+	}
+
+	_, err = r.query.People.WithContext(ctx).
 		Where(r.query.People.TeamID.Eq(teamID)).
 		Updates(updates)
-	return err
+	if err != nil {
+		return err
+	}
+
+	for _, member := range members {
+		if member == nil {
+			continue
+		}
+		_ = peoplecache.DelPersonByOpenID(ctx, member.OpenID)
+	}
+	return nil
 }
 
-func (r *PeopleRepo) FindPeopleByIDs(ctx context.Context,ids []int64) ([]*model.People, error) {
+func (r *PeopleRepo) FindPeopleByIDs(ctx context.Context, ids []int64) ([]*model.People, error) {
 	p := r.query.People
 	return p.WithContext(ctx).
 		Where(p.ID.In(ids...)).
@@ -185,7 +215,6 @@ func (r *PeopleRepo) UpdateRoleByUserIDs(ctx context.Context, userIDs []int64, r
 		Update(p.Role, role)
 	return err
 }
-
 
 func (r *PeopleRepo) UpdateMembersWalkStatusByCurrent(ctx context.Context, teamID int64, fromStatus string, toStatus string) error {
 	p := r.query.People

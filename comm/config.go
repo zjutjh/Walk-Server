@@ -4,7 +4,6 @@ package comm
 var BizConf *BizConfig
 
 type BizConfig struct {
-	JWTSecret     string `mapstructure:"jwt_secret"`
 	AESSecret     string `mapstructure:"aes_secret"`
 	WechatAppID   string `mapstructure:"wechat_app_id"`
 	WechatSecret  string `mapstructure:"wechat_secret"`

@@ -5,76 +5,27 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"io"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
+	myjwt "github.com/zjutjh/mygo/jwt"
 )
-
-// JwtClaims JWT 声明
-type JwtClaims struct {
-	OpenID string `json:"open_id"`
-	jwt.RegisteredClaims
-}
-
-func jwtSecret() (string, error) {
-	if BizConf == nil {
-		return "", errors.New("biz config is not initialized")
-	}
-	if strings.TrimSpace(BizConf.JWTSecret) == "" {
-		return "", errors.New("jwt secret is empty")
-	}
-	return BizConf.JWTSecret, nil
-}
 
 // GenerateToken 生成 JWT Token
 func GenerateToken(openID string) (string, error) {
-	secret, err := jwtSecret()
-	if err != nil {
-		return "", err
-	}
-
-	claims := &JwtClaims{
-		OpenID: openID,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(7 * 24 * time.Hour)),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			NotBefore: jwt.NewNumericDate(time.Now()),
-			Issuer:    "walk-server",
-		},
-	}
-	tokenClaims := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return tokenClaims.SignedString([]byte(secret))
-}
-
-// ParseToken 解析 JWT Token
-func ParseToken(tokenStr string) (*JwtClaims, error) {
-	secret, err := jwtSecret()
-	if err != nil {
-		return nil, err
-	}
-
-	tokenClaims, err := jwt.ParseWithClaims(tokenStr, &JwtClaims{}, func(token *jwt.Token) (interface{}, error) {
-		if token.Method == nil || token.Method.Alg() != jwt.SigningMethodHS256.Alg() {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
-		return []byte(secret), nil
-	})
-	if tokenClaims != nil {
-		if claims, ok := tokenClaims.Claims.(*JwtClaims); ok && tokenClaims.Valid {
-			return claims, nil
-		}
-	}
-	return nil, err
+	return myjwt.Pick[string]().GenerateToken(openID)
 }
 
 // GetOpenIDFromCtx 从 gin.Context 获取 OpenID（由中间件注入）
 func GetOpenIDFromCtx(ctx *gin.Context) string {
-	return ctx.GetString("open_id")
+	openID, err := myjwt.GetIdentity[string](ctx)
+	if err != nil {
+		return ""
+	}
+	return openID
 }
 
 // AesEncrypt AES 加密

@@ -11,9 +11,9 @@ import (
 	"github.com/zjutjh/mygo/ndb"
 	"github.com/zjutjh/mygo/nlog"
 	"github.com/zjutjh/mygo/swagger"
-	"gorm.io/gorm"
 
 	"app/comm"
+	"app/dao/query"
 	"app/dao/repo"
 )
 
@@ -71,7 +71,7 @@ func (h *TeamJoinApi) Run(ctx *gin.Context) kit.Code {
 	if team.Password != h.Request.Password {
 		return comm.CodePasswordWrong
 	}
-	if team.Submit == 1 {
+	if team.Submit != 0 {
 		return comm.CodeTeamSubmitted
 	}
 	maxTeamSize := 6
@@ -82,9 +82,9 @@ func (h *TeamJoinApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeTeamFull
 	}
 
-	err = ndb.Pick().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		txPeopleRepo := repo.NewPeopleRepoWithDB(tx)
-		txTeamRepo := repo.NewTeamRepoWithDB(tx)
+	err = query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
+		txPeopleRepo := repo.NewPeopleRepoWithTx(tx)
+		txTeamRepo := repo.NewTeamRepoWithTx(tx)
 
 		updated, errTx := txTeamRepo.IncrementNumIfAvailable(ctx, team.ID, maxTeamSize)
 		if errTx != nil {
@@ -111,9 +111,9 @@ func (h *TeamJoinApi) Run(ctx *gin.Context) kit.Code {
 			if latestTeam == nil {
 				return comm.CodeDataNotFound
 			}
-				if latestTeam.Submit == 1 {
-					return comm.CodeTeamSubmitted
-				}
+			if latestTeam.Submit != 0 {
+				return comm.CodeTeamSubmitted
+			}
 			if int(latestTeam.Num) >= maxTeamSize {
 				return comm.CodeTeamFull
 			}

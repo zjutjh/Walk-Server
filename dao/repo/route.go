@@ -200,7 +200,7 @@ func (r *RouteRepo) ListRoutePoints(ctx context.Context, routeName string) ([]Ro
 // ListRoutePointPassedCounts 查询各点位累计到达人数（按 people 口径）。
 // 统计逻辑：
 // 1) 先找每队最后一次有效打卡点位，映射为该队已到达的 reached_seq。
-// 2) 在同一 route_name 内，累计 reached_seq >= 点位 seq_order 的队伍人数。
+// 2) 先按 reached_seq 聚合 people_count，再用窗口函数做累计和。
 // 注意：seq_order 只在同一 route_name 下比较；不同路线存在相同 seq_order 不影响结果。
 func (r *RouteRepo) ListRoutePointPassedCounts(ctx context.Context, routeName string) ([]PointPassedCountRow, error) {
 	rows := make([]PointPassedCountRow, 0)
@@ -228,17 +228,24 @@ func (r *RouteRepo) ListRoutePointPassedCounts(ctx context.Context, routeName st
 				"JOIN latest_checkin AS lc ON lc.team_id = t.id "+
 				"JOIN route_point_seq AS rps ON rps.point_name = lc.point_name "+
 				"WHERE t.submit = 1 AND t.route_name = ?"+
-				"), team_people AS ("+
-				"SELECT tr.team_id, tr.reached_seq, COUNT(ps.id) AS people_count "+
+				"), team_people_by_seq AS ("+
+				"SELECT tr.reached_seq, COUNT(ps.id) AS people_count "+
 				"FROM team_reached AS tr "+
 				"JOIN peoples AS ps ON ps.team_id = tr.team_id "+
-				"GROUP BY tr.team_id, tr.reached_seq"+
+				"GROUP BY tr.reached_seq"+
+				"), seq_levels AS ("+
+				"SELECT DISTINCT seq_order FROM route_point_seq"+
+				"), seq_cumulative AS ("+
+				"SELECT sl.seq_order, COALESCE(SUM(COALESCE(tps.people_count, 0)) OVER ("+
+				"ORDER BY sl.seq_order DESC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW"+
+				"), 0) AS cnt "+
+				"FROM seq_levels AS sl "+
+				"LEFT JOIN team_people_by_seq AS tps ON tps.reached_seq = sl.seq_order"+
 				") "+
-				"SELECT rp.point_name, COALESCE(SUM(tp.people_count), 0) AS cnt "+
+				"SELECT rp.point_name, sc.cnt "+
 				"FROM route_point_seq AS rp "+
-				"LEFT JOIN team_people AS tp ON tp.reached_seq >= rp.seq_order "+
-				"GROUP BY rp.point_name "+
-				"ORDER BY MIN(rp.seq_order) ASC, rp.point_name ASC",
+				"JOIN seq_cumulative AS sc ON sc.seq_order = rp.seq_order "+
+				"ORDER BY rp.seq_order ASC, rp.point_name ASC",
 			routeName,
 			routeName,
 			routeName,

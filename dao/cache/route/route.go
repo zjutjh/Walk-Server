@@ -14,22 +14,22 @@ import (
 )
 
 const (
-	routeCacheKeyPrefix       = "walk:route"
-	routeCacheTTL			 = time.Hour
-	routeEdgeCacheKeyPrefix   = "walk:route_edge"
-	routeEdgeCacheTTL		=time.Hour	
-	pointRoutesCacheKeyPrefix = "walk:point:routes"
-	pointRoutesCacheTTL         = time.Hour
-	allRouteStatsCacheKey         = "dashboard:stats:route:all"
-	allRouteStatsCacheTTL         = 15 * time.Second
-	overviewCacheKeyPrefix        = "dashboard:overview"
-	overviewCacheTTL              = 15 * time.Second
-	segmentCacheKeyPrefix         = "dashboard:segment"
-	segmentCacheTTL               = 15 * time.Second
-	checkpointCacheKeyPrefix      = "dashboard:checkpoint"
-	checkpointCacheTTL            = 15 * time.Second
+	routeCacheKeyPrefix            = "walk:route"
+	routeCacheTTL                  = time.Hour
+	routeEdgeCacheKeyPrefix        = "walk:route_edge"
+	routeEdgeCacheTTL              = time.Hour
+	pointRoutesCacheKeyPrefix      = "walk:point:routes"
+	pointRoutesCacheTTL            = time.Hour
+	allRouteStatsCacheKey          = "dashboard:stats:route:all"
+	allRouteStatsCacheTTL          = 15 * time.Second
+	overviewCacheKeyPrefix         = "dashboard:overview"
+	overviewCacheTTL               = 15 * time.Second
+	segmentCacheKeyPrefix          = "dashboard:segment"
+	segmentCacheTTL                = 15 * time.Second
+	checkpointCacheKeyPrefix       = "dashboard:checkpoint"
+	checkpointCacheTTL             = 15 * time.Second
 	routeDetailStatsCacheKeyPrefix = "dashboard:stats:route:detail"
-	routeDetailStatsCacheTTL      = 15 * time.Second
+	routeDetailStatsCacheTTL       = 15 * time.Second
 )
 
 func client() redis.UniversalClient {

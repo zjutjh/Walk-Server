@@ -197,18 +197,49 @@ func (r *RouteRepo) ListRoutePoints(ctx context.Context, routeName string) ([]Ro
 	return rows, nil
 }
 
-// ListRoutePointPassedCounts 查询各点位经过人数（按 people 口径）。
+// ListRoutePointPassedCounts 查询各点位累计到达人数（按 people 口径）。
+// 统计逻辑：
+// 1) 先找每队最后一次有效打卡点位，映射为该队已到达的 reached_seq。
+// 2) 在同一 route_name 内，累计 reached_seq >= 点位 seq_order 的队伍人数。
+// 注意：seq_order 只在同一 route_name 下比较；不同路线存在相同 seq_order 不影响结果。
 func (r *RouteRepo) ListRoutePointPassedCounts(ctx context.Context, routeName string) ([]PointPassedCountRow, error) {
 	rows := make([]PointPassedCountRow, 0)
 
 	err := r.query.Checkin.WithContext(ctx).
 		UnderlyingDB().
 		Raw(
-			"SELECT cp.point_name, COUNT(ps.id) AS cnt "+
-				"FROM (SELECT DISTINCT team_id, point_name FROM checkins WHERE route_name = ? AND point_name IS NOT NULL AND point_name <> '') AS cp "+
-				"JOIN teams AS t ON t.id = cp.team_id AND t.submit = 1 AND t.route_name = ? "+
-				"JOIN peoples AS ps ON ps.team_id = t.id "+
-				"GROUP BY cp.point_name",
+			"WITH latest_checkin AS ("+
+				"SELECT c.team_id, c.point_name "+
+				"FROM checkins AS c "+
+				"JOIN ("+
+				"SELECT team_id, MAX(id) AS max_id "+
+				"FROM checkins "+
+				"WHERE route_name = ? AND point_name IS NOT NULL AND point_name <> '' "+
+				"GROUP BY team_id"+
+				") AS x ON x.max_id = c.id "+
+				"), route_point_seq AS ("+
+				"SELECT point_name, MIN(seq_order) AS seq_order "+
+				"FROM route_edges "+
+				"WHERE route_name = ? AND point_name IS NOT NULL AND point_name <> '' "+
+				"GROUP BY point_name"+
+				"), team_reached AS ("+
+				"SELECT t.id AS team_id, rps.seq_order AS reached_seq "+
+				"FROM teams AS t "+
+				"JOIN latest_checkin AS lc ON lc.team_id = t.id "+
+				"JOIN route_point_seq AS rps ON rps.point_name = lc.point_name "+
+				"WHERE t.submit = 1 AND t.route_name = ?"+
+				"), team_people AS ("+
+				"SELECT tr.team_id, tr.reached_seq, COUNT(ps.id) AS people_count "+
+				"FROM team_reached AS tr "+
+				"JOIN peoples AS ps ON ps.team_id = tr.team_id "+
+				"GROUP BY tr.team_id, tr.reached_seq"+
+				") "+
+				"SELECT rp.point_name, COALESCE(SUM(tp.people_count), 0) AS cnt "+
+				"FROM route_point_seq AS rp "+
+				"LEFT JOIN team_people AS tp ON tp.reached_seq >= rp.seq_order "+
+				"GROUP BY rp.point_name "+
+				"ORDER BY MIN(rp.seq_order) ASC, rp.point_name ASC",
+			routeName,
 			routeName,
 			routeName,
 		).

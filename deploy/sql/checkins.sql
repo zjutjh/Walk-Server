@@ -9,5 +9,6 @@ CREATE TABLE `checkins` (
   `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   PRIMARY KEY (`id`),
   KEY `idx_checkins_route_point` (`route_name`, `point_name`),
+  KEY `idx_checkins_route_team_id` (`route_name`, `team_id`, `id`),
   KEY `idx_checkins_time` (`time`)
 );

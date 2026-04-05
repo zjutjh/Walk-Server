@@ -199,7 +199,7 @@ func (r *RouteRepo) ListRoutePoints(ctx context.Context, routeName string) ([]Ro
 
 // ListRoutePointPassedCounts 查询各点位累计到达人数（按 people 口径）。
 // 统计逻辑：
-// 1) 先找每队最后一次有效打卡点位，映射为该队已到达的 reached_seq。
+// 1) 先按队伍在该路线内的最大 seq_order 计算 reached_seq，避免回扫/补扫导致进度回退。
 // 2) 先按 reached_seq 聚合 people_count，再用窗口函数做累计和。
 // 注意：seq_order 只在同一 route_name 下比较；不同路线存在相同 seq_order 不影响结果。
 func (r *RouteRepo) ListRoutePointPassedCounts(ctx context.Context, routeName string) ([]PointPassedCountRow, error) {
@@ -208,26 +208,18 @@ func (r *RouteRepo) ListRoutePointPassedCounts(ctx context.Context, routeName st
 	err := r.query.Checkin.WithContext(ctx).
 		UnderlyingDB().
 		Raw(
-			"WITH latest_checkin AS ("+
-				"SELECT c.team_id, c.point_name "+
-				"FROM checkins AS c "+
-				"JOIN ("+
-				"SELECT team_id, MAX(id) AS max_id "+
-				"FROM checkins "+
-				"WHERE route_name = ? AND point_name IS NOT NULL AND point_name <> '' "+
-				"GROUP BY team_id"+
-				") AS x ON x.max_id = c.id "+
-				"), route_point_seq AS ("+
+			"WITH route_point_seq AS ("+
 				"SELECT point_name, MIN(seq_order) AS seq_order "+
 				"FROM route_edges "+
 				"WHERE route_name = ? AND point_name IS NOT NULL AND point_name <> '' "+
 				"GROUP BY point_name"+
 				"), team_reached AS ("+
-				"SELECT t.id AS team_id, rps.seq_order AS reached_seq "+
+				"SELECT t.id AS team_id, MAX(rps.seq_order) AS reached_seq "+
 				"FROM teams AS t "+
-				"JOIN latest_checkin AS lc ON lc.team_id = t.id "+
-				"JOIN route_point_seq AS rps ON rps.point_name = lc.point_name "+
-				"WHERE t.submit = 1 AND t.route_name = ?"+
+				"JOIN checkins AS c ON c.team_id = t.id AND c.route_name = ? AND c.point_name IS NOT NULL AND c.point_name <> '' "+
+				"JOIN route_point_seq AS rps ON rps.point_name = c.point_name "+
+				"WHERE t.submit = 1 AND t.route_name = ? "+
+				"GROUP BY t.id"+
 				"), team_people_by_seq AS ("+
 				"SELECT tr.reached_seq, COUNT(ps.id) AS people_count "+
 				"FROM team_reached AS tr "+

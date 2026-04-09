@@ -144,13 +144,6 @@ func (r *RouteApi) Run(ctx *gin.Context) kit.Code {
 		})
 	}
 
-	// 转换为累计经过人数：例如原始(0,1)会返回为(1,1)。
-	totalPassed := 0
-	for i := len(r.Response.PointStats) - 1; i >= 0; i-- {
-		totalPassed += r.Response.PointStats[i].PassedCount
-		r.Response.PointStats[i].PassedCount = totalPassed
-	}
-
 	statusRows, err := routeRepo.ListSingleRouteStatusCounts(ctx, routeName)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询路线状态统计失败")

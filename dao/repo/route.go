@@ -197,18 +197,48 @@ func (r *RouteRepo) ListRoutePoints(ctx context.Context, routeName string) ([]Ro
 	return rows, nil
 }
 
-// ListRoutePointPassedCounts 查询各点位经过人数（按 people 口径）。
+// ListRoutePointPassedCounts 查询各点位累计到达人数（按 people 口径）。
+// 统计逻辑：
+// 1) 先按队伍在该路线内的最大 seq_order 计算 reached_seq，避免回扫/补扫导致进度回退。
+// 2) 先按 reached_seq 聚合 people_count，再用窗口函数做累计和。
+// 注意：seq_order 只在同一 route_name 下比较；不同路线存在相同 seq_order 不影响结果。
 func (r *RouteRepo) ListRoutePointPassedCounts(ctx context.Context, routeName string) ([]PointPassedCountRow, error) {
 	rows := make([]PointPassedCountRow, 0)
 
 	err := r.query.Checkin.WithContext(ctx).
 		UnderlyingDB().
 		Raw(
-			"SELECT cp.point_name, COUNT(ps.id) AS cnt "+
-				"FROM (SELECT DISTINCT team_id, point_name FROM checkins WHERE route_name = ? AND point_name IS NOT NULL AND point_name <> '') AS cp "+
-				"JOIN teams AS t ON t.id = cp.team_id AND t.submit = 1 AND t.route_name = ? "+
-				"JOIN peoples AS ps ON ps.team_id = t.id "+
-				"GROUP BY cp.point_name",
+			"WITH route_point_seq AS ("+
+				"SELECT point_name, MIN(seq_order) AS seq_order "+
+				"FROM route_edges "+
+				"WHERE route_name = ? AND point_name IS NOT NULL AND point_name <> '' "+
+				"GROUP BY point_name"+
+				"), team_reached AS ("+
+				"SELECT t.id AS team_id, MAX(rps.seq_order) AS reached_seq "+
+				"FROM teams AS t "+
+				"JOIN checkins AS c ON c.team_id = t.id AND c.route_name = ? AND c.point_name IS NOT NULL AND c.point_name <> '' "+
+				"JOIN route_point_seq AS rps ON rps.point_name = c.point_name "+
+				"WHERE t.submit = 1 AND t.route_name = ? "+
+				"GROUP BY t.id"+
+				"), team_people_by_seq AS ("+
+				"SELECT tr.reached_seq, COUNT(ps.id) AS people_count "+
+				"FROM team_reached AS tr "+
+				"JOIN peoples AS ps ON ps.team_id = tr.team_id "+
+				"GROUP BY tr.reached_seq"+
+				"), seq_levels AS ("+
+				"SELECT DISTINCT seq_order FROM route_point_seq"+
+				"), seq_cumulative AS ("+
+				"SELECT sl.seq_order, COALESCE(SUM(COALESCE(tps.people_count, 0)) OVER ("+
+				"ORDER BY sl.seq_order DESC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW"+
+				"), 0) AS cnt "+
+				"FROM seq_levels AS sl "+
+				"LEFT JOIN team_people_by_seq AS tps ON tps.reached_seq = sl.seq_order"+
+				") "+
+				"SELECT rp.point_name, sc.cnt "+
+				"FROM route_point_seq AS rp "+
+				"JOIN seq_cumulative AS sc ON sc.seq_order = rp.seq_order "+
+				"ORDER BY rp.seq_order ASC, rp.point_name ASC",
+			routeName,
 			routeName,
 			routeName,
 		).

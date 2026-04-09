@@ -26,7 +26,6 @@ func Route(router *gin.Engine) {
 		routeBase(r, router)
 		adminGroup := r.Group("/admin")
 		{
-			adminGroup.POST("/register", api.RegisterAdminHandler())
 			adminGroup.POST("/auth", api.AuthAdminHandler())
 
 			authAdminGroup := adminGroup.Group("", midsession.Auth[int64](true))

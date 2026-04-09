@@ -1,14 +1,14 @@
 package repo
 
 import (
+	"app/comm"
 	"context"
 	"errors"
-	"app/comm"
 
+	"github.com/gin-gonic/gin"
+	"github.com/zjutjh/mygo/foundation/reply"
 	"github.com/zjutjh/mygo/ndb"
 	"github.com/zjutjh/mygo/session"
-	"github.com/zjutjh/mygo/foundation/reply"
-	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
 	adminCache "app/dao/cache/admin"
@@ -56,12 +56,6 @@ func (r *AdminRepo) FindByAccount(ctx context.Context, account string) (*model.A
 	}
 	return record, nil
 }
-
-// Create 创建管理员
-func (r *AdminRepo) Create(ctx context.Context, admin *model.Admin) error {
-	return r.query.Admin.WithContext(ctx).Create(admin)
-}
-
 
 // 从session反查id
 func GetAdminID(ctx *gin.Context) (int64, bool) {

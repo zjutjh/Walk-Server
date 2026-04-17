@@ -19,6 +19,8 @@ CREATE TABLE `teams` (
   `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   PRIMARY KEY (`id`),
   KEY `idx_teams_code` (`code`),
+  KEY `idx_teams_submit_route` (`submit`, `route_name`),
+  KEY `idx_teams_submit_wrong_route_name` (`submit`, `is_wrong_route`, `route_name`),
   KEY `idx_teams_route_point` (`route_name`, `prev_point_name`),
   KEY `idx_teams_captain` (`captain`)
 );

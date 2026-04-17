@@ -8,5 +8,7 @@ CREATE TABLE `route_edges` (
   `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   PRIMARY KEY (`id`),
   KEY `idx_route_edges_points` (`prev_point_name`, `point_name`),
+  KEY `idx_route_edges_point_route` (`point_name`, `route_name`),
+  KEY `idx_route_edges_route_prev_point` (`route_name`, `prev_point_name`, `point_name`),
   KEY `idx_route_edges_route_point_seq` (`route_name`, `point_name`, `seq_order`)
 );

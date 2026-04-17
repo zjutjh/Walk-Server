@@ -1,4 +1,3 @@
--- Active: 1773747872536@@127.0.0.1@3306@jh_db
 CREATE TABLE `peoples` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `open_id` varchar(64) NOT NULL COMMENT '微信OpenID',
@@ -24,5 +23,6 @@ CREATE TABLE `peoples` (
   UNIQUE KEY `uni_people_tel` (`tel`),
   UNIQUE KEY `uni_people_stu_id` (`stu_id`),
   KEY `idx_people_team_id` (`team_id`),
+  KEY `idx_people_team_walk_status` (`team_id`, `walk_status`),
   KEY `idx_open_id` (`open_id`)
 );

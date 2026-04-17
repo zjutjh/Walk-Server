@@ -105,7 +105,8 @@ func NeedPerm(minPerm string) gin.HandlerFunc {
 			return
 		}
 
-		currentRank, currentOK := getPermRank(admin.Permission)
+		currentPerm := strings.ToLower(strings.TrimSpace(admin.Permission))
+		currentRank, currentOK := getPermRank(currentPerm)
 		minRank, minOK := getPermRank(minPerm)
 
 		if !currentOK || !minOK {

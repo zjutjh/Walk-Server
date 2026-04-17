@@ -2,6 +2,9 @@ package repo
 
 import (
 	"context"
+	"strings"
+
+	"app/comm"
 
 	"github.com/zjutjh/mygo/ndb"
 
@@ -46,6 +49,22 @@ type WalkStatusCountRow struct {
 type PointPassedCountRow struct {
 	PointName string `gorm:"column:point_name"`
 	Count     int64  `gorm:"column:cnt"`
+}
+
+func effectiveWalkStatuses() []string {
+	return []string{
+		comm.WalkStatusInProgress,
+		comm.WalkStatusCompleted,
+		comm.WalkStatusViolated,
+	}
+}
+
+func buildInPlaceholders(size int) string {
+	if size <= 0 {
+		return ""
+	}
+
+	return strings.TrimSuffix(strings.Repeat("?,", size), ",")
 }
 
 // ListActiveRouteNames 查询启用路线，保证没有报名数据的路线也能返回 0 统计。
@@ -199,11 +218,23 @@ func (r *RouteRepo) ListRoutePoints(ctx context.Context, routeName string) ([]Ro
 
 // ListRoutePointPassedCounts 查询各点位累计到达人数（按 people 口径）。
 // 统计逻辑：
-// 1) 先按队伍在该路线内的最大 seq_order 计算 reached_seq，避免回扫/补扫导致进度回退。
-// 2) 先按 reached_seq 聚合 people_count，再用窗口函数做累计和。
+// 1) 先按队伍在该路线内的**最大** seq_order 计算 reached_seq，避免回扫/补扫导致进度回退。
+// 2) 按 reached_seq 聚合有效参与人数（inProgress/completed/violated），再用窗口函数做累计和。
 // 注意：seq_order 只在同一 route_name 下比较；不同路线存在相同 seq_order 不影响结果。
+// 另外确认了非法打卡也会进入checkins。
+// 当前默认业务假设：不考虑“进行中人员半路重组”和“向前异常打卡”场景。
 func (r *RouteRepo) ListRoutePointPassedCounts(ctx context.Context, routeName string) ([]PointPassedCountRow, error) {
 	rows := make([]PointPassedCountRow, 0)
+	statuses := effectiveWalkStatuses()
+	if len(statuses) == 0 {
+		return rows, nil
+	}
+
+	statusPlaceholders := buildInPlaceholders(len(statuses))
+	args := []any{routeName, routeName, routeName}
+	for _, status := range statuses {
+		args = append(args, status)
+	}
 
 	err := r.query.Checkin.WithContext(ctx).
 		UnderlyingDB().
@@ -223,7 +254,7 @@ func (r *RouteRepo) ListRoutePointPassedCounts(ctx context.Context, routeName st
 				"), team_people_by_seq AS ("+
 				"SELECT tr.reached_seq, COUNT(ps.id) AS people_count "+
 				"FROM team_reached AS tr "+
-				"JOIN peoples AS ps ON ps.team_id = tr.team_id "+
+				"JOIN peoples AS ps ON ps.team_id = tr.team_id AND ps.walk_status IN ("+statusPlaceholders+") "+
 				"GROUP BY tr.reached_seq"+
 				"), seq_levels AS ("+
 				"SELECT DISTINCT seq_order FROM route_point_seq"+
@@ -238,9 +269,7 @@ func (r *RouteRepo) ListRoutePointPassedCounts(ctx context.Context, routeName st
 				"FROM route_point_seq AS rp "+
 				"JOIN seq_cumulative AS sc ON sc.seq_order = rp.seq_order "+
 				"ORDER BY rp.seq_order ASC, rp.point_name ASC",
-			routeName,
-			routeName,
-			routeName,
+			args...,
 		).
 		Scan(&rows).Error
 	if err != nil {
@@ -286,16 +315,21 @@ func (r *RouteRepo) CountSingleRouteWrongPeople(ctx context.Context, routeName s
 }
 
 // CountPeopleOnSegment 统计指定路段上的人数（按 people 计数）。
+// 口径说明：仅统计“队伍当前 prev_point_name + 队伍所属 route_name”能匹配到该边的人数。
+// 若队伍发生错路且当前点不在所属路线边上，该队会暂时不计入任何标准路段，直到回到可匹配边。
+// 换句话说，就是进度在人数统计层面会短暂不更新，即使已经打卡，直到回到正确路线（报名的路线）的边上。
 func (r *RouteRepo) CountPeopleOnSegment(ctx context.Context, campus string, prevPointName string, toPointName string) (int64, error) {
 	filterQuery := TeamFilterQuery{
 		Campus:        campus,
 		PrevPointName: prevPointName,
 		ToPointName:   toPointName,
 	}
+	statuses := effectiveWalkStatuses()
 
 	var peopleCount int64
 	err := NewTeamRepo().buildTeamFilterBaseQuery(ctx, filterQuery).
 		Joins("JOIN peoples AS ps ON ps.team_id = t.id").
+		Where("ps.walk_status IN ?", statuses).
 		Count(&peopleCount).Error
 	if err != nil {
 		return 0, err
@@ -305,17 +339,25 @@ func (r *RouteRepo) CountPeopleOnSegment(ctx context.Context, campus string, pre
 }
 
 // GetCheckpointPeopleCounts 统计点位已到达与未到达人数（按 people 计数）。
+// 口径说明：已到达判断基于 teams.prev_point_name 在所属路线上的 seq_order 与目标点序比较。
+// 若队伍当前点无法映射到所属路线（如错路期间打到他路线独有点），该队会被视为“未到达”。
 func (r *RouteRepo) GetCheckpointPeopleCounts(ctx context.Context, campus string, pointName string) (passedCount int64, notArrivedCount int64, err error) {
+	statuses := effectiveWalkStatuses()
+	if len(statuses) == 0 {
+		return 0, 0, nil
+	}
+
 	baseTotal := r.query.Team.WithContext(ctx).
 		UnderlyingDB().
 		Table("teams AS t").
 		Joins("JOIN routes AS rt ON rt.name = t.route_name AND rt.is_active = ? AND rt.campus = ?", 1, campus).
 		Joins("JOIN peoples AS ps ON ps.team_id = t.id").
 		Where("t.submit = ?", 1).
+		Where("ps.walk_status IN ?", statuses).
 		Where("EXISTS (SELECT 1 FROM route_edges AS e WHERE e.route_name = t.route_name AND e.point_name = ?)", pointName)
 
 	var totalPeople int64
-	err = baseTotal.Count(&totalPeople).Error
+	err = baseTotal.Distinct("ps.id").Count(&totalPeople).Error
 	if err != nil {
 		return 0, 0, err
 	}
@@ -325,13 +367,14 @@ func (r *RouteRepo) GetCheckpointPeopleCounts(ctx context.Context, campus string
 		Table("teams AS t").
 		Joins("JOIN routes AS rt ON rt.name = t.route_name AND rt.is_active = ? AND rt.campus = ?", 1, campus).
 		Joins("JOIN peoples AS ps ON ps.team_id = t.id").
-		Joins("JOIN (SELECT route_name, MAX(seq_order) AS target_seq FROM route_edges WHERE point_name = ? GROUP BY route_name) AS target ON target.route_name = t.route_name", pointName).
-		Joins("LEFT JOIN route_edges AS curr ON curr.route_name = t.route_name AND curr.point_name = t.prev_point_name").
+		Joins("JOIN (SELECT route_name, MIN(seq_order) AS target_seq FROM route_edges WHERE point_name = ? GROUP BY route_name) AS target ON target.route_name = t.route_name", pointName).
+		Joins("LEFT JOIN (SELECT route_name, point_name, MIN(seq_order) AS seq_order FROM route_edges GROUP BY route_name, point_name) AS curr ON curr.route_name = t.route_name AND curr.point_name = t.prev_point_name").
 		Where("t.submit = ?", 1).
+		Where("ps.walk_status IN ?", statuses).
 		Where("curr.seq_order >= target.target_seq")
 
 	var passedPeople int64
-	err = basePassed.Count(&passedPeople).Error
+	err = basePassed.Distinct("ps.id").Count(&passedPeople).Error
 	if err != nil {
 		return 0, 0, err
 	}

@@ -8,5 +8,5 @@ CREATE TABLE `routes` (
   `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   PRIMARY KEY (`id`),
   UNIQUE KEY `uni_routes_name` (`name`),
-  KEY `idx_routes_campus` (`campus`)
+  KEY `idx_routes_campus_active` (`campus`, `is_active`)
 );

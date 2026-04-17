@@ -2,7 +2,7 @@ CREATE TABLE `route_edges` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `prev_point_name` varchar(64) DEFAULT NULL COMMENT '前一个点位ID',
   `point_name` varchar(64) DEFAULT NULL COMMENT '当前点位ID',
-  `route_name` varchar(64) DEFAULT NULL COMMENT '点位所属路线编号', 
+  `route_name` varchar(64) DEFAULT NULL COMMENT '点位所属路线名称', 
   `seq_order` tinyint DEFAULT '0' COMMENT '点位在路线中的顺序',
   `updated_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
   `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),

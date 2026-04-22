@@ -37,7 +37,7 @@ const (
 	TeamStatusNotStart   = "notStart"
 	TeamStatusInProgress = "inProgress"
 	TeamStatusCompleted  = "completed"
-	TeamStatusWithDrawn  = "withDrawn"
+	TeamStatusWithdrawn  = "withdrawn"
 )
 
 const (
@@ -107,7 +107,7 @@ func FormatTeamStatus(value uint8) string {
 	case 3:
 		return TeamStatusCompleted
 	case 4:
-		return TeamStatusWithDrawn
+		return TeamStatusWithdrawn
 	default:
 		return ""
 	}

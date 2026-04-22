@@ -83,9 +83,14 @@ func (h *TeamUpdateApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeTeamNameDuplicated
 	}
 
+	hashedPassword, err := hashTeamPassword(h.Request.Password)
+	if err != nil {
+		return comm.CodeUnknownError
+	}
+
 	err = teamRepo.UpdateByID(ctx, team.ID, map[string]any{
 		"name":        teamName,
-		"password":    h.Request.Password,
+		"password":    hashedPassword,
 		"slogan":      h.Request.Slogan,
 		"allow_match": boolToInt8(h.Request.AllowMatch),
 		"route_name":  h.Request.RouteName,

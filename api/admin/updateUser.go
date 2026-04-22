@@ -112,7 +112,7 @@ func (u *UpdateUserApi) Run(ctx *gin.Context) kit.Code {
 		}
 
 		if team.Status != comm.TeamStatusCompleted {
-			return txTeamRepo.UpdateByID(ctx, user.TeamID, map[string]any{"status": comm.TeamStatusWithDrawn})
+			return txTeamRepo.UpdateByID(ctx, user.TeamID, map[string]any{"status": comm.TeamStatusWithdrawn})
 		}
 
 		return nil

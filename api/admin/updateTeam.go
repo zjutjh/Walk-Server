@@ -235,12 +235,12 @@ func (u *UpdateTeamApi) handleRoutePointCheckin(ctx *gin.Context, team *model.Te
 		return &routePointCheckinResult{code: &comm.CodeTeamCheckinClosed}, nil
 	}
 
-	if err := u.handlePointCheckin(ctx, team, adminID, pointName); err != nil {
-		return nil, err
-	}
-
 	if routeEdge == nil || routeEdge.PrevPointName != team.PrevPointName {
 		return &routePointCheckinResult{code: &comm.CodePrevPointInvalid}, nil
+	}
+
+	if err := u.handlePointCheckin(ctx, team, adminID, pointName); err != nil {
+		return nil, err
 	}
 
 	return &routePointCheckinResult{}, nil

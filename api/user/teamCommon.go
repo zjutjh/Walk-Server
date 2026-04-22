@@ -1,8 +1,11 @@
 package api
 
 import (
-	"app/dao/model"
 	"errors"
+
+	"app/comm"
+	"app/dao/model"
+	"golang.org/x/crypto/bcrypt"
 )
 
 var (
@@ -26,7 +29,7 @@ type TeamInfoTeamView struct {
 	RouteName     string `json:"route_name"`
 	PrevPointName string `json:"prev_point_name"`
 	Submit        bool   `json:"submit"`
-	Status        string `json:"status" desc:"字符串枚举: notStart|inProgress|completed|withDrawn"`
+	Status        string `json:"status" desc:"字符串枚举: notStart|inProgress|completed|withdrawn"`
 	IsLost        bool   `json:"is_lost"`
 }
 
@@ -61,7 +64,7 @@ func toTeamInfoTeamView(team *model.Team) *TeamInfoTeamView {
 		RouteName:     team.RouteName,
 		PrevPointName: team.PrevPointName,
 		Submit:        team.Submit != 0,
-		Status:        team.Status,
+		Status:        normalizeTeamStatus(team.Status),
 		IsLost:        team.IsLost != 0,
 	}
 }
@@ -104,4 +107,28 @@ func boolToInt8(value bool) int8 {
 		return 1
 	}
 	return 0
+}
+
+func hashTeamPassword(raw string) (string, error) {
+	return comm.Hash(raw)
+}
+
+func verifyTeamPassword(storedPassword, rawPassword string) bool {
+	if storedPassword == rawPassword {
+		return true
+	}
+	if len(storedPassword) == 0 {
+		return false
+	}
+	if _, err := bcrypt.Cost([]byte(storedPassword)); err != nil {
+		return false
+	}
+	return comm.Verify(storedPassword, rawPassword)
+}
+
+func normalizeTeamStatus(status string) string {
+	if status == "withDrawn" {
+		return comm.TeamStatusWithdrawn
+	}
+	return status
 }

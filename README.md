@@ -75,7 +75,7 @@
 
 ## 配置说明
 
-配置模板见 [config.example.yaml]。
+配置模板见 [`conf/config.example.yaml`](conf/config.example.yaml)。
 
 最少需要确认以下配置：
 

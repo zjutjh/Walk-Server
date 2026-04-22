@@ -2,93 +2,20 @@ package middleware
 
 import (
 	"app/comm"
-	//"app/dao/model"
 	repo "app/dao/repo"
-	//"fmt"
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	//"github.com/zjutjh/mygo/config"
-
 	"github.com/zjutjh/mygo/foundation/reply"
-	//"github.com/zjutjh/mygo/session"
 )
 
-//下面两个还是放在service里面，middleawar只做鉴权
-//但是考虑到没有service，而dao的cache意义不明，还是留在这里吧（
-// func sessionCookieName() string {
-// 	name := strings.TrimSpace(config.Pick().GetString("session.name"))
-// 	if name == "" {
-// 		return "session"
-// 	}
-// 	return name
-// }
-
-// func hasSessionCookie(ctx *gin.Context) bool {
-// 	_, err := ctx.Request.Cookie(sessionCookieName())
-// 	return err == nil
-// }
-
-// // NeedLogin 严格校验当前请求必须携带有效 session cookie，避免复用历史登录态。
-// func NeedLogin() gin.HandlerFunc {
-// 	return func(ctx *gin.Context) {
-// 		if _, ok := GetAdminID(ctx); !ok {
-// 			return
-// 		}
-// 		ctx.Next()
-// 	}
-// }
-
-// 从session反查id 已经迁移到adminRepo里了，下面是原来的
-
-// func GetAdminID(ctx *gin.Context) (int64, bool) {
-// 	// if !hasSessionCookie(ctx) {
-// 	// 	reply.Fail(ctx, comm.CodeNotLoggedIn)
-// 	// 	return 0, false
-// 	// }
-// 	adminID, err := session.GetIdentity[int64](ctx)
-// 	//fmt.Println("middleware get adminID:", adminID)
-// 	//fmt.Println("err:", err)
-// 	if err != nil {
-// 		reply.Fail(ctx, comm.CodeNotLoggedIn)
-// 		return 0, false
-// 	}
-// 	return adminID, true
-// }
-
-// // GetAdmin 获取当前登录的管理员信息
-// func GetAdminInfo(ctx *gin.Context) (*model.Admin, bool) {
-// 	adminID, ok := GetAdminID(ctx)
-// 	if !ok {
-// 		return nil, false
-// 	}
-
-// 	adminRepo := repo.NewAdminRepo()
-
-// 	admin, err := adminRepo.FindByID(ctx, adminID)
-// 	if err != nil {
-// 		reply.Fail(ctx, comm.CodeUnknownError)
-// 		return nil, false
-// 	}
-// 	if admin == nil {
-// 		reply.Fail(ctx, comm.CodeNotLoggedIn)
-// 		return nil, false
-// 	}
-
-// 	return admin, true
-// }
-
-// 以下是查询权限
+// middleware 只做鉴权
 var permissionRank = map[string]int{
 	"external": 4,
 	"internal": 3,
 	"manager":  2,
 	"super":    1,
 }
-
-// func normalizePerm(perm string) string {
-// 	return strings.ToLower(strings.TrimSpace(perm))
-// }
 
 func getPermRank(perm string) (int, bool) {
 	rank, ok := permissionRank[perm]
@@ -105,7 +32,8 @@ func NeedPerm(minPerm string) gin.HandlerFunc {
 			return
 		}
 
-		currentRank, currentOK := getPermRank(admin.Permission)
+		currentPerm := strings.ToLower(strings.TrimSpace(admin.Permission))
+		currentRank, currentOK := getPermRank(currentPerm)
 		minRank, minOK := getPermRank(minPerm)
 
 		if !currentOK || !minOK {

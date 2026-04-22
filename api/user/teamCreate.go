@@ -83,6 +83,11 @@ func (h *TeamCreateApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeTeamNameDuplicated
 	}
 
+	hashedPassword, err := hashTeamPassword(h.Request.Password)
+	if err != nil {
+		return comm.CodeUnknownError
+	}
+
 	err = query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
 		txPeopleRepo := repo.NewPeopleRepoWithTx(tx)
 		txTeamRepo := repo.NewTeamRepoWithTx(tx)
@@ -90,7 +95,7 @@ func (h *TeamCreateApi) Run(ctx *gin.Context) kit.Code {
 		team := &model.Team{
 			Name:       teamName,
 			Num:        1,
-			Password:   h.Request.Password,
+			Password:   hashedPassword,
 			Slogan:     h.Request.Slogan,
 			AllowMatch: boolToInt8(h.Request.AllowMatch),
 			Captain:    openID,

@@ -61,7 +61,7 @@ type UserInfoTeam struct {
 	RouteName     string `json:"route_name"`
 	PrevPointName string `json:"prev_point_name"`
 	Submit        bool   `json:"submit"`
-	Status        string `json:"status" desc:"字符串枚举: notStart|inProgress|completed|withDrawn"`
+	Status        string `json:"status" desc:"字符串枚举: notStart|inProgress|completed|withdrawn"`
 	IsLost        bool   `json:"is_lost"`
 }
 
@@ -136,7 +136,7 @@ func toUserInfoTeam(team *model.Team) *UserInfoTeam {
 		RouteName:     team.RouteName,
 		PrevPointName: team.PrevPointName,
 		Submit:        team.Submit != 0,
-		Status:        team.Status,
+		Status:        normalizeTeamStatus(team.Status),
 		IsLost:        team.IsLost != 0,
 	}
 }

@@ -91,8 +91,8 @@ var permissionRank = map[string]int{
 // }
 
 func getPermRank(perm string) (int, bool) {
-	rank, err := permissionRank[perm]
-	return rank, err
+	rank, ok := permissionRank[perm]
+	return rank, ok
 }
 
 // NeedPerm 判断当前管理员权限是否达到传入的最低权限。

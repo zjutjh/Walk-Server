@@ -68,7 +68,7 @@ func (h *TeamJoinApi) Run(ctx *gin.Context) kit.Code {
 	if team == nil {
 		return comm.CodeDataNotFound
 	}
-	if team.Password != h.Request.Password {
+	if !verifyTeamPassword(team.Password, h.Request.Password) {
 		return comm.CodePasswordWrong
 	}
 	if team.Submit != 0 {

@@ -225,6 +225,9 @@ func (r *TeamRepo) UpdateTeamWrongRoute(ctx context.Context, teamID int64, isWro
 	_, err := t.WithContext(ctx).
 		Where(t.ID.Eq(teamID)).
 		Update(t.IsWrongRoute, isWrongRoute)
+	if err == nil {
+		_ = teamCache.DelTeamByID(ctx, teamID)
+	}
 	return err
 }
 
@@ -246,6 +249,9 @@ func (r *TeamRepo) ClearLostStatus(ctx context.Context, teamID int64) error {
 			t.IsLost.Eq(1),
 		).
 		Update(t.IsLost, 0)
+	if err == nil {
+		_ = teamCache.DelTeamByID(ctx, teamID)
+	}
 	return err
 }
 
@@ -309,7 +315,13 @@ func (r *TeamRepo) UpdatePrevPointName(ctx context.Context, teamID int64, pointN
 	t := r.query.Team
 	_, err := t.WithContext(ctx).
 		Where(t.ID.Eq(teamID)).
-		Update(t.PrevPointName, pointName)
+		Updates(map[string]any{
+			"prev_point_name": pointName,
+			"time":            time.Now(),
+		})
+	if err == nil {
+		_ = teamCache.DelTeamByID(ctx, teamID)
+	}
 	return err
 }
 
@@ -436,6 +448,9 @@ func (r *TeamRepo) UpdateTeamLostStatus(ctx context.Context, teamID int64, isLos
 		Updates(m)
 	if tx.Error != nil {
 		return false, tx.Error
+	}
+	if tx.RowsAffected > 0 {
+		_ = teamCache.DelTeamByID(ctx, teamID)
 	}
 
 	return tx.RowsAffected > 0, nil

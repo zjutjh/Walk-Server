@@ -13,6 +13,7 @@ import (
 	"github.com/zjutjh/mygo/swagger"
 
 	"app/comm"
+	adminCache "app/dao/cache/admin"
 	repo "app/dao/repo"
 )
 
@@ -47,23 +48,39 @@ func (a *AuthAdminApi) Run(ctx *gin.Context) kit.Code {
 	account := strings.TrimSpace(a.Request.Body.Account)
 	rawPassword := a.Request.Body.Password
 
+	blocked, err := adminCache.IsAdminLoginBlocked(ctx, account)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("检查管理员登录限速失败")
+	} else if blocked {
+		return comm.CodeAdminLoginTooFrequently
+	}
+
 	admin, err := adminRepo.FindByAccount(ctx, account)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询管理员失败")
 		return comm.CodeDatabaseError
 	}
 	if admin == nil {
+		if err := adminCache.IncrementAdminLoginFail(ctx, account); err != nil {
+			nlog.Pick().WithContext(ctx).WithError(err).Warn("记录管理员登录失败次数失败")
+		}
 		return comm.CodeAccountOrPasswordError
 	}
 
 	// 校验密码
 	if !comm.Verify(admin.Password, rawPassword) {
+		if err := adminCache.IncrementAdminLoginFail(ctx, account); err != nil {
+			nlog.Pick().WithContext(ctx).WithError(err).Warn("记录管理员登录失败次数失败")
+		}
 		return comm.CodeAccountOrPasswordError
 	}
 	err = session.SetIdentity(ctx, admin.ID)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("写入管理员登录态失败")
 		return comm.CodeMiddlewareServiceError
+	}
+	if err := adminCache.ClearAdminLoginFail(ctx, account); err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("清理管理员登录失败次数失败")
 	}
 
 	a.Response = AuthAdminApiResponse{

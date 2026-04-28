@@ -20,8 +20,8 @@ const (
 
 // codeType枚举
 const (
-	CodeChekin = "checkin"
-	CodeTeam   = "team"
+	CodeCheckin = "checkin"
+	CodeTeam    = "team"
 )
 
 // admin_permission枚举
@@ -62,6 +62,21 @@ const (
 	TeamRoleMember  = "member"
 	TeamRoleCaptain = "captain"
 )
+
+func IsValidWalkStatus(status string) bool {
+	switch status {
+	case WalkStatusNotStart,
+		WalkStatusPending,
+		WalkStatusAbandoned,
+		WalkStatusInProgress,
+		WalkStatusWithdrawn,
+		WalkStatusViolated,
+		WalkStatusCompleted:
+		return true
+	default:
+		return false
+	}
+}
 
 func ParseGender(raw string) (int8, bool) {
 	switch raw {

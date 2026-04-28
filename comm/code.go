@@ -58,4 +58,5 @@ var (
 	CodePrevPointInvalid       = kit.NewCode(30027, "上一签到点并非路线前序点位")
 	CodeWrongRouteAlert        = kit.NewCode(30028, "该团队路线走错，请立即提醒")
 	CodeDuplicateCheckin       = kit.NewCode(30031, "该点位已打卡，请勿重复打卡")
+	CodeAdminLoginTooFrequently = kit.NewCode(30032, "登录失败次数过多，请稍后再试")
 )

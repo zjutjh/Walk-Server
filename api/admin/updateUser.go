@@ -41,6 +41,10 @@ type UpdateUserApiResponse struct {
 }
 
 func (u *UpdateUserApi) Run(ctx *gin.Context) kit.Code {
+	if !comm.IsValidWalkStatus(u.Request.Body.Status) {
+		return comm.CodeParameterInvalid
+	}
+
 	peopleRepo := repo.NewPeopleRepo()
 
 	user, err := peopleRepo.FindPeopleByID(ctx, int64(u.Request.Body.UserID))

@@ -179,7 +179,7 @@ func (u *UpdateTeamApi) resolveTeam(ctx *gin.Context, admin *model.Admin) (*mode
 			return nil, &comm.CodeParameterInvalid
 		}
 		team, err = teamRepo.FindTeamByID(ctx, teamID)
-	case comm.CodeChekin:
+	case comm.CodeCheckin:
 		team, err = teamRepo.FindByCode(ctx, content)
 	default:
 		return nil, &comm.CodeParameterInvalid

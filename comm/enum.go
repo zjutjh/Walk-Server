@@ -21,6 +21,7 @@ const (
 // codeType枚举
 const (
 	CodeChekin = "checkin"
+	CodeCheckin = CodeChekin
 	CodeTeam   = "team"
 )
 
@@ -62,6 +63,96 @@ const (
 	TeamRoleMember  = "member"
 	TeamRoleCaptain = "captain"
 )
+
+func IsValidWalkStatus(status string) bool {
+	switch status {
+	case WalkStatusNotStart,
+		WalkStatusPending,
+		WalkStatusAbandoned,
+		WalkStatusInProgress,
+		WalkStatusWithdrawn,
+		WalkStatusViolated,
+		WalkStatusCompleted:
+		return true
+	default:
+		return false
+	}
+}
+
+func IsValidRole(role string) bool {
+	switch role {
+	case RoleUnbind, RoleCaptain, RoleMember:
+		return true
+	default:
+		return false
+	}
+}
+
+func IsValidCodeType(codeType string) bool {
+	switch codeType {
+	case CodeChekin, CodeTeam:
+		return true
+	default:
+		return false
+	}
+}
+
+func IsValidAdminPermission(permission string) bool {
+	switch permission {
+	case AdminPermissionSuper,
+		AdminPermissionManager,
+		AdminPermissionInternal,
+		AdminPermissionExternal:
+		return true
+	default:
+		return false
+	}
+}
+
+func IsValidTeamStatus(status string) bool {
+	switch status {
+	case TeamStatusNotStart, TeamStatusInProgress, TeamStatusCompleted, TeamStatusWithdrawn:
+		return true
+	default:
+		return false
+	}
+}
+
+func IsValidGender(gender string) bool {
+	switch gender {
+	case GenderMale, GenderFemale:
+		return true
+	default:
+		return false
+	}
+}
+
+func IsValidCampus(campus string) bool {
+	switch campus {
+	case CampusChaohui, CampusPingfeng, CampusMoganshan:
+		return true
+	default:
+		return false
+	}
+}
+
+func IsValidMemberType(memberType string) bool {
+	switch memberType {
+	case MemberTypeStudent, MemberTypeTeacher, MemberTypeAlumnus:
+		return true
+	default:
+		return false
+	}
+}
+
+func IsValidTeamRole(role string) bool {
+	switch role {
+	case TeamRoleNone, TeamRoleMember, TeamRoleCaptain:
+		return true
+	default:
+		return false
+	}
+}
 
 func ParseGender(raw string) (int8, bool) {
 	switch raw {

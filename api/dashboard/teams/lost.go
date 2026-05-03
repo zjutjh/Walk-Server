@@ -4,7 +4,6 @@ import (
 	"errors"
 	"reflect"
 	"runtime"
-	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -36,8 +35,8 @@ type LostApi struct {
 
 type LostApiRequest struct {
 	Body struct {
-		TeamId string `json:"team_id" desc:"队伍ID"`
-		IsLost bool   `json:"is_lost" desc:"是否失联"`
+		TeamId int64 `json:"team_id" desc:"队伍ID"`
+		IsLost bool  `json:"is_lost" desc:"是否失联"`
 	}
 }
 
@@ -45,8 +44,8 @@ type LostApiResponse struct{}
 
 // Run Api业务逻辑执行点
 func (l *LostApi) Run(ctx *gin.Context) kit.Code {
-	teamID, err := strconv.ParseInt(l.Request.Body.TeamId, 10, 64)
-	if err != nil || teamID <= 0 {
+	teamID := l.Request.Body.TeamId
+	if teamID <= 0 {
 		return comm.CodeParameterInvalid
 	}
 

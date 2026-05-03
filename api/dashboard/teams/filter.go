@@ -52,7 +52,7 @@ type FilterApiResponse struct {
 }
 
 type TeamBriefInfo struct {
-	TeamId        string `json:"team_id" desc:"队伍ID"`
+	TeamId        int64 `json:"team_id" desc:"队伍ID"`
 	CaptainName   string `json:"captain_name" desc:"队长姓名"`
 	CaptainPhone  string `json:"captain_phone" desc:"队长联系电话"`
 	PrevPointName string `json:"prev_point_name" desc:"最新经过点位唯一name"`
@@ -162,7 +162,7 @@ func (f *FilterApi) Run(ctx *gin.Context) kit.Code {
 
 	for _, team := range teams {
 		item := TeamBriefInfo{
-			TeamId:        strconv.FormatInt(team.TeamID, 10),
+			TeamId:        team.TeamID,
 			CaptainName:   team.CaptainName,
 			CaptainPhone:  team.CaptainPhone,
 			PrevPointName: team.PrevPointName,

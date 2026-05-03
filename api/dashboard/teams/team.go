@@ -5,7 +5,7 @@ import (
 	"errors"
 	"reflect"
 	"runtime"
-	"strconv"
+	//"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -48,12 +48,12 @@ type TeamApi struct {
 
 type TeamApiRequest struct {
 	Query struct {
-		TeamId string `form:"team_id" desc:"队伍ID"`
+		TeamId int `form:"team_id" desc:"队伍ID"`
 	}
 }
 
 type TeamApiResponse struct {
-	TeamId        int          `json:"team_id" desc:"队伍ID（保留）"`
+	TeamId        int64          `json:"team_id" desc:"队伍ID（保留）"`
 	Members       []MemberInfo `json:"members" desc:"队员信息列表"`
 	PrevPointName string       `json:"prev_point_name" desc:"最新经过点位唯一name"`
 	PrevPointTime string       `json:"prev_point_time" desc:"经过点位时间"`
@@ -67,12 +67,10 @@ func (t *TeamApi) Run(ctx *gin.Context) kit.Code {
 	// Key: walk:dashboard:teams:info:{teamId}
 	// Type: String(JSON)
 	// TTL: 60s
-	teamID, err := strconv.ParseInt(strings.TrimSpace(t.Request.Query.TeamId), 10, 64)
-	if err != nil || teamID <= 0 {
+	teamID := int64(t.Request.Query.TeamId)
+	if teamID <= 0 {
 		return comm.CodeParameterInvalid
 	}
-
-	// 先走缓存，命中则直接返回。
 	cached, found, err := teamCache.GetTeamInfo(ctx, teamID)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("读取队伍详情缓存失败")
@@ -105,7 +103,7 @@ func (t *TeamApi) Run(ctx *gin.Context) kit.Code {
 	}
 
 
-	t.Response.TeamId = int(team.ID)
+	t.Response.TeamId = int64(team.ID)
 	t.Response.PrevPointName = team.PrevPointName
 	t.Response.RouteName = team.RouteName
 	t.Response.IsLost = team.IsLost == 1

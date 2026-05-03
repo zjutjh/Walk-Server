@@ -85,16 +85,16 @@ INSERT INTO `admins` (`id`, `open_id`, `name`, `account`, `password`, `permissio
 VALUES
   (1, 'admin_open_pf_qd',   '屏峰起点管理员',   'pf_qd_admin',   '$2a$10$2vPdGh395d6h95FmZGEBdOCfwC2bdTWOJNq/tvM2tsa519ZBxm2gS', 'super', 'qd',      'pf'),
   (2, 'admin_open_pf_jls',  '屏峰金莲寺管理员', 'pf_jls_admin',  '$2a$10$2vPdGh395d6h95FmZGEBdOCfwC2bdTWOJNq/tvM2tsa519ZBxm2gS', 'super', 'jls',     'pf'),
-  (3, 'admin_open_pf_lmk',  '屏峰老母坑管理员', 'pf_lmk_admin',  '$2a$10$2vPdGh395d6h95FmZGEBdOCfwC2bdTWOJNq/tvM2tsa519ZBxm2gS', 'super', 'lmk',     'pf'),
-  (4, 'admin_open_pf_cmq',  '屏峰岔门前管理员', 'pf_cmq_admin',  '$2a$10$2vPdGh395d6h95FmZGEBdOCfwC2bdTWOJNq/tvM2tsa519ZBxm2gS', 'super', 'cmq',     'pf'),
-  (5, 'admin_open_pf_yst',  '屏峰云栖亭管理员', 'pf_yst_admin',  '$2a$10$2vPdGh395d6h95FmZGEBdOCfwC2bdTWOJNq/tvM2tsa519ZBxm2gS', 'super', 'yst',     'pf'),
-  (6, 'admin_open_pf_ljs',  '屏峰岔路管理员',   'pf_ljs_admin',  '$2a$10$2vPdGh395d6h95FmZGEBdOCfwC2bdTWOJNq/tvM2tsa519ZBxm2gS', 'super', 'ljs',     'pf'),
-  (7, 'admin_open_pf_pfs',  '屏峰补给点管理员', 'pf_pfs_admin',  '$2a$10$JPCw.G1REFcorkD50IaoP.o0n8ZWv9vJfRkdVKwG9SVPodTTzVuba', 'super', 'pfs',     'pf'),
-  (8, 'admin_open_pf_dls',  '屏峰大礼寺管理员', 'pf_dls_admin',  '$2a$10$JPCw.G1REFcorkD50IaoP.o0n8ZWv9vJfRkdVKwG9SVPodTTzVuba', 'super', 'dls',     'pf'),
-  (9, 'admin_open_pf_pfsy', '屏峰终段管理员',   'pf_pfsy_admin', '$2a$10$JPCw.G1REFcorkD50IaoP.o0n8ZWv9vJfRkdVKwG9SVPodTTzVuba', 'super', 'pfsy',    'pf'),
+  (3, 'admin_open_pf_lmk',  '屏峰龙门坎管理员', 'pf_lmk_admin',  '$2a$10$2vPdGh395d6h95FmZGEBdOCfwC2bdTWOJNq/tvM2tsa519ZBxm2gS', 'super', 'lmk',     'pf'),
+  (4, 'admin_open_pf_cmq',  '屏峰慈母桥管理员', 'pf_cmq_admin',  '$2a$10$2vPdGh395d6h95FmZGEBdOCfwC2bdTWOJNq/tvM2tsa519ZBxm2gS', 'super', 'cmq',     'pf'),
+  (5, 'admin_open_pf_yst',  '屏峰元帅亭管理员', 'pf_yst_admin',  '$2a$10$2vPdGh395d6h95FmZGEBdOCfwC2bdTWOJNq/tvM2tsa519ZBxm2gS', 'super', 'yst',     'pf'),
+  (6, 'admin_open_pf_ljs',  '屏峰老焦山管理员',   'pf_ljs_admin',  '$2a$10$2vPdGh395d6h95FmZGEBdOCfwC2bdTWOJNq/tvM2tsa519ZBxm2gS', 'super', 'ljs',     'pf'),
+  (7, 'admin_open_pf_pfs',  '屏峰山管理员', 'pf_pfs_admin',  '$2a$10$JPCw.G1REFcorkD50IaoP.o0n8ZWv9vJfRkdVKwG9SVPodTTzVuba', 'super',  'pfs',     'pf'),
+  (8, 'admin_open_pf_dls',  '屏峰大岭山管理员', 'pf_dls_admin',  '$2a$10$JPCw.G1REFcorkD50IaoP.o0n8ZWv9vJfRkdVKwG9SVPodTTzVuba', 'super', 'dls',     'pf'),
+  (9, 'admin_open_pf_pfsy', '屏峰善院管理员',   'pf_pfsy_admin', '$2a$10$JPCw.G1REFcorkD50IaoP.o0n8ZWv9vJfRkdVKwG9SVPodTTzVuba', 'super', 'pfsy',    'pf'),
   (10,'admin_open_pf_zd',   '屏峰终点管理员',   'pf_zd_admin',   '$2a$10$JPCw.G1REFcorkD50IaoP.o0n8ZWv9vJfRkdVKwG9SVPodTTzVuba', 'super', 'zd',      'pf'),
   (11,'admin_open_mgs_mid', '莫干山中段管理员', 'mgs_mid_admin', '$2a$10$Pk6oCYHux6ebsLaW.zLLEO/TwE4xDVZr/iNNoqCiUr6QGoTn4BlWS', 'super', 'mgs_mid', 'mgs'),
-  (12,'admin_open_zh_mid',  '朝晖超级管理员',   'zh_mid_admin',  '$2a$10$9g17pt.K/B1WX6gzfXzB7uker9GNHJuqCNYJsiwWSslmEmtN3.DiW', 'super', 'zh_mid',  'zh')
+  (12,'admin_open_zh_mid',  '朝晖超级管理员',   'zh_mid_admin',  '$2a$10$9g17pt.K/B1WX6gzfXzB7uker9GNHJuqCNYJsiwWSslmEmtN3.DiW', 'super',    'zh_mid',  'zh')
 ON DUPLICATE KEY UPDATE
   `open_id` = VALUES(`open_id`),
   `name` = VALUES(`name`),

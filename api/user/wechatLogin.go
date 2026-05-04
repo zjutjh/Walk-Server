@@ -86,7 +86,7 @@ func hfWechatLogin(ctx *gin.Context) {
 	code := api.Run(ctx)
 	if !ctx.IsAborted() {
 		if code == comm.CodeOK {
-			reply.Success(ctx, api.Response)
+			reply.Reply(ctx, comm.CodeOK, api.Response)
 		} else {
 			reply.Fail(ctx, code)
 		}

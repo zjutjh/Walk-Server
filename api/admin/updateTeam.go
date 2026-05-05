@@ -235,12 +235,16 @@ func (u *UpdateTeamApi) handleRoutePointCheckin(ctx *gin.Context, team *model.Te
 		return &routePointCheckinResult{code: &comm.CodeTeamCheckinClosed}, nil
 	}
 
-	if routeEdge == nil || routeEdge.PrevPointName != team.PrevPointName {
+	if routeEdge == nil {
 		return &routePointCheckinResult{code: &comm.CodePrevPointInvalid}, nil
 	}
 
 	if err := u.handlePointCheckin(ctx, team, adminID, pointName); err != nil {
 		return nil, err
+	}
+
+	if routeEdge.PrevPointName != team.PrevPointName {
+		return &routePointCheckinResult{code: &comm.CodePrevPointInvalid}, nil
 	}
 
 	return &routePointCheckinResult{}, nil
@@ -292,7 +296,7 @@ func updateTeam(ctx *gin.Context) {
 	code := api.Run(ctx)
 	if !ctx.IsAborted() {
 		if code == comm.CodeOK {
-			reply.Success(ctx, api.Response)
+			reply.Reply(ctx, comm.CodeOK, api.Response)
 		} else {
 			reply.Fail(ctx, code)
 		}

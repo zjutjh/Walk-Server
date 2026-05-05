@@ -30,6 +30,7 @@ func Route(router *gin.Engine) {
 
 			authAdminGroup := adminGroup.Group("", midsession.Auth[int64](true))
 			{
+				authAdminGroup.POST("/logout", api.LogoutAdminHandler())
 				authAdminGroup.POST("/destination/confirm", api.ConfirmDestinationHandler())
 
 				userGroup := authAdminGroup.Group("/user")

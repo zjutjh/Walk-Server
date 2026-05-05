@@ -41,6 +41,7 @@ type TeamResponse struct {
 	Name          string `json:"name" desc:"队名"`
 	PrevPointName string `json:"prev_point_name" desc:"点位名称"`
 	RouteName     string `json:"route_name" desc:"路线名称"`
+	Status        string `json:"status" desc:"队伍状态"`
 }
 
 type MemberResponse struct {
@@ -64,18 +65,6 @@ func (g *GetTeamStatusApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeTeamNotFound
 	}
 
-	prevCheckinPointName := ""
-	if team.PrevPointName != "" {
-		routeEdge, findErr := teamRepo.FindRouteEdge(ctx, team.RouteName, team.PrevPointName)
-		if findErr != nil {
-			nlog.Pick().WithContext(ctx).WithError(findErr).Error("查询队伍上一签到点失败")
-			return comm.CodeDatabaseError
-		}
-		if routeEdge != nil {
-			prevCheckinPointName = routeEdge.PrevPointName
-		}
-	}
-
 	members, err := peopleRepo.FindPeopleByTeamID(ctx, int64(g.Request.Query.TeamID))
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询队伍成员失败")
@@ -84,8 +73,9 @@ func (g *GetTeamStatusApi) Run(ctx *gin.Context) kit.Code {
 
 	g.Response.Team = TeamResponse{
 		Name:          team.Name,
-		PrevPointName: prevCheckinPointName,
+		PrevPointName: team.PrevPointName,
 		RouteName:     team.RouteName,
+		Status:        team.Status,
 	}
 
 	g.Response.Members = make([]MemberResponse, 0, len(members))

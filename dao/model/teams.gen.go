@@ -14,20 +14,20 @@ const TableNameTeam = "teams"
 type Team struct {
 	ID            int64     `gorm:"column:id;primaryKey;autoIncrement:true;comment:队伍ID" json:"id"`                                         // 队伍ID
 	Name          string    `gorm:"column:name;not null;comment:队伍名称" json:"name"`                                                          // 队伍名称
-	Num           int8      `gorm:"column:num;not null;default:1;comment:团队人数" json:"num"`                                                  // 团队人数
+	Num           uint8     `gorm:"column:num;not null;default:1;comment:团队人数" json:"num"`                                                  // 团队人数
 	Password      string    `gorm:"column:password;not null;comment:团队加入密码" json:"password"`                                                // 团队加入密码
 	Slogan        string    `gorm:"column:slogan;comment:团队标语" json:"slogan"`                                                               // 团队标语
-	AllowMatch    int8      `gorm:"column:allow_match;not null;comment:是否允许随机匹配" json:"allow_match"`                                        // 是否允许随机匹配
+	AllowMatch    bool      `gorm:"column:allow_match;not null;comment:是否允许随机匹配" json:"allow_match"`                                        // 是否允许随机匹配
 	Captain       string    `gorm:"column:captain;not null;comment:队长OpenID" json:"captain"`                                                // 队长OpenID
-	Submit        int8      `gorm:"column:submit;not null;comment:是否已提交报名" json:"submit"`                                                   // 是否已提交报名
+	Submit        bool      `gorm:"column:submit;not null;comment:是否已提交报名" json:"submit"`                                                   // 是否已提交报名
 	RouteName     string    `gorm:"column:route_name;comment:团队所属路线" json:"route_name"`                                                     // 团队所属路线
 	PrevPointName string    `gorm:"column:prev_point_name;comment:上一经过点位ID" json:"prev_point_name"`                                         // 上一经过点位ID
 	Status        string    `gorm:"column:status;not null;comment:活动状态(notStart未出发，inProgress进行中，completed已完成，withdrawn已下撤)" json:"status"` // 活动状态(notStart未出发，inProgress进行中，completed已完成，withdrawn已下撤)
-	IsWrongRoute  int8      `gorm:"column:is_wrong_route;not null;comment:是否走错" json:"is_wrong_route"`                                      // 是否走错
-	IsReunite     int8      `gorm:"column:is_reunite;not null;comment:是否重组" json:"is_reunite"`                                              // 是否重组
+	IsWrongRoute  bool      `gorm:"column:is_wrong_route;not null;comment:是否走错" json:"is_wrong_route"`                                      // 是否走错
+	IsReunite     bool      `gorm:"column:is_reunite;not null;comment:是否重组" json:"is_reunite"`                                              // 是否重组
 	Code          string    `gorm:"column:code;comment:签到二维码绑定码" json:"code"`                                                               // 签到二维码绑定码
 	Time          time.Time `gorm:"column:time;comment:队伍状态更新时间" json:"time"`                                                               // 队伍状态更新时间
-	IsLost        int8      `gorm:"column:is_lost;not null;comment:是否失联" json:"is_lost"`                                                    // 是否失联
+	IsLost        bool      `gorm:"column:is_lost;not null;comment:是否失联" json:"is_lost"`                                                    // 是否失联
 	UpdatedAt     time.Time `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP(3)" json:"updated_at"`
 	CreatedAt     time.Time `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP(3)" json:"created_at"`
 }

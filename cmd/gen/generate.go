@@ -26,7 +26,7 @@ var tables = []string{
 
 func main() {
 	command.Execute(
-		register.Boot,
+		register.GenerateBoot,
 		func(c *cobra.Command) {},
 		func(cmd *cobra.Command, args []string) error { return nil },
 	)
@@ -42,6 +42,9 @@ func main() {
 			columnTypeName, ok := columnType.ColumnType()
 			if ok && strings.Contains(strings.ToLower(columnTypeName), "unsigned") {
 				return "uint8"
+			}
+			if ok && strings.Contains(strings.ToLower(columnTypeName), "tinyint(1)") {
+				return "bool"
 			}
 			return "int8"
 		},

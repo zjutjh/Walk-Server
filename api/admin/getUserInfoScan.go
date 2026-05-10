@@ -59,7 +59,7 @@ func (g *GetUserInfoByScanApi) Run(ctx *gin.Context) kit.Code {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询队伍信息失败")
 		return comm.CodeDatabaseError
 	}
-	if team == nil || team.Submit != 1 {
+	if team == nil || !team.Submit {
 		return comm.CodeUserNoQuota
 	}
 

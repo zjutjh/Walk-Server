@@ -71,7 +71,7 @@ func (h *TeamUpdateApi) Run(ctx *gin.Context) kit.Code {
 	if team == nil {
 		return comm.CodeDataNotFound
 	}
-	if team.Submit != 0 {
+	if team.Submit {
 		return comm.CodeTeamSubmitted
 	}
 
@@ -92,7 +92,7 @@ func (h *TeamUpdateApi) Run(ctx *gin.Context) kit.Code {
 		"name":        teamName,
 		"password":    hashedPassword,
 		"slogan":      h.Request.Slogan,
-		"allow_match": boolToInt8(h.Request.AllowMatch),
+		"allow_match": h.Request.AllowMatch,
 		"route_name":  h.Request.RouteName,
 	})
 	if err != nil {

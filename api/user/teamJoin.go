@@ -71,11 +71,11 @@ func (h *TeamJoinApi) Run(ctx *gin.Context) kit.Code {
 	if !verifyTeamPassword(team.Password, h.Request.Password) {
 		return comm.CodePasswordWrong
 	}
-	if team.Submit != 0 {
+	if team.Submit {
 		return comm.CodeTeamSubmitted
 	}
 	maxTeamSize := 6
-	if comm.BizConf != nil && comm.BizConf.MaxTeamSize > 0 {
+	if comm.BizConf.MaxTeamSize > 0 {
 		maxTeamSize = comm.BizConf.MaxTeamSize
 	}
 	if int(team.Num) >= maxTeamSize {
@@ -111,7 +111,7 @@ func (h *TeamJoinApi) Run(ctx *gin.Context) kit.Code {
 			if latestTeam == nil {
 				return comm.CodeDataNotFound
 			}
-			if latestTeam.Submit != 0 {
+			if latestTeam.Submit {
 				return comm.CodeTeamSubmitted
 			}
 			if int(latestTeam.Num) >= maxTeamSize {

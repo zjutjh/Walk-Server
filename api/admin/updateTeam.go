@@ -263,7 +263,7 @@ func (u *UpdateTeamApi) handleWrongRoutePointCheckin(ctx *gin.Context, team *mod
 		if err := txTeamRepo.CreateCheckin(ctx, adminID, team.ID, pointName, team.RouteName); err != nil {
 			return err
 		}
-		if err := txTeamRepo.UpdateTeamWrongRoute(ctx, team.ID, 1); err != nil {
+		if err := txTeamRepo.UpdateTeamWrongRoute(ctx, team.ID, true); err != nil {
 			return err
 		}
 		return txTeamRepo.CreateWrongRouteRecord(ctx, team.ID, team.RouteName, wrongRouteName, adminID)

@@ -31,7 +31,7 @@ func newPoint(db *gorm.DB, opts ...gen.DOOption) point {
 	_point.ID = field.NewInt64(tableName, "id")
 	_point.CpID = field.NewInt64(tableName, "cp_id")
 	_point.Name = field.NewString(tableName, "name")
-	_point.IsActive = field.NewInt8(tableName, "is_active")
+	_point.IsActive = field.NewBool(tableName, "is_active")
 	_point.UpdatedAt = field.NewTime(tableName, "updated_at")
 	_point.CreatedAt = field.NewTime(tableName, "created_at")
 
@@ -47,7 +47,7 @@ type point struct {
 	ID        field.Int64
 	CpID      field.Int64  // 校区内点位编号(可跨校区重复)
 	Name      field.String // 全局唯一点位名称,拼音首字母,如jls（金莲寺）
-	IsActive  field.Int8   // 是否启用
+	IsActive  field.Bool   // 是否启用
 	UpdatedAt field.Time
 	CreatedAt field.Time
 
@@ -69,7 +69,7 @@ func (p *point) updateTableName(table string) *point {
 	p.ID = field.NewInt64(table, "id")
 	p.CpID = field.NewInt64(table, "cp_id")
 	p.Name = field.NewString(table, "name")
-	p.IsActive = field.NewInt8(table, "is_active")
+	p.IsActive = field.NewBool(table, "is_active")
 	p.UpdatedAt = field.NewTime(table, "updated_at")
 	p.CreatedAt = field.NewTime(table, "created_at")
 

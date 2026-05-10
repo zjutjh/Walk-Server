@@ -15,7 +15,7 @@ type Point struct {
 	ID        int64     `gorm:"column:id;primaryKey;autoIncrement:true" json:"id"`
 	CpID      int64     `gorm:"column:cp_id;not null;comment:校区内点位编号(可跨校区重复)" json:"cp_id"` // 校区内点位编号(可跨校区重复)
 	Name      string    `gorm:"column:name;comment:全局唯一点位名称,拼音首字母,如jls（金莲寺）" json:"name"`   // 全局唯一点位名称,拼音首字母,如jls（金莲寺）
-	IsActive  int8      `gorm:"column:is_active;default:1;comment:是否启用" json:"is_active"`   // 是否启用
+	IsActive  bool      `gorm:"column:is_active;default:1;comment:是否启用" json:"is_active"`   // 是否启用
 	UpdatedAt time.Time `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP(3)" json:"updated_at"`
 	CreatedAt time.Time `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP(3)" json:"created_at"`
 }

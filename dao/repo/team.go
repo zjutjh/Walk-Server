@@ -48,7 +48,7 @@ type TeamFilterRow struct {
 	PrevPointName string       `gorm:"column:prev_point_name"`
 	PrevPointTime sql.NullTime `gorm:"column:prev_point_time"`
 	RouteName     string       `gorm:"column:route_name"`
-	IsLost        int8         `gorm:"column:is_lost"`
+	IsLost        bool         `gorm:"column:is_lost"`
 }
 
 func NewTeamRepo() *TeamRepo {
@@ -220,7 +220,7 @@ func (r *TeamRepo) CreateCheckin(ctx context.Context, adminID, teamID int64, poi
 	return r.query.Checkin.WithContext(ctx).Create(checkin)
 }
 
-func (r *TeamRepo) UpdateTeamWrongRoute(ctx context.Context, teamID int64, isWrongRoute int8) error {
+func (r *TeamRepo) UpdateTeamWrongRoute(ctx context.Context, teamID int64, isWrongRoute bool) error {
 	t := r.query.Team
 	_, err := t.WithContext(ctx).
 		Where(t.ID.Eq(teamID)).
@@ -246,9 +246,9 @@ func (r *TeamRepo) ClearLostStatus(ctx context.Context, teamID int64) error {
 	_, err := t.WithContext(ctx).
 		Where(
 			t.ID.Eq(teamID),
-			t.IsLost.Eq(1),
+			t.IsLost.Is(true),
 		).
-		Update(t.IsLost, 0)
+		Update(t.IsLost, false)
 	if err == nil {
 		_ = teamCache.DelTeamByID(ctx, teamID)
 	}
@@ -428,13 +428,8 @@ func (r *TeamRepo) buildTeamFilterBaseQuery(ctx context.Context, query TeamFilte
 }
 
 func (r *TeamRepo) UpdateTeamLostStatus(ctx context.Context, teamID int64, isLost bool, statusUpdatedAt time.Time) (bool, error) {
-	isLostVal := int8(0)
-	if isLost {
-		isLostVal = 1
-	}
-
 	m := map[string]interface{}{
-		"is_lost": isLostVal,
+		"is_lost": isLost,
 	}
 
 	if !isLost {

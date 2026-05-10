@@ -94,7 +94,7 @@ func hfWechatLogin(ctx *gin.Context) {
 }
 
 func fetchWechatOpenID(ctx context.Context, code string) (string, error) {
-	if comm.BizConf == nil || comm.BizConf.WechatAppID == "" || comm.BizConf.WechatSecret == "" {
+	if comm.BizConf.WechatAppID == "" || comm.BizConf.WechatSecret == "" {
 		return "", fmt.Errorf("wechat config missing")
 	}
 	endpoint := "https://api.weixin.qq.com/sns/jscode2session"

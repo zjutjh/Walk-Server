@@ -16,7 +16,7 @@ type Route struct {
 	Name      string    `gorm:"column:name;not null;comment:路线代码，如pf-half, pf-full等" json:"name"`  // 路线代码，如pf-half, pf-full等
 	PointName string    `gorm:"column:point_name;not null;comment:路线名称，如屏峰半程" json:"point_name"`   // 路线名称，如屏峰半程
 	Campus    string    `gorm:"column:campus;not null;comment:校区(zh朝晖,pf屏峰,mgs莫干山)" json:"campus"` // 校区(zh朝晖,pf屏峰,mgs莫干山)
-	IsActive  int8      `gorm:"column:is_active;not null;default:1;comment:是否启用" json:"is_active"` // 是否启用
+	IsActive  bool      `gorm:"column:is_active;not null;default:1;comment:是否启用" json:"is_active"` // 是否启用
 	UpdatedAt time.Time `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP(3)" json:"updated_at"`
 	CreatedAt time.Time `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP(3)" json:"created_at"`
 }

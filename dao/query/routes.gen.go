@@ -32,7 +32,7 @@ func newRoute(db *gorm.DB, opts ...gen.DOOption) route {
 	_route.Name = field.NewString(tableName, "name")
 	_route.PointName = field.NewString(tableName, "point_name")
 	_route.Campus = field.NewString(tableName, "campus")
-	_route.IsActive = field.NewInt8(tableName, "is_active")
+	_route.IsActive = field.NewBool(tableName, "is_active")
 	_route.UpdatedAt = field.NewTime(tableName, "updated_at")
 	_route.CreatedAt = field.NewTime(tableName, "created_at")
 
@@ -49,7 +49,7 @@ type route struct {
 	Name      field.String // 路线代码，如pf-half, pf-full等
 	PointName field.String // 路线名称，如屏峰半程
 	Campus    field.String // 校区(zh朝晖,pf屏峰,mgs莫干山)
-	IsActive  field.Int8   // 是否启用
+	IsActive  field.Bool   // 是否启用
 	UpdatedAt field.Time
 	CreatedAt field.Time
 
@@ -72,7 +72,7 @@ func (r *route) updateTableName(table string) *route {
 	r.Name = field.NewString(table, "name")
 	r.PointName = field.NewString(table, "point_name")
 	r.Campus = field.NewString(table, "campus")
-	r.IsActive = field.NewInt8(table, "is_active")
+	r.IsActive = field.NewBool(table, "is_active")
 	r.UpdatedAt = field.NewTime(table, "updated_at")
 	r.CreatedAt = field.NewTime(table, "created_at")
 

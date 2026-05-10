@@ -97,13 +97,13 @@ func (h *TeamCreateApi) Run(ctx *gin.Context) kit.Code {
 			Num:        1,
 			Password:   hashedPassword,
 			Slogan:     h.Request.Slogan,
-			AllowMatch: boolToInt8(h.Request.AllowMatch),
+			AllowMatch: h.Request.AllowMatch,
 			Captain:    openID,
 			RouteName:  h.Request.RouteName,
-			Submit:     0,
+			Submit:     false,
 			Status:     comm.TeamStatusNotStart,
 			Code:       "",
-			IsLost:     0,
+			IsLost:     false,
 		}
 		if errTx := txTeamRepo.Create(ctx, team); errTx != nil {
 			if isDuplicateEntryError(errTx) {

@@ -13,7 +13,6 @@ http_server:
 
 # 业务私有配置
 biz:
-  jwt_secret: "walk_jwt_secret"
   aes_secret: "walk_aes_secret"
   wechat_app_id: ""
   wechat_secret: ""

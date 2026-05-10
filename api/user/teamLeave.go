@@ -60,7 +60,7 @@ func (h *TeamLeaveApi) Run(ctx *gin.Context) kit.Code {
 	if team == nil {
 		return comm.CodeDataNotFound
 	}
-	if team.Submit != 0 {
+	if team.Submit {
 		return comm.CodeTeamSubmitted
 	}
 

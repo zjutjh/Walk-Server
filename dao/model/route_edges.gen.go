@@ -15,7 +15,7 @@ type RouteEdge struct {
 	ID            int64     `gorm:"column:id;primaryKey;autoIncrement:true" json:"id"`
 	PrevPointName string    `gorm:"column:prev_point_name;comment:前一个点位ID" json:"prev_point_name"` // 前一个点位ID
 	PointName     string    `gorm:"column:point_name;comment:当前点位ID" json:"point_name"`            // 当前点位ID
-	RouteName     string    `gorm:"column:route_name;comment:点位所属路线编号" json:"route_name"`          // 点位所属路线编号
+	RouteName     string    `gorm:"column:route_name;comment:点位所属路线名称" json:"route_name"`          // 点位所属路线名称
 	SeqOrder      int8      `gorm:"column:seq_order;comment:点位在路线中的顺序" json:"seq_order"`           // 点位在路线中的顺序
 	UpdatedAt     time.Time `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP(3)" json:"updated_at"`
 	CreatedAt     time.Time `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP(3)" json:"created_at"`

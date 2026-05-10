@@ -11,6 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/zjutjh/mygo/config"
+	jwtmiddleware "github.com/zjutjh/mygo/jwt/middleware"
 	"github.com/zjutjh/mygo/middleware/cors"
 	"github.com/zjutjh/mygo/session"
 	midsession "github.com/zjutjh/mygo/session/middleware"
@@ -74,7 +75,7 @@ func Route(router *gin.Engine) {
 			user.GET("/wechat/login", userapi.WechatLoginHandler())
 
 			auth := user.Group("")
-			auth.Use(middleware.Auth())
+			auth.Use(jwtmiddleware.Auth[string](true))
 			{
 				auth.POST("/register/student", userapi.RegisterStudentHandler())
 				auth.POST("/register/teacher", userapi.RegisterTeacherHandler())

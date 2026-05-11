@@ -24,14 +24,6 @@ const (
 	CodeTeam    = "team"
 )
 
-// admin_permission枚举
-const (
-	AdminPermissionSuper    = "super"
-	AdminPermissionManager  = "manager"
-	AdminPermissionInternal = "internal"
-	AdminPermissionExternal = "external"
-)
-
 // TeamStatus枚举
 const (
 	TeamStatusNotStart   = "notStart"
@@ -55,12 +47,6 @@ const (
 	MemberTypeStudent = "student"
 	MemberTypeTeacher = "teacher"
 	MemberTypeAlumnus = "alumnus"
-)
-
-const (
-	TeamRoleNone    = "none"
-	TeamRoleMember  = "member"
-	TeamRoleCaptain = "captain"
 )
 
 func IsValidWalkStatus(status string) bool {
@@ -108,21 +94,6 @@ func FormatGender(value int8) string {
 		return GenderMale
 	case 2:
 		return GenderFemale
-	default:
-		return ""
-	}
-}
-
-func FormatTeamStatus(value uint8) string {
-	switch value {
-	case 1:
-		return TeamStatusNotStart
-	case 2:
-		return TeamStatusInProgress
-	case 3:
-		return TeamStatusCompleted
-	case 4:
-		return TeamStatusWithdrawn
 	default:
 		return ""
 	}

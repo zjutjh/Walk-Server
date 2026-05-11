@@ -13,16 +13,11 @@ http_server:
 
 # 业务私有配置
 biz:
-  jwt_secret: "walk_jwt_secret"
   aes_secret: "walk_aes_secret"
   wechat_app_id: ""
   wechat_secret: ""
-  front_end_url: ""
   expired_date: "2025-12-31 23:59:59"
-  open_date: "2025-01-01 00:00:00"
-  submit_date: "2025-12-01 23:59:59"
   max_team_size: 6
-  min_submit_size: 4
 
 jwt:
   secret: "walk_jwt_secret" # 密钥

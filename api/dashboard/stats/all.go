@@ -25,9 +25,9 @@ func AllHandler() gin.HandlerFunc {
 }
 
 type RouteStatItem struct {
-	Started    int `json:"started" desc:"已出发人数"`
+	InProgress int `json:"in_progress" desc:"进行中人数"`
 	NotPresent int `json:"not_present" desc:"未到场人数"`
-	UnDeparted int `json:"undeparted" desc:"待出发人数"`
+	Pending    int `json:"pending" desc:"待出发人数"`
 	TotalReg   int `json:"total_reg" desc:"总报名人数"`
 	Finished   int `json:"finished" desc:"已结束人数（无论是否违规）"`
 	WrongRoute int `json:"wrong_route" desc:"走错路线人数（走到另一条线路的人数）"`
@@ -69,15 +69,15 @@ func ensureRouteStat(routeStats map[string]*RouteStatItem, routeOrder *[]string,
 func applyStatus(stat *RouteStatItem, walkStatus string, count int) {
 	// Map walk_status to frontend display fields.
 	switch walkStatus {
-	case "notStart", "abandoned":
+	case comm.WalkStatusNotStart, comm.WalkStatusAbandoned:
 		stat.NotPresent += count
-	case "pending":
-		stat.UnDeparted += count
-	case "inProgress":
-		stat.Started += count
-	case "withdrawn":
+	case comm.WalkStatusPending:
+		stat.Pending += count
+	case comm.WalkStatusInProgress:
+		stat.InProgress += count
+	case comm.WalkStatusWithdrawn:
 		stat.Withdrawn += count
-	case "completed", "violated":
+	case comm.WalkStatusCompleted, comm.WalkStatusViolated:
 		stat.Finished += count
 	}
 }

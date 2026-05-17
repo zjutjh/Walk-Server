@@ -43,16 +43,16 @@ type OverviewApiResponse struct {
 type RoutesRes struct {
 	RouteName  string `json:"route_name" desc:"路线name"`
 	TotalReg   int    `json:"total_reg" desc:"总报名人数"`
-	Walking    int    `json:"walking" desc:"进行中人数"`
+	InProgress int    `json:"in_progress" desc:"进行中人数"`
 	Finished   int    `json:"finished" desc:"到达终点人数（无论是否违规）"`
 	WrongRoute int    `json:"wrong_route" desc:"走错路线人数"`
 }
 
 func applyOverviewStatus(route *RoutesRes, walkStatus string, count int) {
 	switch walkStatus {
-	case "inProgress":
-		route.Walking += count
-	case "completed", "violated":
+	case comm.WalkStatusInProgress:
+		route.InProgress += count
+	case comm.WalkStatusCompleted, comm.WalkStatusViolated:
 		route.Finished += count
 	}
 }

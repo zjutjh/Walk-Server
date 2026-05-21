@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"app/comm"
 	peoplecache "app/dao/cache/people"
 	"github.com/zjutjh/mygo/ndb"
 	"gorm.io/gorm"
@@ -173,6 +174,125 @@ func (r *PeopleRepo) CountMembersByStatus(ctx context.Context, teamID int64, wal
 			p.WalkStatus.Eq(walkStatus),
 		).
 		Count()
+}
+
+// ResolveTeamStatus 根据成员状态和队伍当前位置推导队伍状态。
+func (r *PeopleRepo) ResolveTeamStatus(ctx context.Context, team *model.Team) (string, error) {
+	if team == nil {
+		return "", nil
+	}
+
+	violatedStatus, err := r.resolveViolatedStatus(ctx, team)
+	if err != nil {
+		return "", err
+	}
+
+	members, err := r.FindPeopleByTeamID(ctx, team.ID)
+	if err != nil {
+		return "", err
+	}
+	if len(members) == 0 {
+		return "", nil
+	}
+
+	memberCount := 0
+	abandonedCount := 0
+	withdrawnCount := 0
+	notStartCount := 0
+	activeCount := 0
+	completedCount := 0
+
+	for _, member := range members {
+		if member == nil {
+			continue
+		}
+		memberCount++
+
+		switch member.WalkStatus {
+		case comm.WalkStatusAbandoned:
+			abandonedCount++
+			continue
+		case comm.WalkStatusWithdrawn:
+			withdrawnCount++
+			continue
+		case comm.WalkStatusNotStart, comm.WalkStatusPending:
+			if member.WalkStatus == comm.WalkStatusPending {
+				activeCount++
+			} else {
+				notStartCount++
+			}
+		case comm.WalkStatusInProgress:
+			activeCount++
+		case comm.WalkStatusCompleted:
+			completedCount++
+		case comm.WalkStatusViolated:
+			switch violatedStatus {
+			case comm.TeamStatusNotStart:
+				notStartCount++
+			case comm.TeamStatusCompleted:
+				completedCount++
+			default:
+				activeCount++
+			}
+		default:
+			continue
+		}
+	}
+
+	if memberCount == 0 {
+		return "", nil
+	}
+	if abandonedCount == memberCount {
+		return comm.TeamStatusCompleted, nil
+	}
+	if abandonedCount+withdrawnCount == memberCount {
+		return comm.TeamStatusWithdrawn, nil
+	}
+
+	effectiveCount := memberCount - abandonedCount - withdrawnCount
+	if activeCount > 0 {
+		return comm.TeamStatusInProgress, nil
+	}
+	if notStartCount == effectiveCount {
+		return comm.TeamStatusNotStart, nil
+	}
+	if completedCount == effectiveCount {
+		return comm.TeamStatusCompleted, nil
+	}
+	return comm.TeamStatusInProgress, nil
+}
+
+func (r *PeopleRepo) resolveViolatedStatus(ctx context.Context, team *model.Team) (string, error) {
+	if team.PrevPointName == "" {
+		return comm.TeamStatusNotStart, nil
+	}
+
+	isEndPoint, err := r.isRouteEndPoint(ctx, team)
+	if err != nil {
+		return "", err
+	}
+	if isEndPoint {
+		return comm.TeamStatusCompleted, nil
+	}
+	return comm.TeamStatusInProgress, nil
+}
+
+func (r *PeopleRepo) isRouteEndPoint(ctx context.Context, team *model.Team) (bool, error) {
+	var total int64
+	err := r.query.RouteEdge.WithContext(ctx).
+		UnderlyingDB().
+		Table("route_edges").
+		Where(
+			"route_name = ? AND point_name = ? AND seq_order = (SELECT MAX(seq_order) FROM route_edges WHERE route_name = ?)",
+			team.RouteName,
+			team.PrevPointName,
+			team.RouteName,
+		).
+		Count(&total).Error
+	if err != nil {
+		return false, err
+	}
+	return total > 0, nil
 }
 
 func (r *PeopleRepo) UpdateWalkStatus(ctx context.Context, userID int64, status string) error {

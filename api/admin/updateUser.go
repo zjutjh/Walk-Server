@@ -85,41 +85,14 @@ func (u *UpdateUserApi) Run(ctx *gin.Context) kit.Code {
 			return gorm.ErrRecordNotFound
 		}
 
-		if team.Status == comm.TeamStatusNotStart {
-			memberCount, err := txPeopleRepo.CountMembersByTeamID(ctx, user.TeamID)
-			if err != nil {
-				return err
-			}
-			abandonedCount, err := txPeopleRepo.CountMembersByStatus(ctx, user.TeamID, comm.WalkStatusAbandoned)
-			if err != nil {
-				return err
-			}
-			if memberCount > 0 && memberCount == abandonedCount {
-				return txTeamRepo.UpdateByID(ctx, user.TeamID, map[string]any{"status": comm.TeamStatusCompleted})
-			}
-			return nil
-		}
-
-		inProgressCount, err := txPeopleRepo.CountMembersByStatus(ctx, user.TeamID, comm.WalkStatusInProgress)
+		nextStatus, err := txPeopleRepo.ResolveTeamStatus(ctx, team)
 		if err != nil {
 			return err
 		}
-		if inProgressCount > 0 {
-			if team.Status != comm.TeamStatusInProgress {
-				return txTeamRepo.UpdateByID(ctx, user.TeamID, map[string]any{"status": comm.TeamStatusInProgress})
-			}
+		if nextStatus == "" || nextStatus == team.Status {
 			return nil
 		}
-
-		if u.Request.Body.Status != comm.WalkStatusWithdrawn {
-			return txTeamRepo.UpdateByID(ctx, user.TeamID, map[string]any{"status": comm.TeamStatusCompleted})
-		}
-
-		if team.Status != comm.TeamStatusCompleted {
-			return txTeamRepo.UpdateByID(ctx, user.TeamID, map[string]any{"status": comm.TeamStatusWithdrawn})
-		}
-
-		return nil
+		return txTeamRepo.UpdateByID(ctx, user.TeamID, map[string]any{"status": nextStatus})
 	})
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

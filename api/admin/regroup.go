@@ -132,18 +132,24 @@ func (r *RegroupApi) Run(ctx *gin.Context) kit.Code {
 				continue
 			}
 
-			if err := txTeamRepo.UpdateByID(ctx, oldTeamID, map[string]any{"num": int8(remainingCount)}); err != nil {
-				return err
-			}
-
-			inProgressCount, err := txPeopleRepo.CountMembersByStatus(ctx, oldTeamID, comm.WalkStatusInProgress)
+			oldTeam, err := txTeamRepo.FindTeamByID(ctx, oldTeamID)
 			if err != nil {
 				return err
 			}
-			if inProgressCount == 0 {
-				if err := txTeamRepo.UpdateByID(ctx, oldTeamID, map[string]any{"status": comm.TeamStatusCompleted}); err != nil {
-					return err
-				}
+			if oldTeam == nil {
+				return gorm.ErrRecordNotFound
+			}
+
+			nextStatus, err := txPeopleRepo.ResolveTeamStatus(ctx, oldTeam)
+			if err != nil {
+				return err
+			}
+			updates := map[string]any{"num": int8(remainingCount)}
+			if nextStatus != "" {
+				updates["status"] = nextStatus
+			}
+			if err := txTeamRepo.UpdateByID(ctx, oldTeamID, updates); err != nil {
+				return err
 			}
 
 			remainingMembers, err := txPeopleRepo.FindPeopleByTeamID(ctx, oldTeamID)

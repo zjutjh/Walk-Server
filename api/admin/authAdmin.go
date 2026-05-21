@@ -38,7 +38,9 @@ type AuthAdminApiRequest struct {
 
 type AuthAdminApiResponse struct {
 	PointName string `json:"point_name" desc:"点位名称"`
+	Permission string `json:"permission" desc:"管理员权限"`
 	Name      string `json:"name" desc:"管理员姓名"`
+	Campus   string `json:"campus" desc:"校区"`
 }
 
 // Run Api业务逻辑执行点
@@ -84,6 +86,8 @@ func (a *AuthAdminApi) Run(ctx *gin.Context) kit.Code {
 	}
 
 	a.Response = AuthAdminApiResponse{
+		Permission: admin.Permission,
+		Campus:     admin.Campus,
 		PointName: admin.PointName,
 		Name:      admin.Name,
 	}

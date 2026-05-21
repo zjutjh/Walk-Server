@@ -11,6 +11,7 @@ import (
 	"github.com/zjutjh/mygo/swagger"
 
 	"app/comm"
+	"app/dao/model"
 	repo "app/dao/repo"
 )
 
@@ -38,10 +39,13 @@ type GetTeamStatusApiResponse struct {
 }
 
 type TeamResponse struct {
-	Name          string `json:"name" desc:"队名"`
-	PrevPointName string `json:"prev_point_name" desc:"点位名称"`
-	RouteName     string `json:"route_name" desc:"路线名称"`
-	Status        string `json:"status" desc:"队伍状态"`
+	Name                  string `json:"name" desc:"队名"`
+	PrevPointName         string `json:"prev_point_name" desc:"点位名称"`
+	RouteName             string `json:"route_name" desc:"路线名称"`
+	Status                string `json:"status" desc:"队伍状态"`
+	IsWrongRoute          bool   `json:"is_wrong_route" desc:"是否走错路线"`
+	IsPrevPointInvalid    bool   `json:"is_prev_point_invalid" desc:"最后一次打卡是否违反路线顺序"`
+	IsJustEnterWrongRoute bool   `json:"is_just_enter_wrong_route" desc:"最后一次打卡是否导致队伍进入错路状态"`
 }
 
 type MemberResponse struct {
@@ -65,6 +69,12 @@ func (g *GetTeamStatusApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeTeamNotFound
 	}
 
+	routeStatus, err := g.resolveRouteStatus(ctx, teamRepo, team)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Error("计算队伍路线状态失败")
+		return comm.CodeDatabaseError
+	}
+
 	members, err := peopleRepo.FindPeopleByTeamID(ctx, int64(g.Request.Query.TeamID))
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询队伍成员失败")
@@ -76,6 +86,10 @@ func (g *GetTeamStatusApi) Run(ctx *gin.Context) kit.Code {
 		PrevPointName: team.PrevPointName,
 		RouteName:     team.RouteName,
 		Status:        team.Status,
+
+		IsWrongRoute:          routeStatus.isWrongRoute,
+		IsPrevPointInvalid:    routeStatus.isPrevPointInvalid,
+		IsJustEnterWrongRoute: routeStatus.isJustEnterWrongRoute,
 	}
 
 	g.Response.Members = make([]MemberResponse, 0, len(members))
@@ -89,6 +103,66 @@ func (g *GetTeamStatusApi) Run(ctx *gin.Context) kit.Code {
 	}
 
 	return comm.CodeOK
+}
+
+type teamRouteStatus struct {
+	isWrongRoute          bool
+	isPrevPointInvalid    bool
+	isJustEnterWrongRoute bool
+}
+
+func (g *GetTeamStatusApi) resolveRouteStatus(ctx *gin.Context, teamRepo *repo.TeamRepo, team *model.Team) (teamRouteStatus, error) {
+	status := teamRouteStatus{
+		isWrongRoute: team.IsWrongRoute != 0,
+	}
+
+	checkins, err := teamRepo.ListLatestCheckins(ctx, team.ID, 2)
+	if err != nil {
+		return status, err
+	}
+	if len(checkins) == 0 {
+		return status, nil
+	}
+
+	activeRouteName := team.RouteName
+	if status.isWrongRoute {
+		wrongRouteName, found, err := teamRepo.GetLatestWrongRouteName(ctx, team.ID)
+		if err != nil {
+			return status, err
+		}
+		if found {
+			activeRouteName = wrongRouteName
+		}
+	}
+
+	latestCheckin := checkins[0]
+	if len(checkins) >= 2 {
+		prevCheckin := checkins[1]
+		isValid, err := teamRepo.IsRouteTransitionValid(ctx, activeRouteName, prevCheckin.PointName, latestCheckin.PointName)
+		if err != nil {
+			return status, err
+		}
+		status.isPrevPointInvalid = !isValid
+	}
+
+	latestOnOriginalRoute, err := teamRepo.IsPointOnRoute(ctx, team.RouteName, latestCheckin.PointName)
+	if err != nil {
+		return status, err
+	}
+	if latestOnOriginalRoute {
+		return status, nil
+	}
+	if len(checkins) == 1 {
+		status.isJustEnterWrongRoute = true
+		return status, nil
+	}
+
+	prevOnOriginalRoute, err := teamRepo.IsPointOnRoute(ctx, team.RouteName, checkins[1].PointName)
+	if err != nil {
+		return status, err
+	}
+	status.isJustEnterWrongRoute = prevOnOriginalRoute
+	return status, nil
 }
 
 // Run Api初始化 进行参数校验和绑定

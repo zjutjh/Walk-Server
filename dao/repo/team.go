@@ -51,6 +51,16 @@ type TeamFilterRow struct {
 	IsLost        bool         `gorm:"column:is_lost"`
 }
 
+type TeamCheckinRow struct {
+	ID        int64     `gorm:"column:id"`
+	AdminID   int64     `gorm:"column:admin_id"`
+	TeamID    int64     `gorm:"column:team_id"`
+	PointName string    `gorm:"column:point_name"`
+	RouteName string    `gorm:"column:route_name"`
+	Time      time.Time `gorm:"column:time"`
+	CreatedAt time.Time `gorm:"column:created_at"`
+}
+
 func NewTeamRepo() *TeamRepo {
 	db := ndb.Pick()
 	return &TeamRepo{
@@ -309,6 +319,113 @@ func (r *TeamRepo) FindPointRoutes(ctx context.Context, pointName string) ([]str
 	}
 	_ = routeCache.SetPointRoutes(ctx, pointName, routeNames)
 	return routeNames, nil
+}
+
+func (r *TeamRepo) IsPointOnRoute(ctx context.Context, routeName, pointName string) (bool, error) {
+	var total int64
+	err := r.query.RouteEdge.WithContext(ctx).
+		UnderlyingDB().
+		Table("route_edges").
+		Where("route_name = ? AND point_name = ?", routeName, pointName).
+		Count(&total).Error
+	if err != nil {
+		return false, err
+	}
+	return total > 0, nil
+}
+
+func (r *TeamRepo) IsRouteTransitionValid(ctx context.Context, routeName, prevPointName, pointName string) (bool, error) {
+	var total int64
+	err := r.query.RouteEdge.WithContext(ctx).
+		UnderlyingDB().
+		Table("route_edges").
+		Where("route_name = ? AND prev_point_name = ? AND point_name = ?", routeName, prevPointName, pointName).
+		Count(&total).Error
+	if err != nil {
+		return false, err
+	}
+	return total > 0, nil
+}
+
+func (r *TeamRepo) IsDirectionBackward(ctx context.Context, routeName, prevPointName, pointName string) (bool, error) {
+	if prevPointName == "" {
+		return false, nil
+	}
+
+	var nextSeq struct {
+		SeqOrder int `gorm:"column:seq_order"`
+	}
+	err := r.query.RouteEdge.WithContext(ctx).
+		UnderlyingDB().
+		Table("route_edges").
+		Select("MIN(seq_order) AS seq_order").
+		Where("route_name = ? AND prev_point_name = ?", routeName, prevPointName).
+		Scan(&nextSeq).Error
+	if err != nil {
+		return false, err
+	}
+	if nextSeq.SeqOrder == 0 {
+		return false, nil
+	}
+
+	var currentSeq struct {
+		SeqOrder int `gorm:"column:seq_order"`
+	}
+	err = r.query.RouteEdge.WithContext(ctx).
+		UnderlyingDB().
+		Table("route_edges").
+		Select("MIN(seq_order) AS seq_order").
+		Where("route_name = ? AND point_name = ?", routeName, pointName).
+		Scan(&currentSeq).Error
+	if err != nil {
+		return false, err
+	}
+	if currentSeq.SeqOrder == 0 {
+		return false, nil
+	}
+	return currentSeq.SeqOrder < nextSeq.SeqOrder, nil
+}
+
+func (r *TeamRepo) ListLatestCheckins(ctx context.Context, teamID int64, limit int) ([]TeamCheckinRow, error) {
+	rows := make([]TeamCheckinRow, 0, limit)
+	if limit <= 0 {
+		return rows, nil
+	}
+	err := r.query.Checkin.WithContext(ctx).
+		UnderlyingDB().
+		Table("checkins").
+		Select("id, admin_id, team_id, point_name, route_name, time, created_at").
+		Where("team_id = ?", teamID).
+		Order("time DESC").
+		Order("id DESC").
+		Limit(limit).
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+func (r *TeamRepo) GetLatestWrongRouteName(ctx context.Context, teamID int64) (string, bool, error) {
+	var row struct {
+		WrongRouteName string `gorm:"column:wrong_route_name"`
+	}
+	err := r.query.WrongRouteRecord.WithContext(ctx).
+		UnderlyingDB().
+		Table("wrong_route_records").
+		Select("wrong_route_name").
+		Where("team_id = ?", teamID).
+		Order("created_at DESC").
+		Order("id DESC").
+		Limit(1).
+		Scan(&row).Error
+	if err != nil {
+		return "", false, err
+	}
+	if row.WrongRouteName == "" {
+		return "", false, nil
+	}
+	return row.WrongRouteName, true, nil
 }
 
 func (r *TeamRepo) UpdatePrevPointName(ctx context.Context, teamID int64, pointName string) error {

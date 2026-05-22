@@ -2,10 +2,10 @@ package comm
 
 // 人员活动状态枚举
 const (
-	WalkStatusNotStart   = "notStart"
+	WalkStatusNotStart   = "not_start"
 	WalkStatusPending    = "pending"
 	WalkStatusAbandoned  = "abandoned"
-	WalkStatusInProgress = "inProgress"
+	WalkStatusInProgress = "in_progress"
 	WalkStatusWithdrawn  = "withdrawn"
 	WalkStatusViolated   = "violated"
 	WalkStatusCompleted  = "completed"
@@ -26,8 +26,8 @@ const (
 
 // TeamStatus枚举
 const (
-	TeamStatusNotStart   = "notStart"
-	TeamStatusInProgress = "inProgress"
+	TeamStatusNotStart   = "not_start"
+	TeamStatusInProgress = "in_progress"
 	TeamStatusCompleted  = "completed"
 	TeamStatusWithdrawn  = "withdrawn"
 )

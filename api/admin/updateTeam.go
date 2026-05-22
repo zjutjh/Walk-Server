@@ -41,7 +41,8 @@ type UpdateTeamApiRequest struct {
 }
 
 type UpdateTeamApiResponse struct {
-	TeamID int `json:"team_id" desc:"队伍编号"`
+	TeamID             int  `json:"team_id" desc:"队伍编号"`
+	IsDuplicateCheckIn bool `json:"is_duplicate_check_in" desc:"是否重复打卡"`
 }
 
 type routePointCheckinResult struct {
@@ -73,15 +74,17 @@ func (u *UpdateTeamApi) Run(ctx *gin.Context) kit.Code {
 		}
 	}()
 
+	if team.PrevPointName == admin.PointName {
+		u.Response.TeamID = int(team.ID)
+		u.Response.IsDuplicateCheckIn = true
+		return comm.CodeOK
+	}
+
 	if err := query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
 		return repo.NewTeamRepoWithTx(tx).ClearLostStatus(ctx, team.ID)
 	}); err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("清除队伍失联状态失败")
 		return comm.CodeDatabaseError
-	}
-
-	if team.PrevPointName == admin.PointName {
-		return comm.CodeDuplicateCheckin
 	}
 
 	pointRoutes, err := teamRepo.FindPointRoutes(ctx, admin.PointName)
@@ -93,8 +96,21 @@ func (u *UpdateTeamApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeDataNotFound
 	}
 
+	activeRouteName, directionCode := u.resolveActiveRouteForDirection(ctx, teamRepo, team, admin.PointName, pointRoutes)
+	if directionCode != nil {
+		return *directionCode
+	}
+	isBackward, err := teamRepo.IsDirectionBackward(ctx, activeRouteName, team.PrevPointName, admin.PointName)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Error("校验队伍打卡方向失败")
+		return comm.CodeDatabaseError
+	}
+	if isBackward {
+		return comm.CodeTeamDirectionInvalid
+	}
+
 	if !slices.Contains(pointRoutes, team.RouteName) {
-		result, err := u.handleWrongRoutePointCheckin(ctx, team, admin.ID, admin.PointName, pointRoutes[0])
+		result, err := u.handleWrongRoutePointCheckin(ctx, team, admin.ID, admin.PointName, activeRouteName)
 		if err != nil {
 			nlog.Pick().WithContext(ctx).WithError(err).Error("错路点位打卡失败")
 			return comm.CodeDatabaseError
@@ -206,6 +222,45 @@ func (u *UpdateTeamApi) resolveTeam(ctx *gin.Context, admin *model.Admin) (*mode
 	return team, nil
 }
 
+func (u *UpdateTeamApi) resolveActiveRouteForDirection(ctx *gin.Context, teamRepo *repo.TeamRepo, team *model.Team, pointName string, pointRoutes []string) (string, *kit.Code) {
+	if team.IsWrongRoute != 0 {
+		wrongRouteName, found, err := teamRepo.GetLatestWrongRouteName(ctx, team.ID)
+		if err != nil {
+			nlog.Pick().WithContext(ctx).WithError(err).Error("查询队伍错路路线失败")
+			return "", &comm.CodeDatabaseError
+		}
+		if !found {
+			return team.RouteName, nil
+		}
+
+		onWrongRoute, err := teamRepo.IsPointOnRoute(ctx, wrongRouteName, pointName)
+		if err != nil {
+			nlog.Pick().WithContext(ctx).WithError(err).Error("校验错路点位失败")
+			return "", &comm.CodeDatabaseError
+		}
+		if !onWrongRoute {
+			return "", &comm.CodeTeamDirectionInvalid
+		}
+		return wrongRouteName, nil
+	}
+
+	if slices.Contains(pointRoutes, team.RouteName) {
+		return team.RouteName, nil
+	}
+
+	for _, routeName := range pointRoutes {
+		prevOnRoute, err := teamRepo.IsPointOnRoute(ctx, routeName, team.PrevPointName)
+		if err != nil {
+			nlog.Pick().WithContext(ctx).WithError(err).Error("校验错路前序点位失败")
+			return "", &comm.CodeDatabaseError
+		}
+		if prevOnRoute {
+			return routeName, nil
+		}
+	}
+	return pointRoutes[0], nil
+}
+
 func (u *UpdateTeamApi) handlePointCheckin(ctx *gin.Context, team *model.Team, adminID int64, pointName string) error {
 	return query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
 		txTeamRepo := repo.NewTeamRepoWithTx(tx)
@@ -226,7 +281,10 @@ func (u *UpdateTeamApi) handleStartPointCheckin(ctx *gin.Context, team *model.Te
 		if err := teamRepo.CreateCheckin(ctx, adminID, team.ID, pointName, team.RouteName); err != nil {
 			return err
 		}
-		return peopleRepo.UpdateByTeamID(ctx, team.ID, map[string]any{"walk_status": comm.WalkStatusPending})
+		if err := peopleRepo.UpdateByTeamID(ctx, team.ID, map[string]any{"walk_status": comm.WalkStatusPending}); err != nil {
+			return err
+		}
+		return nil
 	})
 }
 
@@ -236,15 +294,14 @@ func (u *UpdateTeamApi) handleRoutePointCheckin(ctx *gin.Context, team *model.Te
 	}
 
 	if routeEdge == nil {
-		return &routePointCheckinResult{code: &comm.CodePrevPointInvalid}, nil
+		if err := u.handlePointCheckin(ctx, team, adminID, pointName); err != nil {
+			return nil, err
+		}
+		return &routePointCheckinResult{}, nil
 	}
 
 	if err := u.handlePointCheckin(ctx, team, adminID, pointName); err != nil {
 		return nil, err
-	}
-
-	if routeEdge.PrevPointName != team.PrevPointName {
-		return &routePointCheckinResult{code: &comm.CodePrevPointInvalid}, nil
 	}
 
 	return &routePointCheckinResult{}, nil
@@ -263,16 +320,21 @@ func (u *UpdateTeamApi) handleWrongRoutePointCheckin(ctx *gin.Context, team *mod
 		if err := txTeamRepo.CreateCheckin(ctx, adminID, team.ID, pointName, team.RouteName); err != nil {
 			return err
 		}
-		if err := txTeamRepo.UpdateTeamWrongRoute(ctx, team.ID, true); err != nil {
-			return err
+		if team.IsWrongRoute == 0 {
+			if err := txTeamRepo.UpdateTeamWrongRoute(ctx, team.ID, 1); err != nil {
+				return err
+			}
+			if err := txTeamRepo.CreateWrongRouteRecord(ctx, team.ID, team.RouteName, wrongRouteName, adminID); err != nil {
+				return err
+			}
 		}
-		return txTeamRepo.CreateWrongRouteRecord(ctx, team.ID, team.RouteName, wrongRouteName, adminID)
+		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	return &routePointCheckinResult{code: &comm.CodeWrongRouteAlert}, nil
+	return &routePointCheckinResult{}, nil
 }
 
 // Run Api初始化 进行参数校验和绑定

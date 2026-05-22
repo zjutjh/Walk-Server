@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"reflect"
 	"runtime"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/zjutjh/mygo/ndb"
 	"github.com/zjutjh/mygo/nlog"
 	"github.com/zjutjh/mygo/swagger"
+	"gorm.io/gorm"
 
 	"app/comm"
 	"app/dao/query"
@@ -43,12 +45,28 @@ func (m *MarkTeamViolationApi) Run(ctx *gin.Context) kit.Code {
 		txPeopleRepo := repo.NewPeopleRepoWithTx(tx)
 		teamID := int64(m.Request.Body.TeamID)
 
-		if err := txTeamRepo.UpdateByID(ctx, teamID, map[string]any{"status": comm.TeamStatusCompleted}); err != nil {
+		team, err := txTeamRepo.GetTeamByID(ctx, teamID)
+		if err != nil {
 			return err
 		}
-		return txPeopleRepo.UpdateMembersWalkStatusByCurrent(ctx, teamID, comm.WalkStatusInProgress, comm.WalkStatusViolated)
+
+		if err := txPeopleRepo.UpdateMembersWalkStatusByCurrent(ctx, teamID, comm.WalkStatusInProgress, comm.WalkStatusViolated); err != nil {
+			return err
+		}
+
+		nextStatus, err := txPeopleRepo.ResolveTeamStatus(ctx, team)
+		if err != nil {
+			return err
+		}
+		if nextStatus == "" || nextStatus == team.Status {
+			return nil
+		}
+		return txTeamRepo.UpdateByID(ctx, teamID, map[string]any{"status": nextStatus})
 	})
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return comm.CodeTeamNotFound
+		}
 		nlog.Pick().WithContext(ctx).WithError(err).Error("标记队伍违规失败")
 		return comm.CodeDatabaseError
 	}

@@ -49,4 +49,5 @@ var (
 	CodeWrongRouteAlert         = kit.NewCode(20032, "该团队路线走错，请立即提醒")
 	CodeDuplicateCheckin        = kit.NewCode(20033, "该点位已打卡，请勿重复打卡")
 	CodeAdminLoginTooFrequently = kit.NewCode(20034, "登录失败次数过多，请稍后再试")
+	CodeTeamDirectionInvalid    = kit.NewCode(20035, "该队方向错误，请立即提醒调转方向并且拒绝打卡")
 )

@@ -347,6 +347,45 @@ func (r *TeamRepo) IsRouteTransitionValid(ctx context.Context, routeName, prevPo
 	return total > 0, nil
 }
 
+func (r *TeamRepo) IsDirectionBackward(ctx context.Context, routeName, prevPointName, pointName string) (bool, error) {
+	if prevPointName == "" {
+		return false, nil
+	}
+
+	var nextSeq struct {
+		SeqOrder int `gorm:"column:seq_order"`
+	}
+	err := r.query.RouteEdge.WithContext(ctx).
+		UnderlyingDB().
+		Table("route_edges").
+		Select("MIN(seq_order) AS seq_order").
+		Where("route_name = ? AND prev_point_name = ?", routeName, prevPointName).
+		Scan(&nextSeq).Error
+	if err != nil {
+		return false, err
+	}
+	if nextSeq.SeqOrder == 0 {
+		return false, nil
+	}
+
+	var currentSeq struct {
+		SeqOrder int `gorm:"column:seq_order"`
+	}
+	err = r.query.RouteEdge.WithContext(ctx).
+		UnderlyingDB().
+		Table("route_edges").
+		Select("MIN(seq_order) AS seq_order").
+		Where("route_name = ? AND point_name = ?", routeName, pointName).
+		Scan(&currentSeq).Error
+	if err != nil {
+		return false, err
+	}
+	if currentSeq.SeqOrder == 0 {
+		return false, nil
+	}
+	return currentSeq.SeqOrder < nextSeq.SeqOrder, nil
+}
+
 func (r *TeamRepo) ListLatestCheckins(ctx context.Context, teamID int64, limit int) ([]TeamCheckinRow, error) {
 	rows := make([]TeamCheckinRow, 0, limit)
 	if limit <= 0 {

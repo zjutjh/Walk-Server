@@ -19,9 +19,6 @@ import (
 )
 
 func Boot() kernel.BootList {
-	// 初始化配置文件
-	//config.Boot("conf/config.yaml")
-
 	return kernel.BootList{
 		// 基础引导器
 		feishu.Boot(),   // 飞书Bot (消息提醒)
@@ -41,11 +38,18 @@ func Boot() kernel.BootList {
 	}
 }
 
+func GenerateBoot() kernel.BootList {
+	return kernel.BootList{
+		feishu.Boot(), // 飞书Bot (消息提醒)
+		nlog.Boot(),   // 业务日志
+		ndb.Boot(),    // DB
+	}
+}
+
 // BizConfBoot 初始化应用业务配置引导器
 func BizConfBoot() func() error {
 	return func() error {
-		comm.BizConf = &comm.BizConfig{}
-		err := config.Pick().UnmarshalKey("biz", comm.BizConf)
+		err := config.Pick().UnmarshalKey("biz", &comm.BizConf)
 		if err != nil {
 			return fmt.Errorf("%w: 解析应用业务配置错误: %w", kit.ErrDataUnmarshal, err)
 		}

@@ -24,8 +24,8 @@ type People struct {
 	Wechat     string    `gorm:"column:wechat;comment:微信号" json:"wechat"`                                                     // 微信号
 	College    string    `gorm:"column:college;not null;comment:学院" json:"college"`                                           // 学院
 	Tel        string    `gorm:"column:tel;not null;comment:联系电话" json:"tel"`                                                 // 联系电话
-	CreatedOp  int8      `gorm:"column:created_op;not null;default:3;comment:剩余创建团队次数" json:"created_op"`                     // 剩余创建团队次数
-	JoinOp     int8      `gorm:"column:join_op;not null;default:5;comment:剩余加入团队次数" json:"join_op"`                           // 剩余加入团队次数
+	CreatedOp  uint8     `gorm:"column:created_op;not null;default:3;comment:剩余创建团队次数" json:"created_op"`                     // 剩余创建团队次数
+	JoinOp     uint8     `gorm:"column:join_op;not null;default:5;comment:剩余加入团队次数" json:"join_op"`                           // 剩余加入团队次数
 	TeamID     int64     `gorm:"column:team_id;default:-1;comment:所属团队ID" json:"team_id"`                                     // 所属团队ID
 	Type       string    `gorm:"column:type;not null;comment:人员类型(alumni校友，student学生，staff教职工)" json:"type"`                  // 人员类型(alumni校友，student学生，staff教职工)
 	WalkStatus string    `gorm:"column:walk_status;not null;comment:活动状态(未开始,待出发,已放弃,进行中,已下撤,已违规,已完成)" json:"walk_status"`    // 活动状态(未开始,待出发,已放弃,进行中,已下撤,已违规,已完成)

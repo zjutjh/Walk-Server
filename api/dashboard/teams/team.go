@@ -5,6 +5,7 @@ import (
 	"errors"
 	"reflect"
 	"runtime"
+
 	//"strconv"
 	"strings"
 
@@ -53,12 +54,13 @@ type TeamApiRequest struct {
 }
 
 type TeamApiResponse struct {
-	TeamId        int64          `json:"team_id" desc:"队伍ID（保留）"`
+	TeamId        int64        `json:"team_id" desc:"队伍ID（保留）"`
 	Members       []MemberInfo `json:"members" desc:"队员信息列表"`
 	PrevPointName string       `json:"prev_point_name" desc:"最新经过点位唯一name"`
 	PrevPointTime string       `json:"prev_point_time" desc:"经过点位时间"`
 	RouteName     string       `json:"route_name" desc:"路线name"`
 	IsLost        bool         `json:"is_lost" desc:"是否失联"`
+	IsWrongRoute  bool         `json:"is_wrong_route" desc:"是否走错路线"`
 }
 
 // Run Api业务逻辑执行点
@@ -102,11 +104,11 @@ func (t *TeamApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeDatabaseError
 	}
 
-
-	t.Response.TeamId = int64(team.ID)
+	t.Response.TeamId = team.ID
 	t.Response.PrevPointName = team.PrevPointName
 	t.Response.RouteName = team.RouteName
-	t.Response.IsLost = team.IsLost == 1
+	t.Response.IsLost = team.IsLost
+	t.Response.IsWrongRoute = team.IsWrongRoute
 	if !team.Time.IsZero() {
 		t.Response.PrevPointTime = team.Time.UTC().Format("2006-01-02T15:04:05.000Z")
 	}

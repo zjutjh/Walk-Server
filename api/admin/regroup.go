@@ -91,20 +91,20 @@ func (r *RegroupApi) Run(ctx *gin.Context) kit.Code {
 
 		newTeam := &model.Team{
 			Name:          "",
-			Num:           int8(len(memberIDs)),
+			Num:           uint8(len(memberIDs)),
 			Password:      "",
 			Slogan:        "",
-			AllowMatch:    0,
+			AllowMatch:    false,
 			Captain:       newCaptain.OpenID,
-			Submit:        1,
+			Submit:        true,
 			RouteName:     r.Request.Body.RouteName,
 			PrevPointName: "",
 			Status:        comm.TeamStatusNotStart,
-			IsWrongRoute:  0,
-			IsReunite:     1,
+			IsWrongRoute:  false,
+			IsReunite:     true,
 			Code:          "",
 			Time:          time.Now(),
-			IsLost:        0,
+			IsLost:        false,
 		}
 		if err := txTeamRepo.Create(ctx, newTeam); err != nil {
 			return err

@@ -5,6 +5,7 @@ import (
 
 	"app/comm"
 	"app/dao/model"
+
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -57,15 +58,15 @@ func toTeamInfoTeamView(team *model.Team) *TeamInfoTeamView {
 	return &TeamInfoTeamView{
 		ID:            team.ID,
 		Name:          team.Name,
-		Num:           uint8(team.Num),
+		Num:           team.Num,
 		Slogan:        team.Slogan,
-		AllowMatch:    team.AllowMatch != 0,
+		AllowMatch:    team.AllowMatch,
 		Captain:       team.Captain,
 		RouteName:     team.RouteName,
 		PrevPointName: team.PrevPointName,
-		Submit:        team.Submit != 0,
+		Submit:        team.Submit,
 		Status:        normalizeTeamStatus(team.Status),
-		IsLost:        team.IsLost != 0,
+		IsLost:        team.IsLost,
 	}
 }
 
@@ -100,13 +101,6 @@ func formatGender(value int8) string {
 		return "female"
 	}
 	return ""
-}
-
-func boolToInt8(value bool) int8 {
-	if value {
-		return 1
-	}
-	return 0
 }
 
 func hashTeamPassword(raw string) (string, error) {

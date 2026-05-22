@@ -30,11 +30,12 @@ type PointStat struct {
 }
 
 type StatusStat struct {
-	TotalReg    int `json:"total_reg" desc:"总报名人数"`
-	UnPresented int `json:"unpresented" desc:"未到场人数"`
-	Walking     int `json:"walking" desc:"进行中人数"`
-	WrongRoute  int `json:"wrong_route" desc:"走错路线人数"`
-	Withdrawn   int `json:"withdrawn" desc:"下撤人数"`
+	TotalReg   int `json:"total_reg" desc:"总报名人数"`
+	NotPresent int `json:"not_present" desc:"未到场人数"`
+	Pending    int `json:"pending" desc:"待出发人数"`
+	InProgress int `json:"in_progress" desc:"进行中人数"`
+	WrongRoute int `json:"wrong_route" desc:"走错路线人数"`
+	Withdrawn  int `json:"withdrawn" desc:"下撤人数"`
 }
 
 type RouteApi struct {
@@ -56,11 +57,13 @@ type RouteApiResponse struct {
 
 func applyRouteStatus(stat *StatusStat, walkStatus string, count int) {
 	switch walkStatus {
-	case "notStart", "pending", "abandoned":
-		stat.UnPresented += count
-	case "inProgress":
-		stat.Walking += count
-	case "withdrawn":
+	case comm.WalkStatusNotStart, comm.WalkStatusAbandoned:
+		stat.NotPresent += count
+	case comm.WalkStatusPending:
+		stat.Pending += count
+	case comm.WalkStatusInProgress:
+		stat.InProgress += count
+	case comm.WalkStatusWithdrawn:
 		stat.Withdrawn += count
 	}
 }

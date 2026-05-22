@@ -40,8 +40,8 @@ func newPeople(db *gorm.DB, opts ...gen.DOOption) people {
 	_people.Wechat = field.NewString(tableName, "wechat")
 	_people.College = field.NewString(tableName, "college")
 	_people.Tel = field.NewString(tableName, "tel")
-	_people.CreatedOp = field.NewInt8(tableName, "created_op")
-	_people.JoinOp = field.NewInt8(tableName, "join_op")
+	_people.CreatedOp = field.NewUint8(tableName, "created_op")
+	_people.JoinOp = field.NewUint8(tableName, "join_op")
 	_people.TeamID = field.NewInt64(tableName, "team_id")
 	_people.Type = field.NewString(tableName, "type")
 	_people.WalkStatus = field.NewString(tableName, "walk_status")
@@ -69,8 +69,8 @@ type people struct {
 	Wechat     field.String // 微信号
 	College    field.String // 学院
 	Tel        field.String // 联系电话
-	CreatedOp  field.Int8   // 剩余创建团队次数
-	JoinOp     field.Int8   // 剩余加入团队次数
+	CreatedOp  field.Uint8  // 剩余创建团队次数
+	JoinOp     field.Uint8  // 剩余加入团队次数
 	TeamID     field.Int64  // 所属团队ID
 	Type       field.String // 人员类型(alumni校友，student学生，staff教职工)
 	WalkStatus field.String // 活动状态(未开始,待出发,已放弃,进行中,已下撤,已违规,已完成)
@@ -104,8 +104,8 @@ func (p *people) updateTableName(table string) *people {
 	p.Wechat = field.NewString(table, "wechat")
 	p.College = field.NewString(table, "college")
 	p.Tel = field.NewString(table, "tel")
-	p.CreatedOp = field.NewInt8(table, "created_op")
-	p.JoinOp = field.NewInt8(table, "join_op")
+	p.CreatedOp = field.NewUint8(table, "created_op")
+	p.JoinOp = field.NewUint8(table, "join_op")
 	p.TeamID = field.NewInt64(table, "team_id")
 	p.Type = field.NewString(table, "type")
 	p.WalkStatus = field.NewString(table, "walk_status")

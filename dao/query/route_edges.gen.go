@@ -48,7 +48,7 @@ type routeEdge struct {
 	ID            field.Int64
 	PrevPointName field.String // 前一个点位ID
 	PointName     field.String // 当前点位ID
-	RouteName     field.String // 点位所属路线编号
+	RouteName     field.String // 点位所属路线名称
 	SeqOrder      field.Int8   // 点位在路线中的顺序
 	UpdatedAt     field.Time
 	CreatedAt     field.Time

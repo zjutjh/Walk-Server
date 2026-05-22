@@ -30,20 +30,20 @@ func newTeam(db *gorm.DB, opts ...gen.DOOption) team {
 	_team.ALL = field.NewAsterisk(tableName)
 	_team.ID = field.NewInt64(tableName, "id")
 	_team.Name = field.NewString(tableName, "name")
-	_team.Num = field.NewInt8(tableName, "num")
+	_team.Num = field.NewUint8(tableName, "num")
 	_team.Password = field.NewString(tableName, "password")
 	_team.Slogan = field.NewString(tableName, "slogan")
-	_team.AllowMatch = field.NewInt8(tableName, "allow_match")
+	_team.AllowMatch = field.NewBool(tableName, "allow_match")
 	_team.Captain = field.NewString(tableName, "captain")
-	_team.Submit = field.NewInt8(tableName, "submit")
+	_team.Submit = field.NewBool(tableName, "submit")
 	_team.RouteName = field.NewString(tableName, "route_name")
 	_team.PrevPointName = field.NewString(tableName, "prev_point_name")
 	_team.Status = field.NewString(tableName, "status")
-	_team.IsWrongRoute = field.NewInt8(tableName, "is_wrong_route")
-	_team.IsReunite = field.NewInt8(tableName, "is_reunite")
+	_team.IsWrongRoute = field.NewBool(tableName, "is_wrong_route")
+	_team.IsReunite = field.NewBool(tableName, "is_reunite")
 	_team.Code = field.NewString(tableName, "code")
 	_team.Time = field.NewTime(tableName, "time")
-	_team.IsLost = field.NewInt8(tableName, "is_lost")
+	_team.IsLost = field.NewBool(tableName, "is_lost")
 	_team.UpdatedAt = field.NewTime(tableName, "updated_at")
 	_team.CreatedAt = field.NewTime(tableName, "created_at")
 
@@ -58,20 +58,20 @@ type team struct {
 	ALL           field.Asterisk
 	ID            field.Int64  // 队伍ID
 	Name          field.String // 队伍名称
-	Num           field.Int8   // 团队人数
+	Num           field.Uint8  // 团队人数
 	Password      field.String // 团队加入密码
 	Slogan        field.String // 团队标语
-	AllowMatch    field.Int8   // 是否允许随机匹配
+	AllowMatch    field.Bool   // 是否允许随机匹配
 	Captain       field.String // 队长OpenID
-	Submit        field.Int8   // 是否已提交报名
+	Submit        field.Bool   // 是否已提交报名
 	RouteName     field.String // 团队所属路线
 	PrevPointName field.String // 上一经过点位ID
 	Status        field.String // 活动状态(notStart未出发，inProgress进行中，completed已完成，withdrawn已下撤)
-	IsWrongRoute  field.Int8   // 是否走错
-	IsReunite     field.Int8   // 是否重组
+	IsWrongRoute  field.Bool   // 是否走错
+	IsReunite     field.Bool   // 是否重组
 	Code          field.String // 签到二维码绑定码
 	Time          field.Time   // 队伍状态更新时间
-	IsLost        field.Int8   // 是否失联
+	IsLost        field.Bool   // 是否失联
 	UpdatedAt     field.Time
 	CreatedAt     field.Time
 
@@ -92,20 +92,20 @@ func (t *team) updateTableName(table string) *team {
 	t.ALL = field.NewAsterisk(table)
 	t.ID = field.NewInt64(table, "id")
 	t.Name = field.NewString(table, "name")
-	t.Num = field.NewInt8(table, "num")
+	t.Num = field.NewUint8(table, "num")
 	t.Password = field.NewString(table, "password")
 	t.Slogan = field.NewString(table, "slogan")
-	t.AllowMatch = field.NewInt8(table, "allow_match")
+	t.AllowMatch = field.NewBool(table, "allow_match")
 	t.Captain = field.NewString(table, "captain")
-	t.Submit = field.NewInt8(table, "submit")
+	t.Submit = field.NewBool(table, "submit")
 	t.RouteName = field.NewString(table, "route_name")
 	t.PrevPointName = field.NewString(table, "prev_point_name")
 	t.Status = field.NewString(table, "status")
-	t.IsWrongRoute = field.NewInt8(table, "is_wrong_route")
-	t.IsReunite = field.NewInt8(table, "is_reunite")
+	t.IsWrongRoute = field.NewBool(table, "is_wrong_route")
+	t.IsReunite = field.NewBool(table, "is_reunite")
 	t.Code = field.NewString(table, "code")
 	t.Time = field.NewTime(table, "time")
-	t.IsLost = field.NewInt8(table, "is_lost")
+	t.IsLost = field.NewBool(table, "is_lost")
 	t.UpdatedAt = field.NewTime(table, "updated_at")
 	t.CreatedAt = field.NewTime(table, "created_at")
 

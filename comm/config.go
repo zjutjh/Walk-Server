@@ -1,7 +1,7 @@
 package comm
 
 // BizConf 业务配置
-var BizConf *BizConfig
+var BizConf BizConfig
 
 type BizConfig struct {
 	AESSecret     string `mapstructure:"aes_secret"`

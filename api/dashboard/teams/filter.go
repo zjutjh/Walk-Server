@@ -52,7 +52,7 @@ type FilterApiResponse struct {
 }
 
 type TeamBriefInfo struct {
-	TeamId        int64 `json:"team_id" desc:"队伍ID"`
+	TeamId        int64  `json:"team_id" desc:"队伍ID"`
 	CaptainName   string `json:"captain_name" desc:"队长姓名"`
 	CaptainPhone  string `json:"captain_phone" desc:"队长联系电话"`
 	PrevPointName string `json:"prev_point_name" desc:"最新经过点位唯一name"`
@@ -101,7 +101,6 @@ func (f *FilterApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeParameterInvalid
 	}
 
-	
 	limit := f.Request.Query.Limit
 	if limit <= 0 {
 		limit = 20
@@ -167,7 +166,7 @@ func (f *FilterApi) Run(ctx *gin.Context) kit.Code {
 			CaptainPhone:  team.CaptainPhone,
 			PrevPointName: team.PrevPointName,
 			RouteName:     team.RouteName,
-			IsLost:        team.IsLost == 1,
+			IsLost:        team.IsLost,
 		}
 		if team.PrevPointTime.Valid {
 			item.PrevPointTime = team.PrevPointTime.Time.UTC().Format("2006-01-02T15:04:05.000Z")

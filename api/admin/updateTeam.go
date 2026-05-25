@@ -223,7 +223,7 @@ func (u *UpdateTeamApi) resolveTeam(ctx *gin.Context, admin *model.Admin) (*mode
 }
 
 func (u *UpdateTeamApi) resolveActiveRouteForDirection(ctx *gin.Context, teamRepo *repo.TeamRepo, team *model.Team, pointName string, pointRoutes []string) (string, *kit.Code) {
-	if team.IsWrongRoute != 0 {
+	if team.IsWrongRoute != false {
 		wrongRouteName, found, err := teamRepo.GetLatestWrongRouteName(ctx, team.ID)
 		if err != nil {
 			nlog.Pick().WithContext(ctx).WithError(err).Error("查询队伍错路路线失败")
@@ -320,8 +320,8 @@ func (u *UpdateTeamApi) handleWrongRoutePointCheckin(ctx *gin.Context, team *mod
 		if err := txTeamRepo.CreateCheckin(ctx, adminID, team.ID, pointName, team.RouteName); err != nil {
 			return err
 		}
-		if team.IsWrongRoute == 0 {
-			if err := txTeamRepo.UpdateTeamWrongRoute(ctx, team.ID, 1); err != nil {
+		if team.IsWrongRoute == false {
+			if err := txTeamRepo.UpdateTeamWrongRoute(ctx, team.ID, true); err != nil {
 				return err
 			}
 			if err := txTeamRepo.CreateWrongRouteRecord(ctx, team.ID, team.RouteName, wrongRouteName, adminID); err != nil {

@@ -48,6 +48,7 @@ type WalkStatusCountRow struct {
 
 type PointPassedCountRow struct {
 	PointName string `gorm:"column:point_name"`
+	SeqOrder  int    `gorm:"column:seq_order"`
 	Count     int64  `gorm:"column:cnt"`
 }
 
@@ -196,18 +197,17 @@ func (r *RouteRepo) ExistsActiveRoute(ctx context.Context, routeName string) (bo
 	return total > 0, nil
 }
 
-// ListRoutePoints 查询路线点位顺序。
+// ListRoutePoints 查询路线点位顺序（按 route_edges 原样返回，不 GROUP BY）。
+// 注意：若一条路线的起点和终点是同一个点位名称（如环线），该点位会重复出现。
 func (r *RouteRepo) ListRoutePoints(ctx context.Context, routeName string) ([]RoutePointRow, error) {
 	rows := make([]RoutePointRow, 0)
 
 	err := r.query.RouteEdge.WithContext(ctx).
 		UnderlyingDB().
 		Table("route_edges").
-		Select("point_name, MIN(seq_order) AS seq_order").
+		Select("point_name, seq_order").
 		Where("route_name = ? AND point_name IS NOT NULL AND point_name <> ''", routeName).
-		Group("point_name").
 		Order("seq_order ASC").
-		Order("point_name ASC").
 		Scan(&rows).Error
 	if err != nil {
 		return nil, err
@@ -231,7 +231,8 @@ func (r *RouteRepo) ListRoutePointPassedCounts(ctx context.Context, routeName st
 	}
 
 	statusPlaceholders := buildInPlaceholders(len(statuses))
-	args := []any{routeName, routeName, routeName}
+	// 参数顺序：route_point_seq(?), route_point_seq_dedup(?), team_reached 的 checkins JOIN(?), team_reached 的 teams WHERE(?)
+	args := []any{routeName, routeName, routeName, routeName}
 	for _, status := range statuses {
 		args = append(args, status)
 	}
@@ -240,6 +241,11 @@ func (r *RouteRepo) ListRoutePointPassedCounts(ctx context.Context, routeName st
 		UnderlyingDB().
 		Raw(
 			"WITH route_point_seq AS ("+
+				"SELECT point_name, seq_order "+
+				"FROM route_edges "+
+				"WHERE route_name = ? AND point_name IS NOT NULL AND point_name <> '' "+
+				"ORDER BY seq_order ASC"+
+				"), route_point_seq_dedup AS ("+
 				"SELECT point_name, MIN(seq_order) AS seq_order "+
 				"FROM route_edges "+
 				"WHERE route_name = ? AND point_name IS NOT NULL AND point_name <> '' "+
@@ -248,7 +254,7 @@ func (r *RouteRepo) ListRoutePointPassedCounts(ctx context.Context, routeName st
 				"SELECT t.id AS team_id, MAX(rps.seq_order) AS reached_seq "+
 				"FROM teams AS t "+
 				"JOIN checkins AS c ON c.team_id = t.id AND c.route_name = ? AND c.point_name IS NOT NULL AND c.point_name <> '' "+
-				"JOIN route_point_seq AS rps ON rps.point_name = c.point_name "+
+				"JOIN route_point_seq_dedup AS rps ON rps.point_name = c.point_name "+
 				"WHERE t.submit = 1 AND t.route_name = ? "+
 				"GROUP BY t.id"+
 				"), team_people_by_seq AS ("+
@@ -265,10 +271,10 @@ func (r *RouteRepo) ListRoutePointPassedCounts(ctx context.Context, routeName st
 				"FROM seq_levels AS sl "+
 				"LEFT JOIN team_people_by_seq AS tps ON tps.reached_seq = sl.seq_order"+
 				") "+
-				"SELECT rp.point_name, sc.cnt "+
+				"SELECT rp.point_name, rp.seq_order, sc.cnt "+
 				"FROM route_point_seq AS rp "+
 				"JOIN seq_cumulative AS sc ON sc.seq_order = rp.seq_order "+
-				"ORDER BY rp.seq_order ASC, rp.point_name ASC",
+				"ORDER BY rp.seq_order ASC",
 			args...,
 		).
 		Scan(&rows).Error
@@ -305,7 +311,7 @@ func (r *RouteRepo) CountSingleRouteWrongPeople(ctx context.Context, routeName s
 		UnderlyingDB().
 		Table("peoples AS p").
 		Joins("JOIN teams AS t ON t.id = p.team_id").
-		Where("t.submit = ? AND t.route_name = ? AND t.is_wrong_route = ?", 1, routeName, 1).
+		Where("t.submit = ? AND t.route_name = ? AND t.is_wrong_route = ?", true, routeName, true).
 		Count(&total).Error
 	if err != nil {
 		return 0, err

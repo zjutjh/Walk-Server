@@ -26,6 +26,7 @@ func RouteHandler() gin.HandlerFunc {
 
 type PointStat struct {
 	PointName   string `json:"point_name" desc:"点位唯一name"`
+	SeqOrder    int    `json:"seq_order" desc:"点位在路线中的顺序"`
 	PassedCount int    `json:"passed_count" desc:"经过该点位的总人数"`
 }
 
@@ -117,34 +118,38 @@ func (r *RouteApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeDatabaseError
 	}
 
-	passedMap := make(map[string]int, len(passedRows))
+	passedMap := make(map[int]int, len(passedRows))
 	for _, row := range passedRows {
-		passedMap[row.PointName] = int(row.Count)
+		passedMap[row.SeqOrder] = int(row.Count)
 	}
 
-	r.Response.PointStats = make([]PointStat, 0, len(pointRows)+len(passedRows))
-	pointSeen := make(map[string]struct{}, len(pointRows))
+	r.Response.PointStats = make([]PointStat, 0, len(pointRows))
 	for _, row := range pointRows {
 		r.Response.PointStats = append(r.Response.PointStats, PointStat{
 			PointName:   row.PointName,
-			PassedCount: passedMap[row.PointName],
+			SeqOrder:    row.SeqOrder,
+			PassedCount: passedMap[row.SeqOrder],
 		})
-		pointSeen[row.PointName] = struct{}{}
 	}
 
-	extraPointNames := make([]string, 0)
-	for _, row := range passedRows {
-		if _, exists := pointSeen[row.PointName]; exists {
-			continue
+	// Backfill: in circular routes, endpoint has the same point_name.
+	// We inherit count from the n-2 th point to n-1 th point if it repeats.
+	n := len(r.Response.PointStats)
+	if n >= 2 {
+		lastPoint := &r.Response.PointStats[n-1]
+		isRepeatedLast := false
+		for i := 0; i < n-1; i++ {
+			if r.Response.PointStats[i].PointName == lastPoint.PointName {
+				isRepeatedLast = true
+				break
+			}
 		}
-
-		extraPointNames = append(extraPointNames, row.PointName)
-	}
-	for _, pointName := range extraPointNames {
-		r.Response.PointStats = append(r.Response.PointStats, PointStat{
-			PointName:   pointName,
-			PassedCount: passedMap[pointName],
-		})
+		if isRepeatedLast {
+			prevCount := r.Response.PointStats[n-2].PassedCount
+			if prevCount > 0 {
+				lastPoint.PassedCount = prevCount
+			}
+		}
 	}
 
 	statusRows, err := routeRepo.ListSingleRouteStatusCounts(ctx, routeName)

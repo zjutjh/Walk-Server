@@ -113,7 +113,7 @@ type teamRouteStatus struct {
 
 func (g *GetTeamStatusApi) resolveRouteStatus(ctx *gin.Context, teamRepo *repo.TeamRepo, team *model.Team) (teamRouteStatus, error) {
 	status := teamRouteStatus{
-		isWrongRoute: team.IsWrongRoute != 0,
+		isWrongRoute: team.IsWrongRoute != false,
 	}
 
 	checkins, err := teamRepo.ListLatestCheckins(ctx, team.ID, 2)

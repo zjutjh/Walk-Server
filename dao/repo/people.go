@@ -409,3 +409,40 @@ func (r *PeopleRepo) UpdateMembersWalkStatusByCurrent(ctx context.Context, teamI
 	}
 	return err
 }
+
+func (r *PeopleRepo) UpdateWalkStatusByCurrent(ctx context.Context, fromStatus string, toStatus string) (int64, []int64, error) {
+	p := r.query.People
+	people, err := p.WithContext(ctx).
+		Where(p.WalkStatus.Eq(fromStatus)).
+		Find()
+	if err != nil {
+		return 0, nil, err
+	}
+	if len(people) == 0 {
+		return 0, nil, nil
+	}
+
+	_, err = p.WithContext(ctx).
+		Where(p.WalkStatus.Eq(fromStatus)).
+		Update(p.WalkStatus, toStatus)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	teamIDSet := make(map[int64]struct{})
+	for _, person := range people {
+		if person == nil {
+			continue
+		}
+		_ = peoplecache.DelPersonByOpenID(ctx, person.OpenID)
+		if person.TeamID > 0 {
+			teamIDSet[person.TeamID] = struct{}{}
+		}
+	}
+
+	teamIDs := make([]int64, 0, len(teamIDSet))
+	for teamID := range teamIDSet {
+		teamIDs = append(teamIDs, teamID)
+	}
+	return int64(len(people)), teamIDs, nil
+}

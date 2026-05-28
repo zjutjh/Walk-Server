@@ -13,7 +13,7 @@ var (
 
 // 业务通用错误码
 var (
-	CodeNotLoggedIn        = kit.NewCode(200201, "用户未登录或登录过期")
+	CodeNotLoggedIn        = kit.NewCode(200201, "未登录或登录过期")
 	CodePermissionDenied   = kit.NewCode(200202, "用户无权限")
 	CodeParameterInvalid   = kit.NewCode(200203, "参数错误")
 	CodeDataNotFound       = kit.NewCode(200204, "数据不存在")

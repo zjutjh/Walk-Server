@@ -122,16 +122,13 @@ func (u *UpdateTeamApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeOK
 	}
 
-	routeEdge, err := teamRepo.FindRouteEdge(ctx, team.RouteName, admin.PointName)
+	routeEdge, err := teamRepo.FindRouteTransitionEdge(ctx, team.RouteName, team.PrevPointName, admin.PointName)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询路线边失败")
 		return comm.CodeDatabaseError
 	}
 
 	if routeEdge != nil && routeEdge.PrevPointName == "" {
-		if team.Status != comm.TeamStatusNotStart {
-			return comm.CodeTeamCheckinClosed
-		}
 		if err := u.handleStartPointCheckin(ctx, team, admin.ID, admin.PointName); err != nil {
 			nlog.Pick().WithContext(ctx).WithError(err).Error("起点打卡失败")
 			return comm.CodeDatabaseError
@@ -289,10 +286,6 @@ func (u *UpdateTeamApi) handleStartPointCheckin(ctx *gin.Context, team *model.Te
 }
 
 func (u *UpdateTeamApi) handleRoutePointCheckin(ctx *gin.Context, team *model.Team, adminID int64, pointName string, routeEdge *model.RouteEdge) (*routePointCheckinResult, error) {
-	if team.Status != comm.TeamStatusInProgress {
-		return &routePointCheckinResult{code: &comm.CodeTeamCheckinClosed}, nil
-	}
-
 	if routeEdge == nil {
 		if err := u.handlePointCheckin(ctx, team, adminID, pointName); err != nil {
 			return nil, err
@@ -308,10 +301,6 @@ func (u *UpdateTeamApi) handleRoutePointCheckin(ctx *gin.Context, team *model.Te
 }
 
 func (u *UpdateTeamApi) handleWrongRoutePointCheckin(ctx *gin.Context, team *model.Team, adminID int64, pointName string, wrongRouteName string) (*routePointCheckinResult, error) {
-	if team.Status != comm.TeamStatusInProgress {
-		return &routePointCheckinResult{code: &comm.CodeTeamCheckinClosed}, nil
-	}
-
 	err := query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
 		txTeamRepo := repo.NewTeamRepoWithTx(tx)
 		if err := txTeamRepo.UpdatePrevPointName(ctx, team.ID, pointName); err != nil {

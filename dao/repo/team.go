@@ -178,6 +178,23 @@ func (r *TeamRepo) UpdateByID(ctx context.Context, id int64, updates map[string]
 	return nil
 }
 
+func (r *TeamRepo) UpdateStatusByIDs(ctx context.Context, ids []int64, status string) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	t := r.query.Team
+	_, err := t.WithContext(ctx).
+		Where(t.ID.In(ids...)).
+		Update(t.Status, status)
+	if err != nil {
+		return err
+	}
+	for _, id := range ids {
+		_ = teamCache.DelTeamByID(ctx, id)
+	}
+	return nil
+}
+
 func (r *TeamRepo) IncrementNumIfAvailable(ctx context.Context, id int64, maxTeamSize int) (bool, error) {
 	result := r.db.WithContext(ctx).
 		Model(&model.Team{}).
@@ -304,6 +321,28 @@ func (r *TeamRepo) FindRouteEdge(ctx context.Context, routeName, pointName strin
 	return record, nil
 }
 
+func (r *TeamRepo) FindRouteTransitionEdge(ctx context.Context, routeName, prevPointName, pointName string) (*model.RouteEdge, error) {
+	re := r.query.RouteEdge
+	query := re.WithContext(ctx).Where(
+		re.RouteName.Eq(routeName),
+		re.PointName.Eq(pointName),
+	)
+	if prevPointName == "" {
+		query = query.Where(re.PrevPointName.IsNull())
+	} else {
+		query = query.Where(re.PrevPointName.Eq(prevPointName))
+	}
+
+	record, err := query.First()
+	if err == nil {
+		return record, nil
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+	return r.FindRouteEdge(ctx, routeName, pointName)
+}
+
 func (r *TeamRepo) FindPointRoutes(ctx context.Context, pointName string) ([]string, error) {
 	if routeNames, hit, err := routeCache.GetPointRoutes(ctx, pointName); err == nil && hit {
 		return routeNames, nil
@@ -352,10 +391,18 @@ func (r *TeamRepo) IsDirectionBackward(ctx context.Context, routeName, prevPoint
 		return false, nil
 	}
 
+	isDirectNext, err := r.IsRouteTransitionValid(ctx, routeName, prevPointName, pointName)
+	if err != nil {
+		return false, err
+	}
+	if isDirectNext {
+		return false, nil
+	}
+
 	var nextSeq struct {
 		SeqOrder int `gorm:"column:seq_order"`
 	}
-	err := r.query.RouteEdge.WithContext(ctx).
+	err = r.query.RouteEdge.WithContext(ctx).
 		UnderlyingDB().
 		Table("route_edges").
 		Select("MIN(seq_order) AS seq_order").

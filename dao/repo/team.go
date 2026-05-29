@@ -421,7 +421,7 @@ func (r *TeamRepo) IsDirectionBackward(ctx context.Context, routeName, prevPoint
 	err = r.query.RouteEdge.WithContext(ctx).
 		UnderlyingDB().
 		Table("route_edges").
-		Select("MIN(seq_order) AS seq_order").
+		Select("MAX(seq_order) AS seq_order").
 		Where("route_name = ? AND point_name = ?", routeName, pointName).
 		Scan(&currentSeq).Error
 	if err != nil {

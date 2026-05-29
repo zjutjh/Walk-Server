@@ -299,29 +299,11 @@ func (r *TeamRepo) FindRouteByName(ctx context.Context, routeName string) (*mode
 	return record, nil
 }
 
-func (r *TeamRepo) FindRouteEdge(ctx context.Context, routeName, pointName string) (*model.RouteEdge, error) {
-	if routeEdge, hit, err := routeCache.GetRouteEdge(ctx, routeName, pointName); err == nil && hit {
+func (r *TeamRepo) FindRouteTransitionEdge(ctx context.Context, routeName, prevPointName, pointName string) (*model.RouteEdge, error) {
+	if routeEdge, hit, err := routeCache.GetRouteEdge(ctx, routeName, prevPointName, pointName); err == nil && hit {
 		return routeEdge, nil
 	}
 
-	re := r.query.RouteEdge
-	record, err := re.WithContext(ctx).
-		Where(
-			re.RouteName.Eq(routeName),
-			re.PointName.Eq(pointName),
-		).
-		First()
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	_ = routeCache.SetRouteEdge(ctx, record)
-	return record, nil
-}
-
-func (r *TeamRepo) FindRouteTransitionEdge(ctx context.Context, routeName, prevPointName, pointName string) (*model.RouteEdge, error) {
 	re := r.query.RouteEdge
 	query := re.WithContext(ctx).Where(
 		re.RouteName.Eq(routeName),
@@ -335,12 +317,13 @@ func (r *TeamRepo) FindRouteTransitionEdge(ctx context.Context, routeName, prevP
 
 	record, err := query.First()
 	if err == nil {
+		_ = routeCache.SetRouteEdge(ctx, record)
 		return record, nil
 	}
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
-	return r.FindRouteEdge(ctx, routeName, pointName)
+	return nil, nil
 }
 
 func (r *TeamRepo) FindPointRoutes(ctx context.Context, pointName string) ([]string, error) {

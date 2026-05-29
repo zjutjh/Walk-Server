@@ -45,10 +45,6 @@ type UpdateTeamApiResponse struct {
 	IsDuplicateCheckIn bool `json:"is_duplicate_check_in" desc:"是否重复打卡"`
 }
 
-type routePointCheckinResult struct {
-	code *kit.Code
-}
-
 // Run Api业务逻辑执行点
 func (u *UpdateTeamApi) Run(ctx *gin.Context) kit.Code {
 	teamRepo := repo.NewTeamRepo()
@@ -110,13 +106,9 @@ func (u *UpdateTeamApi) Run(ctx *gin.Context) kit.Code {
 	}
 
 	if !slices.Contains(pointRoutes, team.RouteName) {
-		result, err := u.handleWrongRoutePointCheckin(ctx, team, admin.ID, admin.PointName, activeRouteName)
-		if err != nil {
+		if err := u.handleWrongRoutePointCheckin(ctx, team, admin.ID, admin.PointName, activeRouteName); err != nil {
 			nlog.Pick().WithContext(ctx).WithError(err).Error("错路点位打卡失败")
 			return comm.CodeDatabaseError
-		}
-		if result.code != nil {
-			return *result.code
 		}
 		u.Response.TeamID = int(team.ID)
 		return comm.CodeOK
@@ -137,13 +129,9 @@ func (u *UpdateTeamApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeOK
 	}
 
-	result, err := u.handleRoutePointCheckin(ctx, team, admin.ID, admin.PointName, routeEdge)
-	if err != nil {
+	if err := u.handlePointCheckin(ctx, team, admin.ID, admin.PointName); err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("普通点位打卡失败")
 		return comm.CodeDatabaseError
-	}
-	if result.code != nil {
-		return *result.code
 	}
 
 	u.Response.TeamID = int(team.ID)
@@ -285,23 +273,8 @@ func (u *UpdateTeamApi) handleStartPointCheckin(ctx *gin.Context, team *model.Te
 	})
 }
 
-func (u *UpdateTeamApi) handleRoutePointCheckin(ctx *gin.Context, team *model.Team, adminID int64, pointName string, routeEdge *model.RouteEdge) (*routePointCheckinResult, error) {
-	if routeEdge == nil {
-		if err := u.handlePointCheckin(ctx, team, adminID, pointName); err != nil {
-			return nil, err
-		}
-		return &routePointCheckinResult{}, nil
-	}
-
-	if err := u.handlePointCheckin(ctx, team, adminID, pointName); err != nil {
-		return nil, err
-	}
-
-	return &routePointCheckinResult{}, nil
-}
-
-func (u *UpdateTeamApi) handleWrongRoutePointCheckin(ctx *gin.Context, team *model.Team, adminID int64, pointName string, wrongRouteName string) (*routePointCheckinResult, error) {
-	err := query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
+func (u *UpdateTeamApi) handleWrongRoutePointCheckin(ctx *gin.Context, team *model.Team, adminID int64, pointName string, wrongRouteName string) error {
+	return query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
 		txTeamRepo := repo.NewTeamRepoWithTx(tx)
 		if err := txTeamRepo.UpdatePrevPointName(ctx, team.ID, pointName); err != nil {
 			return err
@@ -319,11 +292,6 @@ func (u *UpdateTeamApi) handleWrongRoutePointCheckin(ctx *gin.Context, team *mod
 		}
 		return nil
 	})
-	if err != nil {
-		return nil, err
-	}
-
-	return &routePointCheckinResult{}, nil
 }
 
 // Run Api初始化 进行参数校验和绑定

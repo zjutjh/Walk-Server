@@ -40,8 +40,8 @@ func BuildRouteCacheKey(routeName string) string {
 	return fmt.Sprintf("%s:%s", routeCacheKeyPrefix, routeName)
 }
 
-func BuildRouteEdgeCacheKey(routeName, pointName string) string {
-	return fmt.Sprintf("%s:%s:%s", routeEdgeCacheKeyPrefix, routeName, pointName)
+func BuildRouteEdgeCacheKey(routeName, prevPointName, pointName string) string {
+	return fmt.Sprintf("%s:%s:%s:%s", routeEdgeCacheKeyPrefix, routeName, prevPointName, pointName)
 }
 
 func BuildPointRoutesCacheKey(pointName string) string {
@@ -92,8 +92,8 @@ func SetRoute(ctx context.Context, route *model.Route) error {
 	return client().Set(ctx, BuildRouteCacheKey(route.Name), payload, routeCacheTTL).Err()
 }
 
-func GetRouteEdge(ctx context.Context, routeName, pointName string) (*model.RouteEdge, bool, error) {
-	value, err := client().Get(ctx, BuildRouteEdgeCacheKey(routeName, pointName)).Result()
+func GetRouteEdge(ctx context.Context, routeName, prevPointName, pointName string) (*model.RouteEdge, bool, error) {
+	value, err := client().Get(ctx, BuildRouteEdgeCacheKey(routeName, prevPointName, pointName)).Result()
 	if err == redis.Nil {
 		return nil, false, nil
 	}
@@ -117,7 +117,7 @@ func SetRouteEdge(ctx context.Context, routeEdge *model.RouteEdge) error {
 	if err != nil {
 		return err
 	}
-	return client().Set(ctx, BuildRouteEdgeCacheKey(routeEdge.RouteName, routeEdge.PointName), payload, routeEdgeCacheTTL).Err()
+	return client().Set(ctx, BuildRouteEdgeCacheKey(routeEdge.RouteName, routeEdge.PrevPointName, routeEdge.PointName), payload, routeEdgeCacheTTL).Err()
 }
 
 func GetPointRoutes(ctx context.Context, pointName string) ([]string, bool, error) {

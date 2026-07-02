@@ -46,4 +46,5 @@ var (
 	CodeCampusMismatch          = kit.NewCode(200320, "校区错误")
 	CodeAdminLoginTooFrequently = kit.NewCode(200322, "登录失败次数过多，请稍后再试")
 	CodeTeamDirectionInvalid    = kit.NewCode(200323, "团队行进方向错误")
+	CodeTeamLostLocked          = kit.NewCode(200324, "该团队失联状态刚更新，请稍后再试")
 )

@@ -59,7 +59,7 @@ func (l *LostApi) Run(ctx *gin.Context) kit.Code {
 			nlog.Pick().WithContext(ctx).WithError(lockErr).Warn("队伍失联状态加锁失败，降级走数据库校验")
 		}
 		if lockAcquired == false && lockErr == nil {
-			return comm.CodeTooFrequently
+			return comm.CodeTeamLostLocked
 		}
 	}
 
@@ -97,7 +97,7 @@ func (l *LostApi) Run(ctx *gin.Context) kit.Code {
 			}
 		}
 		keepLock = true
-		return comm.CodeTooFrequently
+		return comm.CodeTeamLostLocked
 	}
 
 	updated, err := teamRepo.UpdateTeamLostStatus(ctx, teamID, l.Request.Body.IsLost, now)

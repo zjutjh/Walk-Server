@@ -97,8 +97,8 @@ func (f *FilterApi) Run(ctx *gin.Context) kit.Code {
 				return comm.CodeParameterInvalid
 			}
 		}
-	} else if searchType != "" {
-		return comm.CodeParameterInvalid
+	} else {
+		searchType = ""
 	}
 
 	limit := f.Request.Query.Limit

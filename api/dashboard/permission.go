@@ -43,7 +43,7 @@ func (p *PermissionApi) Run(ctx *gin.Context) kit.Code {
 	admin, ok := repo.GetAdminInfo(ctx) //从中间件获取管理员信息（虽然理论上不应该从中间拿，而是serveice，但是就这样吧
 	if !ok {
 		//reply.Fail(ctx, comm.CodeUnknownError)  get Fall过了,这里不fall
-		return comm.CodeUnknownError
+		return comm.CodeServerError
 	}
 
 	p.Response.Name = admin.Name

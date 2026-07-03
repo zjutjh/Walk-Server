@@ -60,14 +60,14 @@ func (h *WechatLoginApi) Run(ctx *gin.Context) kit.Code {
 	token, err := comm.GenerateToken(openID)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("生成Token失败")
-		return comm.CodeUnknownError
+		return comm.CodeServerError
 	}
 
 	peopleRepo := repo.NewPeopleRepo()
 	person, err := peopleRepo.FindPeopleByOpenID(ctx, openID)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询用户信息失败")
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 
 	h.Response.Token = token

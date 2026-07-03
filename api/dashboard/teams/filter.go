@@ -75,13 +75,13 @@ func (f *FilterApi) Run(ctx *gin.Context) kit.Code {
 
 	// 参数校验
 	if campus == "" {
-		return comm.CodeInsufficientParams
+		return comm.CodeParameterInvalid
 	}
 	if key == "" && toPointName == "" {
-		return comm.CodeInsufficientParams
+		return comm.CodeParameterInvalid
 	}
 	if toPointName == "" && prevPointName != "" {
-		return comm.CodeInsufficientParams
+		return comm.CodeParameterInvalid
 	}
 
 	if key != "" {
@@ -146,13 +146,13 @@ func (f *FilterApi) Run(ctx *gin.Context) kit.Code {
 	totalCount, err := teamRepo.CountTeamsByFilter(ctx, filterQuery)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("统计队伍筛选结果失败")
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 
 	teams, err := teamRepo.ListTeamsByFilter(ctx, filterQuery)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询队伍筛选列表失败")
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 
 	f.Response.TotalCount = int(totalCount)

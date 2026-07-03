@@ -63,7 +63,7 @@ func (h *TeamCreateApi) Run(ctx *gin.Context) kit.Code {
 
 	person, err := peopleRepo.FindPeopleByOpenID(ctx, openID)
 	if err != nil {
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 	if person == nil {
 		return comm.CodeDataNotFound
@@ -77,7 +77,7 @@ func (h *TeamCreateApi) Run(ctx *gin.Context) kit.Code {
 
 	duplicated, err := teamRepo.FindTeamByName(ctx, teamName)
 	if err != nil {
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 	if duplicated != nil {
 		return comm.CodeTeamNameDuplicated
@@ -85,7 +85,7 @@ func (h *TeamCreateApi) Run(ctx *gin.Context) kit.Code {
 
 	hashedPassword, err := hashTeamPassword(h.Request.Password)
 	if err != nil {
-		return comm.CodeUnknownError
+		return comm.CodeServerError
 	}
 
 	err = query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
@@ -128,7 +128,7 @@ func (h *TeamCreateApi) Run(ctx *gin.Context) kit.Code {
 		if errors.Is(err, errTeamNameDuplicated) {
 			return comm.CodeTeamNameDuplicated
 		}
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 
 	return comm.CodeOK

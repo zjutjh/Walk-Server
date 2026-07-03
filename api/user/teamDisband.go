@@ -43,7 +43,7 @@ func (h *TeamDisbandApi) Run(ctx *gin.Context) kit.Code {
 
 	person, err := peopleRepo.FindPeopleByOpenID(ctx, openID)
 	if err != nil {
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 	if person == nil || person.TeamID <= 0 {
 		return comm.CodeNotInTeam
@@ -54,7 +54,7 @@ func (h *TeamDisbandApi) Run(ctx *gin.Context) kit.Code {
 
 	team, err := teamRepo.FindTeamByID(ctx, person.TeamID)
 	if err != nil {
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 	if team == nil {
 		return comm.CodeDataNotFound
@@ -79,7 +79,7 @@ func (h *TeamDisbandApi) Run(ctx *gin.Context) kit.Code {
 		return nil
 	})
 	if err != nil {
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 
 	return comm.CodeOK

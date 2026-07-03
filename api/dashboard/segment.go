@@ -49,7 +49,7 @@ func (s *SegmentApi) Run(ctx *gin.Context) kit.Code {
 	// TTL: 15s
 	admin, ok := repo.GetAdminInfo(ctx)
 	if !ok {
-		return comm.CodeUnknownError
+		return comm.CodeServerError
 	}
 
 	campus := strings.ToLower(strings.TrimSpace(admin.Campus))
@@ -78,7 +78,7 @@ func (s *SegmentApi) Run(ctx *gin.Context) kit.Code {
 	peopleCount, err := routeRepo.CountPeopleOnSegment(ctx, campus, prevPointName, toPointName)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询路段人数失败")
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 
 	s.Response.Number = int(peopleCount)

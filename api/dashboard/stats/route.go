@@ -100,7 +100,7 @@ func (r *RouteApi) Run(ctx *gin.Context) kit.Code {
 	exists, err := routeRepo.ExistsActiveRoute(ctx, routeName)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("校验路线存在失败")
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 	if !exists {
 		return comm.CodeDataNotFound
@@ -109,13 +109,13 @@ func (r *RouteApi) Run(ctx *gin.Context) kit.Code {
 	pointRows, err := routeRepo.ListRoutePoints(ctx, routeName)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询路线点位失败")
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 
 	passedRows, err := routeRepo.ListRoutePointPassedCounts(ctx, routeName)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询点位经过人数失败")
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 
 	passedMap := make(map[int]int, len(passedRows))
@@ -155,7 +155,7 @@ func (r *RouteApi) Run(ctx *gin.Context) kit.Code {
 	statusRows, err := routeRepo.ListSingleRouteStatusCounts(ctx, routeName)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询路线状态统计失败")
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 
 	status := StatusStat{}
@@ -168,7 +168,7 @@ func (r *RouteApi) Run(ctx *gin.Context) kit.Code {
 	wrongCount, err := routeRepo.CountSingleRouteWrongPeople(ctx, routeName)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询路线走错统计失败")
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 	status.WrongRoute = int(wrongCount)
 	r.Response.StatusStats = status

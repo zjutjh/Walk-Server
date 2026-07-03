@@ -83,7 +83,7 @@ func (l *LostApi) Run(ctx *gin.Context) kit.Code {
 	if err != nil {
 		keepLock = false
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询队伍信息失败")
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 
 	// 5min锁定：仅当 is_lost=true 时，检查队伍状态更新时间在5分钟内是否不允许重复更新
@@ -104,7 +104,7 @@ func (l *LostApi) Run(ctx *gin.Context) kit.Code {
 	if err != nil {
 		keepLock = false
 		nlog.Pick().WithContext(ctx).WithError(err).Error("更新队伍失联状态失败")
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 	if !updated {
 		keepLock = false

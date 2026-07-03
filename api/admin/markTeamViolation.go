@@ -68,7 +68,7 @@ func (m *MarkTeamViolationApi) Run(ctx *gin.Context) kit.Code {
 			return comm.CodeTeamNotFound
 		}
 		nlog.Pick().WithContext(ctx).WithError(err).Error("标记队伍违规失败")
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 
 	return comm.CodeOK

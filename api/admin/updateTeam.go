@@ -80,13 +80,13 @@ func (u *UpdateTeamApi) Run(ctx *gin.Context) kit.Code {
 		return repo.NewTeamRepoWithTx(tx).ClearLostStatus(ctx, team.ID)
 	}); err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("清除队伍失联状态失败")
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 
 	pointRoutes, err := teamRepo.FindPointRoutes(ctx, admin.PointName)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询点位所属路线失败")
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 	if len(pointRoutes) == 0 {
 		return comm.CodeDataNotFound
@@ -99,7 +99,7 @@ func (u *UpdateTeamApi) Run(ctx *gin.Context) kit.Code {
 	isBackward, err := teamRepo.IsDirectionBackward(ctx, activeRouteName, team.PrevPointName, admin.PointName)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("校验队伍打卡方向失败")
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 	if isBackward {
 		return comm.CodeTeamDirectionInvalid
@@ -108,7 +108,7 @@ func (u *UpdateTeamApi) Run(ctx *gin.Context) kit.Code {
 	if !slices.Contains(pointRoutes, team.RouteName) {
 		if err := u.handleWrongRoutePointCheckin(ctx, team, admin.ID, admin.PointName, activeRouteName); err != nil {
 			nlog.Pick().WithContext(ctx).WithError(err).Error("错路点位打卡失败")
-			return comm.CodeDatabaseError
+			return comm.CodeServerError
 		}
 		u.Response.TeamID = int(team.ID)
 		return comm.CodeOK
@@ -117,13 +117,13 @@ func (u *UpdateTeamApi) Run(ctx *gin.Context) kit.Code {
 	routeEdge, err := teamRepo.FindRouteTransitionEdge(ctx, team.RouteName, team.PrevPointName, admin.PointName)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询路线边失败")
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 
 	if routeEdge != nil && routeEdge.PrevPointName == "" {
 		if err := u.handleStartPointCheckin(ctx, team, admin.ID, admin.PointName); err != nil {
 			nlog.Pick().WithContext(ctx).WithError(err).Error("起点打卡失败")
-			return comm.CodeDatabaseError
+			return comm.CodeServerError
 		}
 		u.Response.TeamID = int(team.ID)
 		return comm.CodeOK
@@ -131,7 +131,7 @@ func (u *UpdateTeamApi) Run(ctx *gin.Context) kit.Code {
 
 	if err := u.handlePointCheckin(ctx, team, admin.ID, admin.PointName); err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("普通点位打卡失败")
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 
 	u.Response.TeamID = int(team.ID)
@@ -154,7 +154,7 @@ func (u *UpdateTeamApi) getCurrentAdmin(ctx *gin.Context) (*model.Admin, *kit.Co
 	admin, err := adminRepo.FindByID(ctx, adminID)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询管理员失败")
-		return nil, &comm.CodeDatabaseError
+		return nil, &comm.CodeServerError
 	}
 	if admin == nil {
 		return nil, &comm.CodeNotLoggedIn
@@ -187,7 +187,7 @@ func (u *UpdateTeamApi) resolveTeam(ctx *gin.Context, admin *model.Admin) (*mode
 	}
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询队伍失败")
-		return nil, &comm.CodeDatabaseError
+		return nil, &comm.CodeServerError
 	}
 	if team == nil {
 		return nil, &comm.CodeTeamNotFound
@@ -196,7 +196,7 @@ func (u *UpdateTeamApi) resolveTeam(ctx *gin.Context, admin *model.Admin) (*mode
 	route, err := teamRepo.FindRouteByName(ctx, team.RouteName)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询路线失败")
-		return nil, &comm.CodeDatabaseError
+		return nil, &comm.CodeServerError
 	}
 	if route == nil {
 		return nil, &comm.CodeDataNotFound
@@ -212,7 +212,7 @@ func (u *UpdateTeamApi) resolveActiveRouteForDirection(ctx *gin.Context, teamRep
 		wrongRouteName, found, err := teamRepo.GetLatestWrongRouteName(ctx, team.ID)
 		if err != nil {
 			nlog.Pick().WithContext(ctx).WithError(err).Error("查询队伍错路路线失败")
-			return "", &comm.CodeDatabaseError
+			return "", &comm.CodeServerError
 		}
 		if !found {
 			return team.RouteName, nil
@@ -221,7 +221,7 @@ func (u *UpdateTeamApi) resolveActiveRouteForDirection(ctx *gin.Context, teamRep
 		onWrongRoute, err := teamRepo.IsPointOnRoute(ctx, wrongRouteName, pointName)
 		if err != nil {
 			nlog.Pick().WithContext(ctx).WithError(err).Error("校验错路点位失败")
-			return "", &comm.CodeDatabaseError
+			return "", &comm.CodeServerError
 		}
 		if !onWrongRoute {
 			return "", &comm.CodeTeamDirectionInvalid
@@ -237,7 +237,7 @@ func (u *UpdateTeamApi) resolveActiveRouteForDirection(ctx *gin.Context, teamRep
 		prevOnRoute, err := teamRepo.IsPointOnRoute(ctx, routeName, team.PrevPointName)
 		if err != nil {
 			nlog.Pick().WithContext(ctx).WithError(err).Error("校验错路前序点位失败")
-			return "", &comm.CodeDatabaseError
+			return "", &comm.CodeServerError
 		}
 		if prevOnRoute {
 			return routeName, nil

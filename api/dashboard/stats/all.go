@@ -112,7 +112,7 @@ func (a *AllApi) Run(ctx *gin.Context) kit.Code {
 	routes, err := routeRepo.ListActiveRouteNames(ctx)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询路线列表失败")
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 
 	// 2.2) 初始化输出顺序和统计容器。
@@ -127,7 +127,7 @@ func (a *AllApi) Run(ctx *gin.Context) kit.Code {
 	statusRows, err := routeRepo.ListRouteStatusCounts(ctx)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询路线状态统计失败")
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 
 	// 2.4) 将聚合行写入每条路线统计结构。
@@ -142,7 +142,7 @@ func (a *AllApi) Run(ctx *gin.Context) kit.Code {
 	wrongRows, err := routeRepo.ListRouteWrongCounts(ctx)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询路线走错统计失败")
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 
 	// 2.6) 回填每条路线的走错人数。

@@ -55,7 +55,7 @@ func (h *TeamUpdateApi) Run(ctx *gin.Context) kit.Code {
 
 	person, err := peopleRepo.FindPeopleByOpenID(ctx, openID)
 	if err != nil {
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 	if person == nil || person.TeamID <= 0 {
 		return comm.CodeNotInTeam
@@ -66,7 +66,7 @@ func (h *TeamUpdateApi) Run(ctx *gin.Context) kit.Code {
 
 	team, err := teamRepo.FindTeamByID(ctx, person.TeamID)
 	if err != nil {
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 	if team == nil {
 		return comm.CodeDataNotFound
@@ -77,7 +77,7 @@ func (h *TeamUpdateApi) Run(ctx *gin.Context) kit.Code {
 
 	duplicated, err := teamRepo.FindByNameExceptID(ctx, teamName, team.ID)
 	if err != nil {
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 	if duplicated != nil {
 		return comm.CodeTeamNameDuplicated
@@ -85,7 +85,7 @@ func (h *TeamUpdateApi) Run(ctx *gin.Context) kit.Code {
 
 	hashedPassword, err := hashTeamPassword(h.Request.Password)
 	if err != nil {
-		return comm.CodeUnknownError
+		return comm.CodeServerError
 	}
 
 	err = teamRepo.UpdateByID(ctx, team.ID, map[string]any{
@@ -99,7 +99,7 @@ func (h *TeamUpdateApi) Run(ctx *gin.Context) kit.Code {
 		if isDuplicateEntryError(err) {
 			return comm.CodeTeamNameDuplicated
 		}
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 	return comm.CodeOK
 }

@@ -29,7 +29,7 @@ type LogoutAdminApi struct {
 func (a *LogoutAdminApi) Run(ctx *gin.Context) kit.Code {
 	if err := session.DeleteIdentity(ctx); err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("删除管理员登录态失败")
-		return comm.CodeMiddlewareServiceError
+		return comm.CodeServerError
 	}
 	return comm.CodeOK
 }

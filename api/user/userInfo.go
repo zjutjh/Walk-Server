@@ -80,7 +80,7 @@ func (h *UserInfoApi) Run(ctx *gin.Context) kit.Code {
 
 	person, err := peopleRepo.FindPeopleByOpenID(ctx, openID)
 	if err != nil {
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 	if person == nil {
 		return comm.CodeDataNotFound
@@ -90,7 +90,7 @@ func (h *UserInfoApi) Run(ctx *gin.Context) kit.Code {
 	if person.TeamID > 0 {
 		team, err := teamRepo.FindTeamByID(ctx, person.TeamID)
 		if err != nil {
-			return comm.CodeDatabaseError
+			return comm.CodeServerError
 		}
 		h.Response.Team = toUserInfoTeam(team)
 	}

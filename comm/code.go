@@ -2,27 +2,22 @@ package comm
 
 import "github.com/zjutjh/mygo/kit"
 
-var CodeOK = kit.NewCode(200, "success")
+var CodeOK = kit.NewCode(200, "成功")
 
-// 系统错误码
 var (
-	CodeUnknownError           = kit.NewCode(200101, "未知错误")
-	CodeDatabaseError          = kit.NewCode(200102, "数据库错误")
-	CodeMiddlewareServiceError = kit.NewCode(200103, "中间件服务错误")
+	CodeServerError        = kit.NewCode(200100, "系统错误")
+	CodeNotLoggedIn        = kit.NewCode(200201, "用户未登录")
+	CodeLoginExpired       = kit.NewCode(200202, "登录过期，请重新登录")
+	CodePermissionDenied   = kit.NewCode(200203, "用户无权限")
+	CodeParameterInvalid   = kit.NewCode(200204, "参数非法")
+	CodeDataParseError     = kit.NewCode(200205, "数据解析异常")
+	CodeDataNotFound       = kit.NewCode(200206, "数据不存在")
+	CodeDataConflict       = kit.NewCode(200207, "数据冲突")
+	CodeServiceMaintenance = kit.NewCode(200208, "系统维护中")
+	CodeTooFrequently      = kit.NewCode(200209, "操作过于频繁")
 )
 
-// 业务通用错误码
-var (
-	CodeNotLoggedIn        = kit.NewCode(200201, "未登录或登录过期")
-	CodePermissionDenied   = kit.NewCode(200202, "用户无权限")
-	CodeParameterInvalid   = kit.NewCode(200203, "参数错误")
-	CodeDataNotFound       = kit.NewCode(200204, "数据不存在")
-	CodeDataConflict       = kit.NewCode(200205, "数据冲突")
-	CodeTooFrequently      = kit.NewCode(200206, "操作过于频繁/未获得锁")
-	CodeInsufficientParams = kit.NewCode(200207, "参数不足")
-)
-
-// 业务错误码 从 20010 开始
+// 业务错误码 从 2003XX 开始
 var (
 	CodeAlreadyRegistered       = kit.NewCode(200301, "该身份信息已报名")
 	CodeOAuthFailed             = kit.NewCode(200302, "统一身份验证失败")

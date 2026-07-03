@@ -63,7 +63,7 @@ func (g *GetTeamStatusApi) Run(ctx *gin.Context) kit.Code {
 	team, err := teamRepo.FindTeamByID(ctx, int64(g.Request.Query.TeamID))
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询队伍状态失败")
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 	if team == nil {
 		return comm.CodeTeamNotFound
@@ -72,13 +72,13 @@ func (g *GetTeamStatusApi) Run(ctx *gin.Context) kit.Code {
 	routeStatus, err := g.resolveRouteStatus(ctx, teamRepo, team)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("计算队伍路线状态失败")
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 
 	members, err := peopleRepo.FindPeopleByTeamID(ctx, int64(g.Request.Query.TeamID))
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询队伍成员失败")
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 
 	g.Response.Team = TeamResponse{

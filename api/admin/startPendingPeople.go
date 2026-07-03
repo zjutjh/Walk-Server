@@ -47,7 +47,7 @@ func (s *StartPendingPeopleApi) Run(ctx *gin.Context) kit.Code {
 	})
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("批量更新待出发人员状态失败")
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 
 	return comm.CodeOK

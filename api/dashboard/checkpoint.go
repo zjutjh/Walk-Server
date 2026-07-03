@@ -49,7 +49,7 @@ func (c *CheckpointApi) Run(ctx *gin.Context) kit.Code {
 	// TTL: 15s
 	admin, ok := repo.GetAdminInfo(ctx)
 	if !ok {
-		return comm.CodeUnknownError
+		return comm.CodeServerError
 	}
 
 	campus := strings.ToLower(strings.TrimSpace(admin.Campus))
@@ -77,7 +77,7 @@ func (c *CheckpointApi) Run(ctx *gin.Context) kit.Code {
 	passedCount, notArrivedCount, err := routeRepo.GetCheckpointPeopleCounts(ctx, campus, pointName)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询点位详情统计失败")
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 
 	c.Response.PassedCount = int(passedCount)

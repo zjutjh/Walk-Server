@@ -44,7 +44,7 @@ func doRegister(ctx *gin.Context, req RegisterCommonRequest, personType string) 
 	peopleRepo := repo.NewPeopleRepo()
 	existing, err := peopleRepo.FindPeopleByOpenID(ctx, openID)
 	if err != nil {
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 	if existing != nil {
 		return comm.CodeAlreadyRegistered
@@ -52,7 +52,7 @@ func doRegister(ctx *gin.Context, req RegisterCommonRequest, personType string) 
 
 	byIdentity, err := peopleRepo.FindPeopleByIdentity(ctx, req.Identity)
 	if err != nil {
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 	if byIdentity != nil {
 		return comm.CodeAlreadyRegistered
@@ -61,7 +61,7 @@ func doRegister(ctx *gin.Context, req RegisterCommonRequest, personType string) 
 	if personType == comm.MemberTypeStudent && req.StuID != "" {
 		byStuID, err := peopleRepo.FindPeopleByStuID(ctx, req.StuID)
 		if err != nil {
-			return comm.CodeDatabaseError
+			return comm.CodeServerError
 		}
 		if byStuID != nil {
 			return comm.CodeAlreadyRegistered
@@ -91,7 +91,7 @@ func doRegister(ctx *gin.Context, req RegisterCommonRequest, personType string) 
 			return comm.CodeAlreadyRegistered
 		}
 		nlog.Pick().WithContext(ctx).WithError(err).Error("创建报名记录失败")
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 
 	return comm.CodeOK

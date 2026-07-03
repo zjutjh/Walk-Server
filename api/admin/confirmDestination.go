@@ -50,7 +50,7 @@ func (c *ConfirmDestinationApi) Run(ctx *gin.Context) kit.Code {
 	})
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("终点确认失败")
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 
 	return comm.CodeOK

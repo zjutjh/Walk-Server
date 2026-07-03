@@ -88,7 +88,7 @@ func (o *OverviewApi) Run(ctx *gin.Context) kit.Code {
 	routes, err := routeRepo.ListActiveRouteNamesByCampus(ctx, campus)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询总览路线失败")
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 
 	routeOrder := make([]string, 0, len(routes))
@@ -101,7 +101,7 @@ func (o *OverviewApi) Run(ctx *gin.Context) kit.Code {
 	statusRows, err := routeRepo.ListRouteStatusCountsByCampus(ctx, campus)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询总览状态统计失败")
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 
 	for _, row := range statusRows {
@@ -120,7 +120,7 @@ func (o *OverviewApi) Run(ctx *gin.Context) kit.Code {
 	wrongRows, err := routeRepo.ListRouteWrongCountsByCampus(ctx, campus)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询总览走错统计失败")
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 
 	for _, row := range wrongRows {

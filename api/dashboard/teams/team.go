@@ -95,13 +95,13 @@ func (t *TeamApi) Run(ctx *gin.Context) kit.Code {
 	}
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询队伍信息失败")
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 
 	members, err := teamRepo.ListTeamMembers(ctx, teamID)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询队伍成员失败")
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 
 	t.Response.TeamId = team.ID

@@ -37,10 +37,10 @@ type AuthAdminApiRequest struct {
 }
 
 type AuthAdminApiResponse struct {
-	PointName string `json:"point_name" desc:"点位名称"`
+	PointName  string `json:"point_name" desc:"点位名称"`
 	Permission string `json:"permission" desc:"管理员权限"`
-	Name      string `json:"name" desc:"管理员姓名"`
-	Campus   string `json:"campus" desc:"校区"`
+	Name       string `json:"name" desc:"管理员姓名"`
+	Campus     string `json:"campus" desc:"校区"`
 }
 
 // Run Api业务逻辑执行点
@@ -60,7 +60,7 @@ func (a *AuthAdminApi) Run(ctx *gin.Context) kit.Code {
 	admin, err := adminRepo.FindByAccount(ctx, account)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询管理员失败")
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 	if admin == nil {
 		if err := adminCache.IncrementAdminLoginFail(ctx, account); err != nil {
@@ -79,7 +79,7 @@ func (a *AuthAdminApi) Run(ctx *gin.Context) kit.Code {
 	err = session.SetIdentity(ctx, admin.ID)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("写入管理员登录态失败")
-		return comm.CodeMiddlewareServiceError
+		return comm.CodeServerError
 	}
 	if err := adminCache.ClearAdminLoginFail(ctx, account); err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("清理管理员登录失败次数失败")
@@ -88,8 +88,8 @@ func (a *AuthAdminApi) Run(ctx *gin.Context) kit.Code {
 	a.Response = AuthAdminApiResponse{
 		Permission: admin.Permission,
 		Campus:     admin.Campus,
-		PointName: admin.PointName,
-		Name:      admin.Name,
+		PointName:  admin.PointName,
+		Name:       admin.Name,
 	}
 
 	return comm.CodeOK

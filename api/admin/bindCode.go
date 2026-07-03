@@ -82,7 +82,7 @@ func (b *BindCodeApi) getTeam(ctx *gin.Context) (*model.Team, *kit.Code) {
 	team, err := teamRepo.FindTeamByID(ctx, int64(b.Request.Body.TeamID))
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询队伍失败")
-		return nil, &comm.CodeDatabaseError
+		return nil, &comm.CodeServerError
 	}
 	if team == nil {
 		return nil, &comm.CodeTeamNotFound
@@ -96,7 +96,7 @@ func (b *BindCodeApi) validatePendingMemberCount(ctx *gin.Context, teamID int64)
 	pendingCount, err := peopleRepo.CountMembersByStatus(ctx, teamID, comm.WalkStatusPending)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("统计待出发人数失败")
-		return &comm.CodeDatabaseError
+		return &comm.CodeServerError
 	}
 	if pendingCount < minTeamMemberCount {
 		return &comm.CodeTeamNotEnough

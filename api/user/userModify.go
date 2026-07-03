@@ -49,7 +49,7 @@ func (h *UserModifyApi) Run(ctx *gin.Context) kit.Code {
 	})
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("更新用户信息失败")
-		return comm.CodeDatabaseError
+		return comm.CodeServerError
 	}
 
 	return comm.CodeOK

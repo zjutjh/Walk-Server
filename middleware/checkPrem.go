@@ -37,7 +37,7 @@ func NeedPerm(minPerm string) gin.HandlerFunc {
 		minRank, minOK := getPermRank(minPerm)
 
 		if !currentOK || !minOK {
-			reply.Fail(ctx, comm.CodeMiddlewareServiceError)
+			reply.Fail(ctx, comm.CodeServerError)
 			return
 		}
 

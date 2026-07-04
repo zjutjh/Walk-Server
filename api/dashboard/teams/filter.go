@@ -92,8 +92,8 @@ func (f *FilterApi) Run(ctx *gin.Context) kit.Code {
 		}
 
 		if searchType == "team_id" {
-			teamID, err := strconv.ParseInt(key, 10, 64)
-			if err != nil || teamID <= 0 {
+			_, err := strconv.ParseInt(key, 10, 64)
+			if err != nil {
 				return comm.CodeParameterInvalid
 			}
 		}

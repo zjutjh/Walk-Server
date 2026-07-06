@@ -223,6 +223,13 @@ func (r *RouteRepo) ListRoutePoints(ctx context.Context, routeName string) ([]Ro
 // 注意：seq_order 只在同一 route_name 下比较；不同路线存在相同 seq_order 不影响结果。
 // 另外确认了非法打卡也会进入checkins。
 // 当前默认业务假设：不考虑“进行中人员半路重组”和“向前异常打卡”场景。
+//
+// 走错路线口径：队伍按“有效路线”而非报名路线统计。
+// 有效路线 = is_wrong_route ? 最新 wrong_route_records.wrong_route_name : route_name。
+// 因此走错的队会计入它实际走的路线（如报名 pf-full、错走 pf-half 的队计入 pf-half），
+// 既不会在报名线上冻结/虚高，也不会在实走线上隐身。
+// 注意：team_reached 的 checkins JOIN 不再按 route_name 过滤——走错打卡的 checkin.route_name
+// 仍是报名线，若过滤会在查实走线时被误挡；仅靠 point_name join 到查询线点序表即可正确定位。
 func (r *RouteRepo) ListRoutePointPassedCounts(ctx context.Context, routeName string) ([]PointPassedCountRow, error) {
 	rows := make([]PointPassedCountRow, 0)
 	statuses := effectiveWalkStatuses()
@@ -231,8 +238,8 @@ func (r *RouteRepo) ListRoutePointPassedCounts(ctx context.Context, routeName st
 	}
 
 	statusPlaceholders := buildInPlaceholders(len(statuses))
-	// 参数顺序：route_point_seq(?), route_point_seq_dedup(?), team_reached 的 checkins JOIN(?), team_reached 的 teams WHERE(?)
-	args := []any{routeName, routeName, routeName, routeName}
+	// 参数顺序：route_point_seq(?), route_point_seq_dedup(?), team_reached 的有效路线比较(?)
+	args := []any{routeName, routeName, routeName}
 	for _, status := range statuses {
 		args = append(args, status)
 	}
@@ -253,9 +260,12 @@ func (r *RouteRepo) ListRoutePointPassedCounts(ctx context.Context, routeName st
 				"), team_reached AS ("+
 				"SELECT t.id AS team_id, MAX(rps.seq_order) AS reached_seq "+
 				"FROM teams AS t "+
-				"JOIN checkins AS c ON c.team_id = t.id AND c.route_name = ? AND c.point_name IS NOT NULL AND c.point_name <> '' "+
+				"JOIN checkins AS c ON c.team_id = t.id AND c.point_name IS NOT NULL AND c.point_name <> '' "+
 				"JOIN route_point_seq_dedup AS rps ON rps.point_name = c.point_name "+
-				"WHERE t.submit = 1 AND t.route_name = ? "+
+				"WHERE t.submit = 1 AND ("+
+				"CASE WHEN t.is_wrong_route = 1 THEN COALESCE("+
+				"(SELECT w.wrong_route_name FROM wrong_route_records AS w WHERE w.team_id = t.id ORDER BY w.created_at DESC, w.id DESC LIMIT 1), "+
+				"t.route_name) ELSE t.route_name END) = ? "+
 				"GROUP BY t.id"+
 				"), team_people_by_seq AS ("+
 				"SELECT tr.reached_seq, COUNT(ps.id) AS people_count "+

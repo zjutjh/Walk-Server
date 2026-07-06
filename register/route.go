@@ -46,7 +46,7 @@ func Route(router *gin.Engine) {
 				{
 					teamGroup.POST("/bind", api.BindCodeHandler())
 					teamGroup.POST("/update", api.UpdateTeamHandler())
-					teamGroup.POST("/regroup", middleware.NeedPerm("super"), api.RegroupHandler())
+					teamGroup.POST("/rebuild", middleware.NeedPerm("super"), api.RebuildHandler())
 					teamGroup.GET("/status", api.GetTeamStatusHandler())
 					teamGroup.POST("/violation/mark", api.MarkTeamViolationHandler())
 				}

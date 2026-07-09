@@ -37,7 +37,7 @@ func newTeam(db *gorm.DB, opts ...gen.DOOption) team {
 	_team.Captain = field.NewString(tableName, "captain")
 	_team.Submit = field.NewBool(tableName, "submit")
 	_team.RouteName = field.NewString(tableName, "route_name")
-	_team.PrevPointName = field.NewString(tableName, "prev_point_name")
+	_team.LatestPointName = field.NewString(tableName, "latest_point_name")
 	_team.Status = field.NewString(tableName, "status")
 	_team.IsWrongRoute = field.NewBool(tableName, "is_wrong_route")
 	_team.IsReunite = field.NewBool(tableName, "is_reunite")
@@ -65,7 +65,7 @@ type team struct {
 	Captain       field.String // 队长OpenID
 	Submit        field.Bool   // 是否已提交报名
 	RouteName     field.String // 团队所属路线
-	PrevPointName field.String // 上一经过点位ID
+	LatestPointName field.String // 最新经过点位ID
 	Status        field.String // 活动状态(notStart未出发，inProgress进行中，completed已完成，withdrawn已下撤)
 	IsWrongRoute  field.Bool   // 是否走错
 	IsReunite     field.Bool   // 是否重组
@@ -99,7 +99,7 @@ func (t *team) updateTableName(table string) *team {
 	t.Captain = field.NewString(table, "captain")
 	t.Submit = field.NewBool(table, "submit")
 	t.RouteName = field.NewString(table, "route_name")
-	t.PrevPointName = field.NewString(table, "prev_point_name")
+	t.LatestPointName = field.NewString(table, "latest_point_name")
 	t.Status = field.NewString(table, "status")
 	t.IsWrongRoute = field.NewBool(table, "is_wrong_route")
 	t.IsReunite = field.NewBool(table, "is_reunite")
@@ -142,7 +142,7 @@ func (t *team) fillFieldMap() {
 	t.fieldMap["captain"] = t.Captain
 	t.fieldMap["submit"] = t.Submit
 	t.fieldMap["route_name"] = t.RouteName
-	t.fieldMap["prev_point_name"] = t.PrevPointName
+	t.fieldMap["latest_point_name"] = t.LatestPointName
 	t.fieldMap["status"] = t.Status
 	t.fieldMap["is_wrong_route"] = t.IsWrongRoute
 	t.fieldMap["is_reunite"] = t.IsReunite

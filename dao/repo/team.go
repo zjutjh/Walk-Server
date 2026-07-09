@@ -42,13 +42,13 @@ type TeamFilterQuery struct {
 }
 
 type TeamFilterRow struct {
-	TeamID        int64        `gorm:"column:team_id"`
-	CaptainName   string       `gorm:"column:captain_name"`
-	CaptainPhone  string       `gorm:"column:captain_phone"`
-	PrevPointName string       `gorm:"column:prev_point_name"`
-	PrevPointTime sql.NullTime `gorm:"column:prev_point_time"`
-	RouteName     string       `gorm:"column:route_name"`
-	IsLost        bool         `gorm:"column:is_lost"`
+	TeamID          int64        `gorm:"column:team_id"`
+	CaptainName     string       `gorm:"column:captain_name"`
+	CaptainPhone    string       `gorm:"column:captain_phone"`
+	LatestPointName string       `gorm:"column:latest_point_name"`
+	LatestPointTime sql.NullTime `gorm:"column:latest_point_time"`
+	RouteName       string       `gorm:"column:route_name"`
+	IsLost          bool         `gorm:"column:is_lost"`
 }
 
 type TeamCheckinRow struct {
@@ -458,13 +458,13 @@ func (r *TeamRepo) GetLatestWrongRouteName(ctx context.Context, teamID int64) (s
 	return row.WrongRouteName, true, nil
 }
 
-func (r *TeamRepo) UpdatePrevPointName(ctx context.Context, teamID int64, pointName string) error {
+func (r *TeamRepo) UpdateLatestPointName(ctx context.Context, teamID int64, pointName string) error {
 	t := r.query.Team
 	_, err := t.WithContext(ctx).
 		Where(t.ID.Eq(teamID)).
 		Updates(map[string]any{
-			"prev_point_name": pointName,
-			"time":            time.Now(),
+			"latest_point_name": pointName,
+			"time":              time.Now(),
 		})
 	if err == nil {
 		_ = teamCache.DelTeamByID(ctx, teamID)
@@ -528,7 +528,7 @@ func (r *TeamRepo) ListTeamsByFilter(ctx context.Context, query TeamFilterQuery)
 	rows := make([]TeamFilterRow, 0)
 
 	err := r.buildTeamFilterBaseQuery(ctx, query).
-		Select("t.id AS team_id, COALESCE(p.name, '') AS captain_name, COALESCE(p.tel, '') AS captain_phone, t.prev_point_name, t.time AS prev_point_time, t.route_name, t.is_lost").
+		Select("t.id AS team_id, COALESCE(p.name, '') AS captain_name, COALESCE(p.tel, '') AS captain_phone, t.latest_point_name, t.time AS latest_point_time, t.route_name, t.is_lost").
 		Order("t.time ASC").
 		Order("t.id ASC").
 		Limit(query.Limit).
@@ -549,15 +549,21 @@ func (r *TeamRepo) buildTeamFilterBaseQuery(ctx context.Context, query TeamFilte
 		Joins("LEFT JOIN peoples AS p ON p.team_id = t.id AND p.open_id = t.captain").
 		Where("t.submit = ?", 1)
 
-	if query.ToPointName != "" {
+	if query.ToPointName != "" && query.PrevPointName != "" {
 		db = db.Where(
-			"EXISTS (SELECT 1 FROM route_edges AS e WHERE e.route_name = t.route_name AND e.prev_point_name = t.prev_point_name AND e.point_name = ?)",
+			"EXISTS (SELECT 1 FROM route_edges AS e WHERE e.route_name = t.route_name AND e.prev_point_name = ? AND e.point_name = ?)",
+			query.PrevPointName,
+			query.ToPointName,
+		)
+	} else if query.ToPointName != "" {
+		db = db.Where(
+			"EXISTS (SELECT 1 FROM route_edges AS e WHERE e.route_name = t.route_name AND e.prev_point_name = t.latest_point_name AND e.point_name = ?)",
 			query.ToPointName,
 		)
 	}
 
 	if query.PrevPointName != "" {
-		db = db.Where("t.prev_point_name = ?", query.PrevPointName)
+		db = db.Where("t.latest_point_name = ?", query.PrevPointName)
 	}
 
 	if query.Key != "" {

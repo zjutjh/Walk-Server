@@ -259,7 +259,7 @@ func (r *PeopleRepo) ResolveTeamStatus(ctx context.Context, team *model.Team) (s
 }
 
 func (r *PeopleRepo) resolveViolatedStatus(ctx context.Context, team *model.Team) (string, error) {
-	if team.PrevPointName == "" {
+	if team.LatestPointName == "" {
 		return comm.TeamStatusNotStart, nil
 	}
 
@@ -281,7 +281,7 @@ func (r *PeopleRepo) isRouteEndPoint(ctx context.Context, team *model.Team) (boo
 		Where(
 			"route_name = ? AND point_name = ? AND seq_order = (SELECT MAX(seq_order) FROM route_edges WHERE route_name = ?)",
 			team.RouteName,
-			team.PrevPointName,
+			team.LatestPointName,
 			team.RouteName,
 		).
 		Count(&total).Error

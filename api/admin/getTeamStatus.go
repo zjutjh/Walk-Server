@@ -40,11 +40,11 @@ type GetTeamStatusApiResponse struct {
 
 type TeamResponse struct {
 	Name                  string `json:"name" desc:"队名"`
-	PrevPointName         string `json:"prev_point_name" desc:"点位名称"`
+	PrevPointName         string `json:"prev_point_name" desc:"前序点位名称"`
 	RouteName             string `json:"route_name" desc:"路线名称"`
 	Status                string `json:"status" desc:"队伍状态"`
 	IsWrongRoute          bool   `json:"is_wrong_route" desc:"是否走错路线"`
-	IsPrevPointInvalid    bool   `json:"is_prev_point_invalid" desc:"最后一次打卡是否违反路线顺序"`
+	IsPrevPointInvalid    bool   `json:"is_prev_point_invalid" desc:"前序点位是否违反路线顺序"`
 	IsJustEnterWrongRoute bool   `json:"is_just_enter_wrong_route" desc:"最后一次打卡是否导致队伍进入错路状态"`
 }
 
@@ -83,7 +83,7 @@ func (g *GetTeamStatusApi) Run(ctx *gin.Context) kit.Code {
 
 	g.Response.Team = TeamResponse{
 		Name:          team.Name,
-		PrevPointName: team.PrevPointName,
+		PrevPointName: routeStatus.prevPointName,
 		RouteName:     team.RouteName,
 		Status:        team.Status,
 
@@ -107,6 +107,7 @@ func (g *GetTeamStatusApi) Run(ctx *gin.Context) kit.Code {
 
 type teamRouteStatus struct {
 	isWrongRoute          bool
+	prevPointName         string
 	isPrevPointInvalid    bool
 	isJustEnterWrongRoute bool
 }
@@ -138,6 +139,7 @@ func (g *GetTeamStatusApi) resolveRouteStatus(ctx *gin.Context, teamRepo *repo.T
 	latestCheckin := checkins[0]
 	if len(checkins) >= 2 {
 		prevCheckin := checkins[1]
+		status.prevPointName = prevCheckin.PointName
 		isValid, err := teamRepo.IsRouteTransitionValid(ctx, activeRouteName, prevCheckin.PointName, latestCheckin.PointName)
 		if err != nil {
 			return status, err

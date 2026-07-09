@@ -104,7 +104,7 @@ func (r *RebuildApi) Run(ctx *gin.Context) kit.Code {
 			Captain:       newCaptain.OpenID,
 			Submit:        true,
 			RouteName:     r.Request.Body.RouteName,
-			PrevPointName: "",
+			LatestPointName: "",
 			Status:        comm.TeamStatusNotStart,
 			IsWrongRoute:  false,
 			IsReunite:     true,

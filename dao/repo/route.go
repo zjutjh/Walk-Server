@@ -355,7 +355,7 @@ func (r *RouteRepo) CountPeopleOnSegment(ctx context.Context, campus string, pre
 }
 
 // GetCheckpointPeopleCounts 统计点位已到达与未到达人数（按 people 计数）。
-// 口径说明：已到达判断基于 teams.prev_point_name 在所属路线上的 seq_order 与目标点序比较。
+// 口径说明：已到达判断基于 teams.latest_point_name 在所属路线上的 seq_order 与目标点序比较。
 // 若队伍当前点无法映射到所属路线（如错路期间打到他路线独有点），该队会被视为“未到达”。
 func (r *RouteRepo) GetCheckpointPeopleCounts(ctx context.Context, campus string, pointName string) (passedCount int64, notArrivedCount int64, err error) {
 	statuses := effectiveWalkStatuses()
@@ -384,7 +384,7 @@ func (r *RouteRepo) GetCheckpointPeopleCounts(ctx context.Context, campus string
 		Joins("JOIN routes AS rt ON rt.name = t.route_name AND rt.is_active = ? AND rt.campus = ?", 1, campus).
 		Joins("JOIN peoples AS ps ON ps.team_id = t.id").
 		Joins("JOIN (SELECT route_name, MIN(seq_order) AS target_seq FROM route_edges WHERE point_name = ? GROUP BY route_name) AS target ON target.route_name = t.route_name", pointName).
-		Joins("LEFT JOIN (SELECT route_name, point_name, MIN(seq_order) AS seq_order FROM route_edges GROUP BY route_name, point_name) AS curr ON curr.route_name = t.route_name AND curr.point_name = t.prev_point_name").
+		Joins("LEFT JOIN (SELECT route_name, point_name, MIN(seq_order) AS seq_order FROM route_edges GROUP BY route_name, point_name) AS curr ON curr.route_name = t.route_name AND curr.point_name = t.latest_point_name").
 		Where("t.submit = ?", 1).
 		Where("ps.walk_status IN ?", statuses).
 		Where("curr.seq_order >= target.target_seq")

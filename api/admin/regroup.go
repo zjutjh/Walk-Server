@@ -21,31 +21,31 @@ import (
 	repo "app/dao/repo"
 )
 
-func RegroupHandler() gin.HandlerFunc {
-	api := RegroupApi{}
-	swagger.CM[runtime.FuncForPC(reflect.ValueOf(regroup).Pointer()).Name()] = api
-	return regroup
+func RebuildHandler() gin.HandlerFunc {
+	api := RebuildApi{}
+	swagger.CM[runtime.FuncForPC(reflect.ValueOf(rebuild).Pointer()).Name()] = api
+	return rebuild
 }
 
-type RegroupApi struct {
+type RebuildApi struct {
 	Info     struct{} `name:"重组队伍"`
-	Request  RegroupApiRequest
-	Response RegroupApiResponse
+	Request  RebuildApiRequest
+	Response RebuildApiResponse
 }
 
-type RegroupApiRequest struct {
+type RebuildApiRequest struct {
 	Body struct {
 		Members   []int  `json:"members" desc:"用户编号,长度3-6人" binding:"required"`
 		RouteName string `json:"route_name" desc:"路线名称" binding:"required"`
 	}
 }
 
-type RegroupApiResponse struct {
+type RebuildApiResponse struct {
 	TeamID int `json:"team_id" desc:"队伍编号"`
 }
 
 // Run Api业务逻辑执行点
-func (r *RegroupApi) Run(ctx *gin.Context) kit.Code {
+func (r *RebuildApi) Run(ctx *gin.Context) kit.Code {
 	if len(r.Request.Body.Members) < 3 {
 		return comm.CodeTeamNotEnough
 	} else if len(r.Request.Body.Members) > 6 {
@@ -194,7 +194,7 @@ func (r *RegroupApi) Run(ctx *gin.Context) kit.Code {
 }
 
 // Run Api初始化 进行参数校验和绑定
-func (r *RegroupApi) Init(ctx *gin.Context) (err error) {
+func (r *RebuildApi) Init(ctx *gin.Context) (err error) {
 	err = ctx.ShouldBindJSON(&r.Request.Body)
 	if err != nil {
 		return err
@@ -202,8 +202,8 @@ func (r *RegroupApi) Init(ctx *gin.Context) (err error) {
 	return err
 }
 
-func regroup(ctx *gin.Context) {
-	api := &RegroupApi{}
+func rebuild(ctx *gin.Context) {
+	api := &RebuildApi{}
 	err := api.Init(ctx)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("参数绑定校验错误")

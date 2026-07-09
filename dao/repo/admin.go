@@ -85,7 +85,7 @@ func GetAdminInfo(ctx *gin.Context) (*model.Admin, bool) {
 
 	admin, err := adminRepo.FindByID(ctx, adminID)
 	if err != nil {
-		reply.Fail(ctx, comm.CodeUnknownError)
+		reply.Fail(ctx, comm.CodeServerError)
 		return nil, false
 	}
 	if admin == nil {

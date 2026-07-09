@@ -216,11 +216,7 @@ func (r *PeopleRepo) ResolveTeamStatus(ctx context.Context, team *model.Team) (s
 			withdrawnCount++
 			continue
 		case comm.WalkStatusNotStart, comm.WalkStatusPending:
-			if member.WalkStatus == comm.WalkStatusPending {
-				activeCount++
-			} else {
-				notStartCount++
-			}
+			notStartCount++
 		case comm.WalkStatusInProgress:
 			activeCount++
 		case comm.WalkStatusCompleted:
@@ -309,6 +305,31 @@ func (r *PeopleRepo) UpdateWalkStatus(ctx context.Context, userID int64, status 
 		return err
 	}
 	if person != nil {
+		_ = peoplecache.DelPersonByOpenID(ctx, person.OpenID)
+	}
+	return err
+}
+
+func (r *PeopleRepo) UpdateWalkStatusByUserIDs(ctx context.Context, userIDs []int64, status string) error {
+	if len(userIDs) == 0 {
+		return nil
+	}
+	p := r.query.People
+	people, err := r.FindPeopleByIDs(ctx, userIDs)
+	if err != nil {
+		return err
+	}
+
+	_, err = p.WithContext(ctx).
+		Where(p.ID.In(userIDs...)).
+		Update(p.WalkStatus, status)
+	if err != nil {
+		return err
+	}
+	for _, person := range people {
+		if person == nil {
+			continue
+		}
 		_ = peoplecache.DelPersonByOpenID(ctx, person.OpenID)
 	}
 	return err

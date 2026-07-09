@@ -33,7 +33,8 @@ type GetUserInfoByIDApiRequest struct {
 }
 
 type GetUserInfoByIDApiResponse struct {
-	Name string `json:"name" desc:"用户姓名"`
+	Name   string `json:"name" desc:"用户姓名"`
+	Status string `json:"status" desc:"用户状态"`
 }
 
 // Run Api业务逻辑执行点
@@ -63,7 +64,8 @@ func (g *GetUserInfoByIDApi) Run(ctx *gin.Context) kit.Code {
 	}
 
 	g.Response = GetUserInfoByIDApiResponse{
-		Name: user.Name,
+		Name:   user.Name,
+		Status: user.WalkStatus,
 	}
 
 	return comm.CodeOK

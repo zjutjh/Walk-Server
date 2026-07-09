@@ -40,7 +40,7 @@ type BindCodeApiResponse struct {
 }
 
 const (
-	minTeamMemberCount = 3
+	minTeamMemberCount = 2
 	maxTeamMemberCount = 6
 )
 
@@ -110,23 +110,9 @@ func (b *BindCodeApi) validatePendingMemberCount(ctx *gin.Context, teamID int64)
 func (b *BindCodeApi) bindCode(ctx *gin.Context, teamID int64) error {
 	return query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
 		txTeamRepo := repo.NewTeamRepoWithTx(tx)
-		txPeopleRepo := repo.NewPeopleRepoWithTx(tx)
 
 		if err := txTeamRepo.UpdateByID(ctx, teamID, map[string]any{"code": b.Request.Body.Content}); err != nil {
 			return err
-		}
-		if err := txPeopleRepo.UpdateMembersWalkStatusByCurrent(ctx, teamID, comm.WalkStatusPending, comm.WalkStatusInProgress); err != nil {
-			return err
-		}
-
-		inProgressCount, err := txPeopleRepo.CountMembersByStatus(ctx, teamID, comm.WalkStatusInProgress)
-		if err != nil {
-			return err
-		}
-		if inProgressCount > 0 {
-			if err := txTeamRepo.UpdateByID(ctx, teamID, map[string]any{"status": comm.TeamStatusInProgress}); err != nil {
-				return err
-			}
 		}
 		return nil
 	})

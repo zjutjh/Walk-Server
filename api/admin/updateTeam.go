@@ -266,7 +266,7 @@ func (u *UpdateTeamApi) handleStartPointCheckin(ctx *gin.Context, team *model.Te
 		if err := teamRepo.CreateCheckin(ctx, adminID, team.ID, pointName, team.RouteName); err != nil {
 			return err
 		}
-		if err := peopleRepo.UpdateByTeamID(ctx, team.ID, map[string]any{"walk_status": comm.WalkStatusPending}); err != nil {
+		if err := peopleRepo.UpdateMembersWalkStatusByCurrent(ctx, team.ID, comm.WalkStatusNotStart, comm.WalkStatusPending); err != nil {
 			return err
 		}
 		return nil

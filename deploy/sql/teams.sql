@@ -8,7 +8,7 @@ CREATE TABLE `teams` (
   `captain` varchar(64) NOT NULL COMMENT '队长OpenID',
   `submit` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否已提交报名',
   `route_name` varchar(64) DEFAULT NULL COMMENT '团队所属路线', 
-  `prev_point_name` varchar(64) DEFAULT NULL COMMENT '上一经过点位ID',
+  `latest_point_name` varchar(64) DEFAULT NULL COMMENT '最新经过点位ID',
   `status` varchar(64) NOT NULL  COMMENT '活动状态(notStart未出发，inProgress进行中，completed已完成，withdrawn已下撤)',
   `is_wrong_route` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否走错',
   `is_reunite` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否重组',
@@ -21,6 +21,6 @@ CREATE TABLE `teams` (
   KEY `idx_teams_code` (`code`),
   KEY `idx_teams_submit_route` (`submit`, `route_name`),
   KEY `idx_teams_submit_wrong_route_name` (`submit`, `is_wrong_route`, `route_name`),
-  KEY `idx_teams_route_point` (`route_name`, `prev_point_name`),
+  KEY `idx_teams_route_point` (`route_name`, `latest_point_name`),
   KEY `idx_teams_captain` (`captain`)
 );

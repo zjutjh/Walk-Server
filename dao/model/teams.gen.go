@@ -21,7 +21,7 @@ type Team struct {
 	Captain       string    `gorm:"column:captain;not null;comment:队长OpenID" json:"captain"`                                                // 队长OpenID
 	Submit        bool      `gorm:"column:submit;not null;comment:是否已提交报名" json:"submit"`                                                   // 是否已提交报名
 	RouteName     string    `gorm:"column:route_name;comment:团队所属路线" json:"route_name"`                                                     // 团队所属路线
-	PrevPointName string    `gorm:"column:prev_point_name;comment:上一经过点位ID" json:"prev_point_name"`                                         // 上一经过点位ID
+	LatestPointName string    `gorm:"column:latest_point_name;comment:最新经过点位ID" json:"latest_point_name"`                                         // 最新经过点位ID
 	Status        string    `gorm:"column:status;not null;comment:活动状态(notStart未出发，inProgress进行中，completed已完成，withdrawn已下撤)" json:"status"` // 活动状态(notStart未出发，inProgress进行中，completed已完成，withdrawn已下撤)
 	IsWrongRoute  bool      `gorm:"column:is_wrong_route;not null;comment:是否走错" json:"is_wrong_route"`                                      // 是否走错
 	IsReunite     bool      `gorm:"column:is_reunite;not null;comment:是否重组" json:"is_reunite"`                                              // 是否重组

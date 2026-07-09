@@ -216,11 +216,7 @@ func (r *PeopleRepo) ResolveTeamStatus(ctx context.Context, team *model.Team) (s
 			withdrawnCount++
 			continue
 		case comm.WalkStatusNotStart, comm.WalkStatusPending:
-			if member.WalkStatus == comm.WalkStatusPending {
-				activeCount++
-			} else {
-				notStartCount++
-			}
+			notStartCount++
 		case comm.WalkStatusInProgress:
 			activeCount++
 		case comm.WalkStatusCompleted:
@@ -263,7 +259,7 @@ func (r *PeopleRepo) ResolveTeamStatus(ctx context.Context, team *model.Team) (s
 }
 
 func (r *PeopleRepo) resolveViolatedStatus(ctx context.Context, team *model.Team) (string, error) {
-	if team.PrevPointName == "" {
+	if team.LatestPointName == "" {
 		return comm.TeamStatusNotStart, nil
 	}
 
@@ -285,7 +281,7 @@ func (r *PeopleRepo) isRouteEndPoint(ctx context.Context, team *model.Team) (boo
 		Where(
 			"route_name = ? AND point_name = ? AND seq_order = (SELECT MAX(seq_order) FROM route_edges WHERE route_name = ?)",
 			team.RouteName,
-			team.PrevPointName,
+			team.LatestPointName,
 			team.RouteName,
 		).
 		Count(&total).Error
@@ -309,6 +305,31 @@ func (r *PeopleRepo) UpdateWalkStatus(ctx context.Context, userID int64, status 
 		return err
 	}
 	if person != nil {
+		_ = peoplecache.DelPersonByOpenID(ctx, person.OpenID)
+	}
+	return err
+}
+
+func (r *PeopleRepo) UpdateWalkStatusByUserIDs(ctx context.Context, userIDs []int64, status string) error {
+	if len(userIDs) == 0 {
+		return nil
+	}
+	p := r.query.People
+	people, err := r.FindPeopleByIDs(ctx, userIDs)
+	if err != nil {
+		return err
+	}
+
+	_, err = p.WithContext(ctx).
+		Where(p.ID.In(userIDs...)).
+		Update(p.WalkStatus, status)
+	if err != nil {
+		return err
+	}
+	for _, person := range people {
+		if person == nil {
+			continue
+		}
 		_ = peoplecache.DelPersonByOpenID(ctx, person.OpenID)
 	}
 	return err

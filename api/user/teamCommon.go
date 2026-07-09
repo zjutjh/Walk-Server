@@ -28,7 +28,7 @@ type TeamInfoTeamView struct {
 	AllowMatch    bool   `json:"allow_match"`
 	Captain       string `json:"captain"`
 	RouteName     string `json:"route_name"`
-	PrevPointName string `json:"prev_point_name"`
+	LatestPointName string `json:"latest_point_name"`
 	Submit        bool   `json:"submit"`
 	Status        string `json:"status" desc:"字符串枚举: notStart|inProgress|completed|withdrawn"`
 	IsLost        bool   `json:"is_lost"`
@@ -63,7 +63,7 @@ func toTeamInfoTeamView(team *model.Team) *TeamInfoTeamView {
 		AllowMatch:    team.AllowMatch,
 		Captain:       team.Captain,
 		RouteName:     team.RouteName,
-		PrevPointName: team.PrevPointName,
+		LatestPointName: team.LatestPointName,
 		Submit:        team.Submit,
 		Status:        normalizeTeamStatus(team.Status),
 		IsLost:        team.IsLost,

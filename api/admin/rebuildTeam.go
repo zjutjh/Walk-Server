@@ -72,6 +72,12 @@ func (r *RebuildApi) Run(ctx *gin.Context) kit.Code {
 
 		memberMap := make(map[int64]*model.People, len(members))
 		for _, member := range members {
+			if member == nil {
+				return gorm.ErrRecordNotFound
+			}
+			if member.WalkStatus != comm.WalkStatusNotStart && member.WalkStatus != comm.WalkStatusPending {
+				return gorm.ErrInvalidData
+			}
 			memberMap[member.ID] = member
 		}
 
@@ -98,7 +104,7 @@ func (r *RebuildApi) Run(ctx *gin.Context) kit.Code {
 			Captain:       newCaptain.OpenID,
 			Submit:        true,
 			RouteName:     r.Request.Body.RouteName,
-			PrevPointName: "",
+			LatestPointName: "",
 			Status:        comm.TeamStatusNotStart,
 			IsWrongRoute:  false,
 			IsReunite:     true,
@@ -117,6 +123,9 @@ func (r *RebuildApi) Run(ctx *gin.Context) kit.Code {
 			return err
 		}
 		if err := txPeopleRepo.UpdateRoleByUserID(ctx, newCaptain.ID, comm.RoleCaptain); err != nil {
+			return err
+		}
+		if err := txPeopleRepo.UpdateWalkStatusByUserIDs(ctx, memberIDs, comm.WalkStatusPending); err != nil {
 			return err
 		}
 
@@ -184,6 +193,9 @@ func (r *RebuildApi) Run(ctx *gin.Context) kit.Code {
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return comm.CodeDataNotFound
+		}
+		if errors.Is(err, gorm.ErrInvalidData) {
+			return comm.CodeParameterInvalid
 		}
 		nlog.Pick().WithContext(ctx).WithError(err).Error("重组队伍失败")
 		return comm.CodeServerError

@@ -37,7 +37,7 @@ type FilterApiRequest struct {
 	Query struct {
 		Campus        string `form:"campus" desc:"校区（必填 pf/mgs）"`
 		ToPointName   string `form:"to_point_name" desc:"结束点位name，全局唯一，不是CPn"`
-		PrevPointName string `form:"prev_point_name" desc:"上一点位name，合流点一定要给"`
+		PrevPointName string `form:"prev_point_name" desc:"起始点位name，合流点一定要给"`
 		Key           string `form:"key" desc:"搜索关键词"`
 		SearchType    string `form:"search_type" desc:"搜索类型（team_id/captain_phone/captain_name）"`
 		Limit         int    `form:"limit" desc:"返回数量"`
@@ -52,13 +52,13 @@ type FilterApiResponse struct {
 }
 
 type TeamBriefInfo struct {
-	TeamId        int64  `json:"team_id" desc:"队伍ID"`
-	CaptainName   string `json:"captain_name" desc:"队长姓名"`
-	CaptainPhone  string `json:"captain_phone" desc:"队长联系电话"`
-	PrevPointName string `json:"prev_point_name" desc:"最新经过点位唯一name"`
-	PrevPointTime string `json:"prev_point_time" desc:"最新经过点位时间"`
-	RouteName     string `json:"route_name" desc:"路线name"`
-	IsLost        bool   `json:"is_lost" desc:"是否失联"`
+	TeamId          int64  `json:"team_id" desc:"队伍ID"`
+	CaptainName     string `json:"captain_name" desc:"队长姓名"`
+	CaptainPhone    string `json:"captain_phone" desc:"队长联系电话"`
+	LatestPointName string `json:"latest_point_name" desc:"最新经过点位唯一name"`
+	LatestPointTime string `json:"latest_point_time" desc:"最新经过点位时间"`
+	RouteName       string `json:"route_name" desc:"路线name"`
+	IsLost          bool   `json:"is_lost" desc:"是否失联"`
 }
 
 // Run Api业务逻辑执行点
@@ -161,15 +161,15 @@ func (f *FilterApi) Run(ctx *gin.Context) kit.Code {
 
 	for _, team := range teams {
 		item := TeamBriefInfo{
-			TeamId:        team.TeamID,
-			CaptainName:   team.CaptainName,
-			CaptainPhone:  team.CaptainPhone,
-			PrevPointName: team.PrevPointName,
-			RouteName:     team.RouteName,
-			IsLost:        team.IsLost,
+			TeamId:          team.TeamID,
+			CaptainName:     team.CaptainName,
+			CaptainPhone:    team.CaptainPhone,
+			LatestPointName: team.LatestPointName,
+			RouteName:       team.RouteName,
+			IsLost:          team.IsLost,
 		}
-		if team.PrevPointTime.Valid {
-			item.PrevPointTime = team.PrevPointTime.Time.UTC().Format("2006-01-02T15:04:05.000Z")
+		if team.LatestPointTime.Valid {
+			item.LatestPointTime = team.LatestPointTime.Time.UTC().Format("2006-01-02T15:04:05.000Z")
 		}
 
 		f.Response.Teams = append(f.Response.Teams, item)

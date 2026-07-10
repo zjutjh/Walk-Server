@@ -100,7 +100,7 @@ func (l *LostApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeTeamLostLocked
 	}
 
-	updated, err := teamRepo.UpdateTeamLostStatus(ctx, teamID, l.Request.Body.IsLost, now)
+	updated, err := teamRepo.UpdateTeamLostStatus(ctx, teamID, l.Request.Body.IsLost)
 	if err != nil {
 		keepLock = false
 		nlog.Pick().WithContext(ctx).WithError(err).Error("更新队伍失联状态失败")

@@ -589,13 +589,9 @@ func (r *TeamRepo) buildTeamFilterBaseQuery(ctx context.Context, query TeamFilte
 	return db
 }
 
-func (r *TeamRepo) UpdateTeamLostStatus(ctx context.Context, teamID int64, isLost bool, statusUpdatedAt time.Time) (bool, error) {
+func (r *TeamRepo) UpdateTeamLostStatus(ctx context.Context, teamID int64, isLost bool) (bool, error) {
 	m := map[string]interface{}{
 		"is_lost": isLost,
-	}
-
-	if !isLost {
-		m["time"] = statusUpdatedAt
 	}
 
 	tx := r.query.Team.WithContext(ctx).

@@ -549,19 +549,21 @@ func (r *TeamRepo) buildTeamFilterBaseQuery(ctx context.Context, query TeamFilte
 		Joins("LEFT JOIN peoples AS p ON p.team_id = t.id AND p.open_id = t.captain").
 		Where("t.submit = ?", 1)
 
+	effRoute := "(CASE WHEN t.is_wrong_route = 1 THEN COALESCE((SELECT w.wrong_route_name FROM wrong_route_records AS w WHERE w.team_id = t.id ORDER BY w.created_at DESC, w.id DESC LIMIT 1), t.route_name) ELSE t.route_name END)"
+
 	if query.ToPointName != "" && query.PrevPointName != "" {
 		db = db.Where(
-			"EXISTS (SELECT 1 FROM route_edges AS e WHERE e.route_name = t.route_name AND e.prev_point_name = ? AND e.point_name = ?)",
+			"EXISTS (SELECT 1 FROM route_edges AS e WHERE e.route_name = "+effRoute+" AND e.prev_point_name = ? AND e.point_name = ?)",
 			query.PrevPointName,
 			query.ToPointName,
 		)
 	} else if query.ToPointName != "" {
 		db = db.Where(
-			"EXISTS (SELECT 1 FROM route_edges AS e WHERE e.route_name = t.route_name AND e.prev_point_name = t.latest_point_name AND e.point_name = ?)",
+			"EXISTS (SELECT 1 FROM route_edges AS e WHERE e.route_name = "+effRoute+" AND e.prev_point_name = t.latest_point_name AND e.point_name = ?)",
 			query.ToPointName,
 		)
-		// 路段筛选（指定了终点）时，剔除“待出发队伍”——即全队没有任何成员处于有效行进状态
-		// （in_progress/completed/violated）。口径与 route/segment 的人数统计一致，避免
+		// 路段筛选（指定了终点）时，剔除"待出发队伍"——即全队没有任何成员处于有效行进状态
+		// （in_progress/violated）。口径与 route/segment 的人数统计一致，避免
 		// 尚未真正出发的队伍出现在路段队伍列表里。路段为空（仅关键词搜索）时不施加此过滤。
 		db = db.Where(
 			"EXISTS (SELECT 1 FROM peoples AS ps WHERE ps.team_id = t.id AND ps.walk_status IN ?)",

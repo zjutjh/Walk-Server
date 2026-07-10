@@ -71,11 +71,17 @@ func (u *UpdateTeamApi) Run(ctx *gin.Context) kit.Code {
 	}()
 
 	if team.LatestPointName == admin.PointName {
-		u.Response.TeamID = int(team.ID)
-		u.Response.IsDuplicateCheckIn = true
-		if err := teamRepo.UpdateLatestPointName(ctx, team.ID, admin.PointName); err != nil {
+		isStartPoint, err := u.isStartPoint(ctx, teamRepo, team.RouteName, admin.PointName)
+		if err != nil {
+			nlog.Pick().WithContext(ctx).WithError(err).Error("判断重复打卡点位是否起点失败")
 			return comm.CodeServerError
 		}
+		if err := u.handleDuplicateCheckin(ctx, team, admin.PointName, isStartPoint); err != nil {
+			nlog.Pick().WithContext(ctx).WithError(err).Error("重复点位打卡失败")
+			return comm.CodeServerError
+		}
+		u.Response.TeamID = int(team.ID)
+		u.Response.IsDuplicateCheckIn = true
 		return comm.CodeOK
 	}
 
@@ -252,10 +258,14 @@ func (u *UpdateTeamApi) resolveActiveRouteForDirection(ctx *gin.Context, teamRep
 func (u *UpdateTeamApi) handlePointCheckin(ctx *gin.Context, team *model.Team, adminID int64, pointName string) error {
 	return query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
 		txTeamRepo := repo.NewTeamRepoWithTx(tx)
+		peopleRepo := repo.NewPeopleRepoWithTx(tx)
 		if err := txTeamRepo.UpdateLatestPointName(ctx, team.ID, pointName); err != nil {
 			return err
 		}
-		return txTeamRepo.CreateCheckin(ctx, adminID, team.ID, pointName, team.RouteName)
+		if err := txTeamRepo.CreateCheckin(ctx, adminID, team.ID, pointName, team.RouteName); err != nil {
+			return err
+		}
+		return peopleRepo.UpdateMembersWalkStatusByCurrent(ctx, team.ID, comm.WalkStatusPending, comm.WalkStatusInProgress)
 	})
 }
 
@@ -279,6 +289,7 @@ func (u *UpdateTeamApi) handleStartPointCheckin(ctx *gin.Context, team *model.Te
 func (u *UpdateTeamApi) handleWrongRoutePointCheckin(ctx *gin.Context, team *model.Team, adminID int64, pointName string, wrongRouteName string) error {
 	return query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
 		txTeamRepo := repo.NewTeamRepoWithTx(tx)
+		peopleRepo := repo.NewPeopleRepoWithTx(tx)
 		if err := txTeamRepo.UpdateLatestPointName(ctx, team.ID, pointName); err != nil {
 			return err
 		}
@@ -293,8 +304,31 @@ func (u *UpdateTeamApi) handleWrongRoutePointCheckin(ctx *gin.Context, team *mod
 				return err
 			}
 		}
-		return nil
+
+		return peopleRepo.UpdateMembersWalkStatusByCurrent(ctx, team.ID, comm.WalkStatusPending, comm.WalkStatusInProgress)
 	})
+}
+
+func (u *UpdateTeamApi) handleDuplicateCheckin(ctx *gin.Context, team *model.Team, pointName string, isStartPoint bool) error {
+	return query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
+		teamRepo := repo.NewTeamRepoWithTx(tx)
+		peopleRepo := repo.NewPeopleRepoWithTx(tx)
+		if err := teamRepo.UpdateLatestPointName(ctx, team.ID, pointName); err != nil {
+			return err
+		}
+		if isStartPoint {
+			return nil
+		}
+		return peopleRepo.UpdateMembersWalkStatusByCurrent(ctx, team.ID, comm.WalkStatusPending, comm.WalkStatusInProgress)
+	})
+}
+
+func (u *UpdateTeamApi) isStartPoint(ctx *gin.Context, teamRepo *repo.TeamRepo, routeName string, pointName string) (bool, error) {
+	routeEdge, err := teamRepo.FindRouteTransitionEdge(ctx, routeName, "", pointName)
+	if err != nil {
+		return false, err
+	}
+	return routeEdge != nil, nil
 }
 
 // Run Api初始化 进行参数校验和绑定

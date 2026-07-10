@@ -73,6 +73,9 @@ func (u *UpdateTeamApi) Run(ctx *gin.Context) kit.Code {
 	if team.LatestPointName == admin.PointName {
 		u.Response.TeamID = int(team.ID)
 		u.Response.IsDuplicateCheckIn = true
+		if err := teamRepo.UpdateLatestPointName(ctx, team.ID, admin.PointName); err != nil {
+			return comm.CodeServerError
+		}
 		return comm.CodeOK
 	}
 

@@ -16,6 +16,8 @@ biz:
   aes_secret: "walk_aes_secret"
   wechat_app_id: ""
   wechat_secret: ""
+  wechat_redirect: "https://walk.example.com/api/user/login"
+  front_end_url: "https://walk.example.com"
   expired_date: "2025-12-31 23:59:59"
   max_team_size: 6
 

@@ -9,6 +9,7 @@ require (
 	github.com/redis/go-redis/v9 v9.17.2
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/spf13/cobra v1.10.1
+	github.com/zjutjh/WeJH-SDK v0.2.4
 	github.com/zjutjh/mygo v1.6.11
 	golang.org/x/crypto v0.42.0
 	gorm.io/gen v0.3.27
@@ -18,6 +19,8 @@ require (
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
+	github.com/PuerkitoBio/goquery v1.9.3 // indirect
+	github.com/andybalholm/cascadia v1.3.3 // indirect
 	github.com/bytedance/sonic v1.14.0 // indirect
 	github.com/bytedance/sonic/loader v0.3.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect

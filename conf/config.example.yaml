@@ -21,6 +21,60 @@ biz:
   expired_date: "2025-12-31 23:59:59"
   max_team_size: 6
 
+server:
+  wechatAPPID: "wx8a4a0119a36c75d3" # 公众号开发者ID（AppID） 切记不可泄漏
+  wechatSecret: "c1c448d6364dfc3fc371ad00730823c0" # 公众号开发者密码（AppSecret） 切记不可泄漏
+  wechatRedirect: "https://walk.lonesome.cn/api/v1/login" # 回调链接的地址（即授权后重定向的uri） 注：需要加 http/https
+  JWTSecret: "" # JWT 加密密钥
+  AESSecret: "" # AES 加密密钥
+  port: "8080"
+  debug: false # 这个设置大多数情况下无法热更新 修改了这个配置后请重启服务器
+
+frontEnd:
+  url: "https://walk.lonesome.cn" # 前端域名 注：需要加 http/https
+
+database:
+  host: "47.113.188.200"
+  user: "XiMo"
+  passport: "12345678"
+  port: "3306"
+  name: "walk_db"
+
+redis:
+  host: "47.113.188.200"
+  port: "6379"
+  password: "123456"
+  db: 0
+
+startDate: "2023-10-18 00:00:00" # 报名开始的日期
+expiredDate: "2023-11-21 00:00:00" # 报名结束的日期
+
+teamUpperLimit: # 每天的团队上限
+  0: # 第一天
+    1: 0 # 朝晖校区全程
+    2: 0 # 屏峰校区半程
+    3: 0 # 屏峰校区全程
+    4: 0 # 莫干山校区半程
+    5: 0 # 莫干山校区全程
+  1: # 第二天
+    1: 140
+    2: 200
+    3: 100
+    4: 150
+    5: 80
+  2: # 第三天
+    1: 200
+    2: 200
+    3: 100
+    4: 200
+    5: 80
+  3: # 第四天
+    1: 200
+    2: 200
+    3: 130
+    4: 150
+    5: 80
+
 jwt:
   secret: "walk_jwt_secret" # 密钥
   expiration: "24h" # 过期时间（默认30天）

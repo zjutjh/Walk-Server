@@ -1,6 +1,7 @@
 package register
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/zjutjh/mygo/config"
@@ -15,6 +16,7 @@ import (
 	"github.com/zjutjh/mygo/nlog"
 
 	"app/comm"
+	teamCache "app/dao/cache/team"
 	"app/register/generate"
 )
 
@@ -34,6 +36,7 @@ func Boot() kernel.BootList {
 
 		// 业务引导器
 		BizConfBoot(),
+		TeamQuotaBoot(),
 		AppBoot(),
 	}
 }
@@ -53,6 +56,23 @@ func BizConfBoot() func() error {
 		if err != nil {
 			return fmt.Errorf("%w: 解析应用业务配置错误: %w", kit.ErrDataUnmarshal, err)
 		}
+		legacy := struct {
+			StartDate      string             `mapstructure:"startDate"`
+			ExpiredDate    string             `mapstructure:"expiredDate"`
+			TeamUpperLimit map[int]map[int]int `mapstructure:"teamUpperLimit"`
+		}{}
+		if err := config.Pick().Unmarshal(&legacy); err != nil {
+			return fmt.Errorf("%w: 解析旧版业务配置错误: %w", kit.ErrDataUnmarshal, err)
+		}
+		if comm.BizConf.StartDate == "" {
+			comm.BizConf.StartDate = legacy.StartDate
+		}
+		if comm.BizConf.ExpiredDate == "" {
+			comm.BizConf.ExpiredDate = legacy.ExpiredDate
+		}
+		if len(comm.BizConf.TeamUpperLimit) == 0 {
+			comm.BizConf.TeamUpperLimit = legacy.TeamUpperLimit
+		}
 		return nil
 	}
 }
@@ -60,6 +80,19 @@ func BizConfBoot() func() error {
 // AppBoot 应用定制引导器
 func AppBoot() func() error {
 	return func() error {
+		return nil
+	}
+}
+
+func TeamQuotaBoot() func() error {
+	return func() error {
+		for day, routeLimits := range comm.BizConf.TeamUpperLimit {
+			for routeCode, limit := range routeLimits {
+				if err := teamCache.InitDailyRouteQuota(context.Background(), day, routeCode, limit); err != nil {
+					return err
+				}
+			}
+		}
 		return nil
 	}
 }

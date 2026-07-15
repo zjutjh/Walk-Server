@@ -4,11 +4,14 @@ package comm
 var BizConf BizConfig
 
 type BizConfig struct {
-	AESSecret     string `mapstructure:"aes_secret"`
-	WechatAppID   string `mapstructure:"wechat_app_id"`
-	WechatSecret  string `mapstructure:"wechat_secret"`
-	WechatRedirect string `mapstructure:"wechat_redirect"`
-	FrontEndURL    string `mapstructure:"front_end_url"`
-	ExpiredDate   string `mapstructure:"expired_date"`
-	MaxTeamSize   int    `mapstructure:"max_team_size"`
+	AESSecret      string              `mapstructure:"aes_secret"`
+	WechatAppID    string              `mapstructure:"wechat_app_id"`
+	WechatSecret   string              `mapstructure:"wechat_secret"`
+	WechatRedirect string              `mapstructure:"wechat_redirect"`
+	FrontEndURL    string              `mapstructure:"front_end_url"`
+	StartDate      string              `mapstructure:"start_date"`
+	ExpiredDate    string              `mapstructure:"expired_date"`
+	MaxTeamSize    int                 `mapstructure:"max_team_size"`
+	TeamUpperLimit map[int]map[int]int `mapstructure:"team_upper_limit"`
+	RouteQuotaCodes map[string]int     `mapstructure:"route_quota_codes"`
 }

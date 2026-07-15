@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"app/comm"
 	routeCache "app/dao/cache/route"
 	teamCache "app/dao/cache/team"
 	"context"
@@ -199,7 +200,7 @@ func (r *TeamRepo) IncrementNumIfAvailable(ctx context.Context, id int64, maxTea
 	result := r.db.WithContext(ctx).
 		Model(&model.Team{}).
 		Clauses(clause.Locking{Strength: "UPDATE"}).
-		Where("id = ? AND submit = ? AND num < ?", id, 0, maxTeamSize).
+		Where("id = ? AND num < ?", id, maxTeamSize).
 		UpdateColumn("num", gorm.Expr("num + ?", 1))
 	if result.Error != nil {
 		return false, result.Error
@@ -214,7 +215,7 @@ func (r *TeamRepo) DecrementNumIfPositive(ctx context.Context, id int64) (bool, 
 	result := r.db.WithContext(ctx).
 		Model(&model.Team{}).
 		Clauses(clause.Locking{Strength: "UPDATE"}).
-		Where("id = ? AND submit = ? AND num > 0", id, 0).
+		Where("id = ? AND num > 0", id).
 		UpdateColumn("num", gorm.Expr("num - ?", 1))
 	if result.Error != nil {
 		return false, result.Error
@@ -234,6 +235,138 @@ func (r *TeamRepo) DeleteByID(ctx context.Context, id int64) error {
 	}
 	_ = teamCache.DelTeamByID(ctx, id)
 	return nil
+}
+
+func (r *TeamRepo) CreateWithCaptain(ctx context.Context, team *model.Team, captain *model.People) error {
+	return query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
+		teamRepo := NewTeamRepoWithTx(tx)
+		peopleRepo := NewPeopleRepoWithTx(tx)
+		if err := teamRepo.Create(ctx, team); err != nil {
+			return err
+		}
+		return peopleRepo.UpdateByOpenID(ctx, captain.OpenID, map[string]any{
+			"created_op": captain.CreatedOp - 1,
+			"role":       comm.RoleCaptain,
+			"team_id":    team.ID,
+		})
+	})
+}
+
+func (r *TeamRepo) JoinTeam(ctx context.Context, teamID int64, person *model.People, consumeJoinOp bool, maxTeamSize int) (bool, error) {
+	updates := map[string]any{
+		"role":    comm.RoleMember,
+		"team_id": teamID,
+	}
+	if consumeJoinOp {
+		updates["join_op"] = person.JoinOp - 1
+	}
+
+	joined := false
+	err := query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
+		teamRepo := NewTeamRepoWithTx(tx)
+		ok, err := teamRepo.IncrementNumIfAvailable(ctx, teamID, maxTeamSize)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return nil
+		}
+		if err := NewPeopleRepoWithTx(tx).UpdateByOpenID(ctx, person.OpenID, updates); err != nil {
+			return err
+		}
+		joined = true
+		return nil
+	})
+	return joined, err
+}
+
+func (r *TeamRepo) RemoveMember(ctx context.Context, teamID int64, person *model.People) (bool, error) {
+	removed := false
+	err := query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
+		teamRepo := NewTeamRepoWithTx(tx)
+		ok, err := teamRepo.DecrementNumIfPositive(ctx, teamID)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return nil
+		}
+		if err := NewPeopleRepoWithTx(tx).UpdateByOpenID(ctx, person.OpenID, map[string]any{
+			"role":    comm.RoleUnbind,
+			"team_id": int64(-1),
+		}); err != nil {
+			return err
+		}
+		removed = true
+		return nil
+	})
+	return removed, err
+}
+
+func (r *TeamRepo) ChangeCaptain(ctx context.Context, teamID int64, oldCaptainOpenID, newCaptainOpenID string) error {
+	return query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
+		teamRepo := NewTeamRepoWithTx(tx)
+		peopleRepo := NewPeopleRepoWithTx(tx)
+		if err := teamRepo.UpdateByID(ctx, teamID, map[string]any{"captain": newCaptainOpenID}); err != nil {
+			return err
+		}
+		if err := peopleRepo.UpdateByOpenID(ctx, oldCaptainOpenID, map[string]any{"role": comm.RoleMember}); err != nil {
+			return err
+		}
+		return peopleRepo.UpdateByOpenID(ctx, newCaptainOpenID, map[string]any{"role": comm.RoleCaptain})
+	})
+}
+
+func (r *TeamRepo) DisbandTeam(ctx context.Context, teamID int64) error {
+	return query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
+		if err := NewPeopleRepoWithTx(tx).UpdateByTeamID(ctx, teamID, map[string]any{
+			"role":    comm.RoleUnbind,
+			"team_id": int64(-1),
+		}); err != nil {
+			return err
+		}
+		return NewTeamRepoWithTx(tx).DeleteByID(ctx, teamID)
+	})
+}
+
+func (r *TeamRepo) ListRandomMatchTeams(ctx context.Context, routeName string, maxTeamSize int) ([]model.Team, error) {
+	teams := make([]model.Team, 0)
+	tiers := []struct {
+		where string
+		limit int
+	}{
+		{where: "num <= 3", limit: 3},
+		{where: "num = 4", limit: 4},
+		{where: "num = 5", limit: 5},
+	}
+	for _, tier := range tiers {
+		if len(teams) >= 5 {
+			break
+		}
+		var rows []model.Team
+		limit := tier.limit - len(teams)
+		if limit <= 0 {
+			continue
+		}
+		err := r.db.WithContext(ctx).
+			Model(&model.Team{}).
+			Where("route_name = ? AND allow_match = ? AND num < ?", routeName, true, maxTeamSize).
+			Where(tier.where).
+			Order("RAND()").
+			Limit(limit).
+			Find(&rows).Error
+		if err != nil {
+			return nil, err
+		}
+		teams = append(teams, rows...)
+	}
+	return teams, nil
+}
+
+func (r *TeamRepo) CreateMessage(ctx context.Context, senderID *int64, receiverID int64, message string) error {
+	return r.db.WithContext(ctx).
+		Exec("INSERT INTO messages (sender_id, receiver_id, message) VALUES (?, ?, ?)", senderID, receiverID, message).
+		Error
 }
 
 func (r *TeamRepo) CreateCheckin(ctx context.Context, adminID, teamID int64, pointName, routeName string) error {

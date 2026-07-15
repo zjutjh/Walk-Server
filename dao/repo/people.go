@@ -6,6 +6,7 @@ import (
 
 	"app/comm"
 	peoplecache "app/dao/cache/people"
+	teamcache "app/dao/cache/team"
 	"github.com/zjutjh/mygo/ndb"
 	"gorm.io/gorm"
 
@@ -86,6 +87,22 @@ func (r *PeopleRepo) FindPeopleByStuID(ctx context.Context, stuID string) (*mode
 	return record, nil
 }
 
+func (r *PeopleRepo) FindPeopleByTel(ctx context.Context, tel string) (*model.People, error) {
+	if tel == "" {
+		return nil, nil
+	}
+
+	p := r.query.People
+	record, err := p.WithContext(ctx).Where(p.Tel.Eq(tel)).First()
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return record, nil
+}
+
 // FindByTeamID 查询队伍成员
 func (r *PeopleRepo) FindPeopleByTeamID(ctx context.Context, teamID int64) ([]*model.People, error) {
 	p := r.query.People
@@ -148,6 +165,38 @@ func (r *PeopleRepo) UpdateByTeamID(ctx context.Context, teamID int64, updates m
 			continue
 		}
 		_ = peoplecache.DelPersonByOpenID(ctx, member.OpenID)
+	}
+	return nil
+}
+
+func (r *PeopleRepo) BindAlumnusOpenID(ctx context.Context, person *model.People, openID string) error {
+	if person == nil {
+		return nil
+	}
+
+	err := query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
+		if _, err := tx.People.WithContext(ctx).
+			Where(tx.People.ID.Eq(person.ID)).
+			UpdateSimple(tx.People.OpenID.Value(openID)); err != nil {
+			return err
+		}
+		if person.Role == comm.RoleCaptain {
+			if err := NewTeamRepoWithTx(tx).UpdateByID(ctx, person.TeamID, map[string]any{
+				"captain": openID,
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	_ = peoplecache.DelPersonByOpenID(ctx, person.OpenID)
+	_ = peoplecache.DelPersonByOpenID(ctx, openID)
+	if person.Role == comm.RoleCaptain {
+		_ = teamcache.DelTeamByID(ctx, person.TeamID)
 	}
 	return nil
 }

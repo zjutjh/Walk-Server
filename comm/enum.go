@@ -39,6 +39,11 @@ const (
 )
 
 const (
+	GenderMale   int8 = 1
+	GenderFemale int8 = 2
+)
+
+const (
 	MemberTypeStudent = "student"
 	MemberTypeTeacher = "teacher"
 	MemberTypeAlumnus = "alumnus"
@@ -70,4 +75,11 @@ func ParseCampus(raw string) (string, bool) {
 	default:
 		return "", false
 	}
+}
+
+func ParseGender(raw string) int8 {
+	if raw == "male" {
+		return GenderMale
+	}
+	return GenderFemale
 }

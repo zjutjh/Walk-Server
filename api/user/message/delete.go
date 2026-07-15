@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"runtime"
 
+	"app/dao/repo"
 	"github.com/gin-gonic/gin"
 	"github.com/zjutjh/mygo/foundation/reply"
 	"github.com/zjutjh/mygo/kit"
@@ -32,7 +33,18 @@ type DeleteMessageApiRequest struct {
 }
 
 func (h *DeleteMessageApi) Init(ctx *gin.Context) error { return ctx.ShouldBindJSON(&h.Request.Body) }
-func (h *DeleteMessageApi) Run(ctx *gin.Context) kit.Code { return comm.CodeOK }
+func (h *DeleteMessageApi) Run(ctx *gin.Context) kit.Code {
+	person, code := currentMessageUser(ctx)
+	if code != comm.CodeOK {
+		return code
+	}
+
+	if err := repo.NewMessageRepo().DeleteByIDAndReceiverID(ctx, h.Request.Body.MessageID, person.ID); err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("删除消息失败")
+		return comm.CodeServerError
+	}
+	return comm.CodeOK
+}
 
 func hfDeleteMessage(ctx *gin.Context) {
 	api := &DeleteMessageApi{}

@@ -4,6 +4,8 @@ import (
 	"reflect"
 	"runtime"
 
+	"app/dao/model"
+	"app/dao/repo"
 	"github.com/gin-gonic/gin"
 	"github.com/zjutjh/mygo/foundation/reply"
 	"github.com/zjutjh/mygo/kit"
@@ -37,7 +39,51 @@ type MessageView struct {
 }
 
 func (h *ListMessageApi) Init(ctx *gin.Context) error { return nil }
-func (h *ListMessageApi) Run(ctx *gin.Context) kit.Code { return comm.CodeOK }
+func (h *ListMessageApi) Run(ctx *gin.Context) kit.Code {
+	person, code := currentMessageUser(ctx)
+	if code != comm.CodeOK {
+		return code
+	}
+
+	messages, err := repo.NewMessageRepo().ListByReceiverID(ctx, person.ID)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("查询消息列表失败")
+		return comm.CodeServerError
+	}
+
+	h.Response.Messages = make([]MessageView, 0, len(messages))
+	for _, message := range messages {
+		h.Response.Messages = append(h.Response.Messages, MessageView{
+			ID:         message.ID,
+			SenderID:   message.SenderID,
+			ReceiverID: message.ReceiverID,
+			Message:    message.Message,
+		})
+	}
+	return comm.CodeOK
+}
+
+func currentMessageUser(ctx *gin.Context) (*model.People, kit.Code) {
+	openID := comm.GetOpenIDFromCtx(ctx)
+	if openID == "" {
+		return nil, comm.CodeNotLoggedIn
+	}
+	if comm.BizConf.AESSecret != "" {
+		if decrypted, err := comm.AesDecrypt(openID, comm.BizConf.AESSecret); err == nil && decrypted != "" {
+			openID = decrypted
+		}
+	}
+
+	person, err := repo.NewPeopleRepo().FindPeopleByOpenID(ctx, openID)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("查询当前用户失败")
+		return nil, comm.CodeServerError
+	}
+	if person == nil {
+		return nil, comm.CodePeopleNotFound
+	}
+	return person, comm.CodeOK
+}
 
 func hfListMessage(ctx *gin.Context) {
 	api := &ListMessageApi{}

@@ -69,7 +69,7 @@ func (h *RegisterTeacherApi) Run(ctx *gin.Context) kit.Code {
 		Wechat:     h.Request.Body.Contact.Wechat,
 		College:    info.College,
 		Tel:        h.Request.Body.Contact.Tel,
-		CreatedOp:  2,
+		CreatedOp:  3,
 		JoinOp:     5,
 		TeamID:     -1,
 		Type:       comm.MemberTypeTeacher,

@@ -14,7 +14,7 @@ CREATE TABLE `peoples` (
   `created_op` tinyint unsigned NOT NULL DEFAULT '3' COMMENT '剩余创建团队次数',
   `join_op` tinyint unsigned NOT NULL DEFAULT '5' COMMENT '剩余加入团队次数',
   `team_id` bigint DEFAULT '-1' COMMENT '所属团队ID',
-  `type` varchar(10) NOT NULL COMMENT '人员类型(alumni校友，student学生，staff教职工)',
+  `type` varchar(10) NOT NULL COMMENT '人员类型(alumni校友，student学生，teacher教职工)',
   `walk_status` varchar(64) NOT NULL COMMENT '活动状态(未开始,待出发,已放弃,进行中,已下撤,已违规,已完成)',
   `updated_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
   `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),

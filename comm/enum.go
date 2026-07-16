@@ -33,14 +33,14 @@ const (
 )
 
 const (
-	GenderMale   = "male"
-	GenderFemale = "female"
-)
-
-const (
 	CampusChaohui   = "zh"
 	CampusPingfeng  = "pf"
 	CampusMoganshan = "mgs"
+)
+
+const (
+	GenderMale   int8 = 1
+	GenderFemale int8 = 2
 )
 
 const (
@@ -64,17 +64,6 @@ func IsValidWalkStatus(status string) bool {
 	}
 }
 
-func ParseGender(raw string) (int8, bool) {
-	switch raw {
-	case GenderMale:
-		return 1, true
-	case GenderFemale:
-		return 2, true
-	default:
-		return 0, false
-	}
-}
-
 func ParseCampus(raw string) (string, bool) {
 	switch raw {
 	case CampusChaohui:
@@ -88,13 +77,9 @@ func ParseCampus(raw string) (string, bool) {
 	}
 }
 
-func FormatGender(value int8) string {
-	switch value {
-	case 1:
+func ParseGender(raw string) int8 {
+	if raw == "male" {
 		return GenderMale
-	case 2:
-		return GenderFemale
-	default:
-		return ""
 	}
+	return GenderFemale
 }

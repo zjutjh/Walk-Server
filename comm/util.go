@@ -90,3 +90,53 @@ func IsExpired() bool {
 	}
 	return time.Now().After(expiredTime)
 }
+
+func CurrentActivityDay() int {
+	if BizConf.StartDate == "" {
+		return 0
+	}
+	startTime, err := time.ParseInLocation(time.DateTime, BizConf.StartDate, time.Local)
+	if err != nil {
+		return 0
+	}
+	startDate := time.Date(startTime.Year(), startTime.Month(), startTime.Day(), 0, 0, 0, 0, startTime.Location())
+	day := int(time.Since(startDate).Hours() / 24)
+	if day < 0 {
+		return 0
+	}
+	return day
+}
+
+func RouteQuotaCode(routeName string) (int, bool) {
+	if BizConf.RouteQuotaCodes != nil {
+		if code, ok := BizConf.RouteQuotaCodes[routeName]; ok {
+			return code, true
+		}
+	}
+	switch strings.ToLower(routeName) {
+	case "zh", "zh-full", "chaohui", "chaohui-full":
+		return 1, true
+	case "pf-half", "pingfeng-half":
+		return 2, true
+	case "pf-full", "pingfeng-full":
+		return 3, true
+	case "mgs-half", "moganshan-half":
+		return 4, true
+	case "mgs", "mgs-full", "moganshan", "moganshan-full":
+		return 5, true
+	default:
+		return 0, false
+	}
+}
+
+func TeamUpperLimit(day int, routeCode int) (int, bool) {
+	if BizConf.TeamUpperLimit == nil {
+		return 0, false
+	}
+	routeLimits, ok := BizConf.TeamUpperLimit[day]
+	if !ok {
+		return 0, false
+	}
+	limit, ok := routeLimits[routeCode]
+	return limit, ok
+}

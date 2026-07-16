@@ -5,7 +5,11 @@ import (
 	"app/api/dashboard"
 	"app/api/dashboard/stats"
 	"app/api/dashboard/teams"
-	userapi "app/api/user"
+	basicapi "app/api/user/basic"
+	messageapi "app/api/user/message"
+	registerapi "app/api/user/register"
+	teamapi "app/api/user/team"
+	userapi "app/api/user/user"
 	"app/middleware"
 	"slices"
 
@@ -72,24 +76,36 @@ func Route(router *gin.Engine) {
 		}
 		user := r.Group("/user")
 		{
-			user.GET("/wechat/login", userapi.WechatLoginHandler())
+			user.GET("/oauth", basicapi.WechatOAuthRedirectHandler())
+			user.GET("/login", basicapi.WechatOAuthCallbackHandler())
+			user.GET("/login/openid", basicapi.WechatLoginByOpenIDHandler())
 
 			auth := user.Group("")
 			auth.Use(jwtmiddleware.Auth[string](true))
 			{
-				auth.POST("/register/student", userapi.RegisterStudentHandler())
-				auth.POST("/register/teacher", userapi.RegisterTeacherHandler())
-				auth.POST("/register/alumnus", userapi.RegisterAlumnusHandler())
+				auth.POST("/register/student", registerapi.RegisterStudentHandler())
+				auth.POST("/register/teacher", registerapi.RegisterTeacherHandler())
+				auth.POST("/register/alumnus", registerapi.RegisterAlumnusHandler())
 
 				auth.GET("/info", userapi.UserInfoHandler())
 				auth.POST("/modify", userapi.UserModifyHandler())
 
-				auth.POST("/team/create", userapi.TeamCreateHandler())
-				auth.POST("/team/join", userapi.TeamJoinHandler())
-				auth.GET("/team/info", userapi.TeamInfoHandler())
-				auth.POST("/team/update", userapi.TeamUpdateHandler())
-				auth.POST("/team/leave", userapi.TeamLeaveHandler())
-				auth.DELETE("/team/disband", userapi.TeamDisbandHandler())
+				auth.POST("/team/create", teamapi.TeamCreateHandler())
+				auth.POST("/team/join", teamapi.TeamJoinHandler())
+				auth.GET("/team/info", teamapi.TeamInfoHandler())
+				auth.GET("/team/submit", teamapi.TeamSubmitHandler())
+				auth.GET("/team/rollback", teamapi.TeamRollbackHandler())
+				auth.POST("/team/random-list", teamapi.TeamRandomListHandler())
+				auth.POST("/team/random-join", teamapi.TeamRandomJoinHandler())
+				auth.POST("/team/update", teamapi.TeamUpdateHandler())
+				auth.GET("/team/add", teamapi.TeamAddMemberHandler())
+				auth.GET("/team/remove", teamapi.TeamRemoveMemberHandler())
+				auth.POST("/team/captain", teamapi.TeamChangeCaptainHandler())
+				auth.GET("/team/leave", teamapi.TeamLeaveHandler())
+				auth.GET("/team/disband", teamapi.TeamDisbandHandler())
+
+				auth.GET("/message/list", messageapi.ListMessageHandler())
+				auth.POST("/message/delete", messageapi.DeleteMessageHandler())
 			}
 		}
 	}

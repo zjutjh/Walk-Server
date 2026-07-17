@@ -222,9 +222,9 @@ func (r *RouteRepo) ListRoutePoints(ctx context.Context, routeName string) ([]Ro
 // 2) 按 reached_seq 聚合有效参与人数（inProgress/completed/violated），再用窗口函数做累计和。
 // 注意：seq_order 只在同一 route_name 下比较；不同路线存在相同 seq_order 不影响结果。
 // 另外确认了非法打卡也会进入checkins。
-// 当前默认业务假设：不考虑“进行中人员半路重组”和“向前异常打卡”场景。
+// 当前默认业务假设：不考虑"进行中人员半路重组"和"向前异常打卡"场景。
 //
-// 走错路线口径：队伍按“有效路线”而非报名路线统计。
+// 走错路线口径：队伍按"有效路线"而非报名路线统计。
 // 有效路线 = is_wrong_route ? 最新 wrong_route_records.wrong_route_name : route_name。
 // 因此走错的队会计入它实际走的路线（如报名 pf-full、错走 pf-half 的队计入 pf-half），
 // 既不会在报名线上冻结/虚高，也不会在实走线上隐身。
@@ -331,21 +331,19 @@ func (r *RouteRepo) CountSingleRouteWrongPeople(ctx context.Context, routeName s
 }
 
 // CountPeopleOnSegment 统计指定路段上的人数（按 people 计数）。
-// 口径说明：仅统计“队伍当前 prev_point_name + 队伍所属 route_name”能匹配到该边的人数。
-// 若队伍发生错路且当前点不在所属路线边上，该队会暂时不计入任何标准路段，直到回到可匹配边。
-// 换句话说，就是进度在人数统计层面会短暂不更新，即使已经打卡，直到回到正确路线（报名的路线）的边上。
+// 口径说明：统计"队伍当前 latest_point_name + 有效路线"能匹配到该边且有效成员（进行中/违规）的人数。
+// 有效路线 = is_wrong_route ? 最新 wrong_route_records.wrong_route_name : route_name，与 buildTeamFilterBaseQuery 一致。
 func (r *RouteRepo) CountPeopleOnSegment(ctx context.Context, campus string, prevPointName string, toPointName string) (int64, error) {
 	filterQuery := TeamFilterQuery{
 		Campus:        campus,
 		PrevPointName: prevPointName,
 		ToPointName:   toPointName,
 	}
-	statuses := effectiveWalkStatuses()
 
 	var peopleCount int64
 	err := NewTeamRepo().buildTeamFilterBaseQuery(ctx, filterQuery).
 		Joins("JOIN peoples AS ps ON ps.team_id = t.id").
-		Where("ps.walk_status IN ?", statuses).
+		Where("ps.walk_status IN ?", []string{"in_progress", "violated"}).
 		Count(&peopleCount).Error
 	if err != nil {
 		return 0, err
@@ -356,7 +354,7 @@ func (r *RouteRepo) CountPeopleOnSegment(ctx context.Context, campus string, pre
 
 // GetCheckpointPeopleCounts 统计点位已到达与未到达人数（按 people 计数）。
 // 口径说明：已到达判断基于 teams.latest_point_name 在所属路线上的 seq_order 与目标点序比较。
-// 若队伍当前点无法映射到所属路线（如错路期间打到他路线独有点），该队会被视为“未到达”。
+// 若队伍当前点无法映射到所属路线（如错路期间打到他路线独有点），该队会被视为"未到达"。
 func (r *RouteRepo) GetCheckpointPeopleCounts(ctx context.Context, campus string, pointName string) (passedCount int64, notArrivedCount int64, err error) {
 	statuses := effectiveWalkStatuses()
 	if len(statuses) == 0 {

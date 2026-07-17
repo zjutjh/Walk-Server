@@ -62,6 +62,11 @@ type TeamCheckinRow struct {
 	CreatedAt time.Time `gorm:"column:created_at"`
 }
 
+func invalidateTeamCaches(ctx context.Context, teamID int64) {
+	_ = teamCache.DelTeamByID(ctx, teamID)
+	_ = teamCache.DeleteTeamInfo(ctx, teamID)
+}
+
 func NewTeamRepo() *TeamRepo {
 	db := ndb.Pick()
 	return &TeamRepo{
@@ -175,7 +180,7 @@ func (r *TeamRepo) UpdateByID(ctx context.Context, id int64, updates map[string]
 	if err != nil {
 		return err
 	}
-	_ = teamCache.DelTeamByID(ctx, id)
+	invalidateTeamCaches(ctx, id)
 	return nil
 }
 
@@ -191,7 +196,7 @@ func (r *TeamRepo) UpdateStatusByIDs(ctx context.Context, ids []int64, status st
 		return err
 	}
 	for _, id := range ids {
-		_ = teamCache.DelTeamByID(ctx, id)
+		invalidateTeamCaches(ctx, id)
 	}
 	return nil
 }
@@ -206,7 +211,7 @@ func (r *TeamRepo) IncrementNumIfAvailable(ctx context.Context, id int64, maxTea
 		return false, result.Error
 	}
 	if result.RowsAffected > 0 {
-		_ = teamCache.DelTeamByID(ctx, id)
+		invalidateTeamCaches(ctx, id)
 	}
 	return result.RowsAffected > 0, nil
 }
@@ -221,7 +226,7 @@ func (r *TeamRepo) DecrementNumIfPositive(ctx context.Context, id int64) (bool, 
 		return false, result.Error
 	}
 	if result.RowsAffected > 0 {
-		_ = teamCache.DelTeamByID(ctx, id)
+		invalidateTeamCaches(ctx, id)
 	}
 	return result.RowsAffected > 0, nil
 }
@@ -233,7 +238,7 @@ func (r *TeamRepo) DeleteByID(ctx context.Context, id int64) error {
 	if err != nil {
 		return err
 	}
-	_ = teamCache.DelTeamByID(ctx, id)
+	invalidateTeamCaches(ctx, id)
 	return nil
 }
 
@@ -386,7 +391,7 @@ func (r *TeamRepo) UpdateTeamWrongRoute(ctx context.Context, teamID int64, isWro
 		Where(t.ID.Eq(teamID)).
 		Update(t.IsWrongRoute, isWrongRoute)
 	if err == nil {
-		_ = teamCache.DelTeamByID(ctx, teamID)
+		invalidateTeamCaches(ctx, teamID)
 	}
 	return err
 }
@@ -410,7 +415,7 @@ func (r *TeamRepo) ClearLostStatus(ctx context.Context, teamID int64) error {
 		).
 		Update(t.IsLost, false)
 	if err == nil {
-		_ = teamCache.DelTeamByID(ctx, teamID)
+		invalidateTeamCaches(ctx, teamID)
 	}
 	return err
 }
@@ -600,7 +605,7 @@ func (r *TeamRepo) UpdateLatestPointName(ctx context.Context, teamID int64, poin
 			"time":              time.Now(),
 		})
 	if err == nil {
-		_ = teamCache.DelTeamByID(ctx, teamID)
+		invalidateTeamCaches(ctx, teamID)
 	}
 	return err
 }
@@ -736,7 +741,7 @@ func (r *TeamRepo) UpdateTeamLostStatus(ctx context.Context, teamID int64, isLos
 		return false, tx.Error
 	}
 	if tx.RowsAffected > 0 {
-		_ = teamCache.DelTeamByID(ctx, teamID)
+		invalidateTeamCaches(ctx, teamID)
 	}
 
 	return tx.RowsAffected > 0, nil

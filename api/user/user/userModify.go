@@ -36,7 +36,7 @@ type UserModifyApiRequest struct {
 	}
 }
 
-func (h *UserModifyApi) Init(ctx *gin.Context) error   { return ctx.ShouldBindJSON(&h.Request.Body) }
+func (h *UserModifyApi) Init(ctx *gin.Context) error { return ctx.ShouldBindJSON(&h.Request.Body) }
 func (h *UserModifyApi) Run(ctx *gin.Context) kit.Code {
 	person, code := currentUserPerson(ctx)
 	if code != comm.CodeOK {
@@ -50,8 +50,13 @@ func (h *UserModifyApi) Run(ctx *gin.Context) kit.Code {
 		}
 		person.Campus = campus
 	}
+	if h.Request.Body.Identity != "" {
+		if !comm.IsValidIdentity(h.Request.Body.Identity) {
+			return comm.CodeParameterInvalid
+		}
+		person.Identity = h.Request.Body.Identity
+	}
 	person.College = h.Request.Body.College
-	person.Identity = h.Request.Body.Identity
 	person.Qq = h.Request.Body.Contact.QQ
 	person.Wechat = h.Request.Body.Contact.Wechat
 	person.Tel = h.Request.Body.Contact.Tel

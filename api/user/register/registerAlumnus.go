@@ -40,6 +40,10 @@ func (h *RegisterAlumnusApi) Init(ctx *gin.Context) error {
 }
 
 func (h *RegisterAlumnusApi) Run(ctx *gin.Context) kit.Code {
+	if !comm.IsValidIdentity(h.Request.Body.Identity) {
+		return comm.CodeParameterInvalid
+	}
+
 	openID := comm.GetOpenIDFromCtx(ctx)
 	if openID == "" {
 		return comm.CodeNotLoggedIn

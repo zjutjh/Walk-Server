@@ -45,23 +45,15 @@ func (m *MarkTeamViolationApi) Run(ctx *gin.Context) kit.Code {
 		txPeopleRepo := repo.NewPeopleRepoWithTx(tx)
 		teamID := int64(m.Request.Body.TeamID)
 
-		team, err := txTeamRepo.GetTeamByID(ctx, teamID)
-		if err != nil {
+		if _, err := txTeamRepo.GetTeamByID(ctx, teamID); err != nil {
 			return err
 		}
 
-		if err := txPeopleRepo.UpdateMembersWalkStatusByCurrent(ctx, teamID, comm.WalkStatusInProgress, comm.WalkStatusViolated); err != nil {
-			return err
-		}
-
-		nextStatus, err := txPeopleRepo.ResolveTeamStatus(ctx, team)
-		if err != nil {
-			return err
-		}
-		if nextStatus == "" || nextStatus == team.Status {
-			return nil
-		}
-		return txTeamRepo.UpdateByID(ctx, teamID, map[string]any{"status": nextStatus})
+		return txPeopleRepo.UpdateMembersViolationExceptStatuses(ctx, teamID, []string{
+			comm.WalkStatusAbandoned,
+			comm.WalkStatusWithdrawn,
+			comm.WalkStatusCompleted,
+		}, true)
 	})
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

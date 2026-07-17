@@ -5,6 +5,7 @@ import (
 	"runtime"
 
 	"app/dao/model"
+
 	"github.com/gin-gonic/gin"
 	"github.com/zjutjh/mygo/foundation/reply"
 	"github.com/zjutjh/mygo/kit"
@@ -73,6 +74,7 @@ func (h *RegisterTeacherApi) Run(ctx *gin.Context) kit.Code {
 		Wechat:     h.Request.Body.Contact.Wechat,
 		College:    info.College,
 		Tel:        h.Request.Body.Contact.Tel,
+		IsViolated: false,
 		CreatedOp:  3,
 		JoinOp:     5,
 		TeamID:     -1,

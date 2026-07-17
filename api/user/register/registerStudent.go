@@ -83,6 +83,7 @@ func (h *RegisterStudentApi) Run(ctx *gin.Context) kit.Code {
 		Wechat:     h.Request.Body.Contact.Wechat,
 		College:    h.Request.Body.College,
 		Tel:        h.Request.Body.Contact.Tel,
+		IsViolated: false,
 		CreatedOp:  3,
 		JoinOp:     5,
 		TeamID:     -1,

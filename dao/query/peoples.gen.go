@@ -45,6 +45,7 @@ func newPeople(db *gorm.DB, opts ...gen.DOOption) people {
 	_people.TeamID = field.NewInt64(tableName, "team_id")
 	_people.Type = field.NewString(tableName, "type")
 	_people.WalkStatus = field.NewString(tableName, "walk_status")
+	_people.IsViolated = field.NewBool(tableName, "is_violated")
 	_people.UpdatedAt = field.NewTime(tableName, "updated_at")
 	_people.CreatedAt = field.NewTime(tableName, "created_at")
 
@@ -73,7 +74,8 @@ type people struct {
 	JoinOp     field.Uint8  // 剩余加入团队次数
 	TeamID     field.Int64  // 所属团队ID
 	Type       field.String // 人员类型(alumni校友，student学生，staff教职工)
-	WalkStatus field.String // 活动状态(未开始,待出发,已放弃,进行中,已下撤,已违规,已完成)
+	WalkStatus field.String // 活动状态(未开始,待出发,已放弃,进行中,已下撤,已完成)
+	IsViolated field.Bool   // 是否违规
 	UpdatedAt  field.Time
 	CreatedAt  field.Time
 
@@ -109,6 +111,7 @@ func (p *people) updateTableName(table string) *people {
 	p.TeamID = field.NewInt64(table, "team_id")
 	p.Type = field.NewString(table, "type")
 	p.WalkStatus = field.NewString(table, "walk_status")
+	p.IsViolated = field.NewBool(table, "is_violated")
 	p.UpdatedAt = field.NewTime(table, "updated_at")
 	p.CreatedAt = field.NewTime(table, "created_at")
 
@@ -135,7 +138,7 @@ func (p *people) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (p *people) fillFieldMap() {
-	p.fieldMap = make(map[string]field.Expr, 19)
+	p.fieldMap = make(map[string]field.Expr, 20)
 	p.fieldMap["id"] = p.ID
 	p.fieldMap["open_id"] = p.OpenID
 	p.fieldMap["name"] = p.Name
@@ -153,6 +156,7 @@ func (p *people) fillFieldMap() {
 	p.fieldMap["team_id"] = p.TeamID
 	p.fieldMap["type"] = p.Type
 	p.fieldMap["walk_status"] = p.WalkStatus
+	p.fieldMap["is_violated"] = p.IsViolated
 	p.fieldMap["updated_at"] = p.UpdatedAt
 	p.fieldMap["created_at"] = p.CreatedAt
 }

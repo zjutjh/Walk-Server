@@ -55,6 +55,10 @@ func (h *RegisterStudentApi) Init(ctx *gin.Context) error {
 }
 
 func (h *RegisterStudentApi) Run(ctx *gin.Context) kit.Code {
+	if !comm.IsValidIdentity(h.Request.Body.Identity) {
+		return comm.CodeParameterInvalid
+	}
+
 	campus, ok := comm.ParseCampus(h.Request.Body.Campus)
 	if !ok {
 		return comm.CodeParameterInvalid

@@ -41,6 +41,7 @@ type GetTeamStatusApiResponse struct {
 type TeamResponse struct {
 	Name                  string `json:"name" desc:"队名"`
 	PrevPointName         string `json:"prev_point_name" desc:"前序点位名称"`
+	LatestPointName       string `json:"latest_point_name" desc:"最新经过点位名称"`
 	RouteName             string `json:"route_name" desc:"路线名称"`
 	Status                string `json:"status" desc:"队伍状态"`
 	IsWrongRoute          bool   `json:"is_wrong_route" desc:"是否走错路线"`
@@ -82,10 +83,11 @@ func (g *GetTeamStatusApi) Run(ctx *gin.Context) kit.Code {
 	}
 
 	g.Response.Team = TeamResponse{
-		Name:          team.Name,
-		PrevPointName: routeStatus.prevPointName,
-		RouteName:     team.RouteName,
-		Status:        team.Status,
+		Name:            team.Name,
+		PrevPointName:   routeStatus.prevPointName,
+		LatestPointName: team.LatestPointName,
+		RouteName:       team.RouteName,
+		Status:          team.Status,
 
 		IsWrongRoute:          routeStatus.isWrongRoute,
 		IsPrevPointInvalid:    routeStatus.isPrevPointInvalid,

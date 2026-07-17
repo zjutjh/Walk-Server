@@ -28,7 +28,8 @@ type People struct {
 	JoinOp     uint8     `gorm:"column:join_op;not null;default:5;comment:剩余加入团队次数" json:"join_op"`                           // 剩余加入团队次数
 	TeamID     int64     `gorm:"column:team_id;default:-1;comment:所属团队ID" json:"team_id"`                                     // 所属团队ID
 	Type       string    `gorm:"column:type;not null;comment:人员类型(alumni校友，student学生，staff教职工)" json:"type"`                  // 人员类型(alumni校友，student学生，staff教职工)
-	WalkStatus string    `gorm:"column:walk_status;not null;comment:活动状态(未开始,待出发,已放弃,进行中,已下撤,已违规,已完成)" json:"walk_status"`    // 活动状态(未开始,待出发,已放弃,进行中,已下撤,已违规,已完成)
+	WalkStatus string    `gorm:"column:walk_status;not null;comment:活动状态(未开始,待出发,已放弃,进行中,已下撤,已完成)" json:"walk_status"`        // 活动状态(未开始,待出发,已放弃,进行中,已下撤,已完成)
+	IsViolated bool      `gorm:"column:is_violated;not null;default:false;comment:是否违规" json:"is_violated"`                   // 是否违规
 	UpdatedAt  time.Time `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP(3)" json:"updated_at"`
 	CreatedAt  time.Time `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP(3)" json:"created_at"`
 }

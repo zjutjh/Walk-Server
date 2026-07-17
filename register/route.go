@@ -41,6 +41,7 @@ func Route(router *gin.Engine) {
 				userGroup := authAdminGroup.Group("/user")
 				{
 					userGroup.POST("/update", api.UpdateUserHandler())
+					userGroup.POST("/violation/mark", api.MarkUserViolationHandler())
 					userGroup.POST("/pending/start", middleware.NeedPerm("super"), api.StartPendingPeopleHandler())
 					userGroup.GET("/info", middleware.NeedPerm("super"), api.GetUserInfoByIDHandler())
 				}

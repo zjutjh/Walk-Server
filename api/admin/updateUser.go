@@ -33,7 +33,7 @@ type UpdateUserApi struct {
 type UpdateUserApiRequest struct {
 	Body struct {
 		UserID int    `json:"user_id" desc:"用户编号" binding:"required"`
-		Status string `json:"status" desc:"未开始,待出发,已放弃,进行中,已下撤,已违规,已完成" binding:"required"`
+		Status string `json:"status" desc:"未开始,待出发,已放弃,进行中,已下撤,已完成" binding:"required"`
 	}
 }
 

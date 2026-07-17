@@ -7,8 +7,9 @@ const (
 	WalkStatusAbandoned  = "abandoned"
 	WalkStatusInProgress = "in_progress"
 	WalkStatusWithdrawn  = "withdrawn"
-	WalkStatusViolated   = "violated"
-	WalkStatusCompleted  = "completed"
+	// Deprecated: violation is now represented by peoples.is_violated.
+	WalkStatusViolated  = "violated"
+	WalkStatusCompleted = "completed"
 )
 
 // role枚举
@@ -56,7 +57,6 @@ func IsValidWalkStatus(status string) bool {
 		WalkStatusAbandoned,
 		WalkStatusInProgress,
 		WalkStatusWithdrawn,
-		WalkStatusViolated,
 		WalkStatusCompleted:
 		return true
 	default:

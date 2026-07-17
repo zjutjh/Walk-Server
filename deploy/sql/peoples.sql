@@ -15,7 +15,8 @@ CREATE TABLE `peoples` (
   `join_op` tinyint unsigned NOT NULL DEFAULT '5' COMMENT '剩余加入团队次数',
   `team_id` bigint DEFAULT '-1' COMMENT '所属团队ID',
   `type` varchar(10) NOT NULL COMMENT '人员类型(alumni校友，student学生，teacher教职工)',
-  `walk_status` varchar(64) NOT NULL COMMENT '活动状态(未开始,待出发,已放弃,进行中,已下撤,已违规,已完成)',
+  `walk_status` varchar(64) NOT NULL COMMENT '活动状态(未开始,待出发,已放弃,进行中,已下撤,已完成)',
+  `is_violated` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否违规',
   `updated_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
   `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   PRIMARY KEY (`id`),
@@ -24,5 +25,6 @@ CREATE TABLE `peoples` (
   UNIQUE KEY `uni_people_stu_id` (`stu_id`),
   KEY `idx_people_team_id` (`team_id`),
   KEY `idx_people_team_walk_status` (`team_id`, `walk_status`),
+  KEY `idx_people_team_is_violated` (`team_id`, `is_violated`),
   KEY `idx_open_id` (`open_id`)
 );

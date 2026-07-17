@@ -225,15 +225,10 @@ func (r *PeopleRepo) CountMembersByStatus(ctx context.Context, teamID int64, wal
 		Count()
 }
 
-// ResolveTeamStatus 根据成员状态和队伍当前位置推导队伍状态。
+// ResolveTeamStatus 根据成员 walk_status 推导队伍状态，违规标记不参与队伍行进状态计算。
 func (r *PeopleRepo) ResolveTeamStatus(ctx context.Context, team *model.Team) (string, error) {
 	if team == nil {
 		return "", nil
-	}
-
-	violatedStatus, err := r.resolveViolatedStatus(ctx, team)
-	if err != nil {
-		return "", err
 	}
 
 	members, err := r.FindPeopleByTeamID(ctx, team.ID)
@@ -250,6 +245,7 @@ func (r *PeopleRepo) ResolveTeamStatus(ctx context.Context, team *model.Team) (s
 	notStartCount := 0
 	activeCount := 0
 	completedCount := 0
+	effectiveCount := 0
 
 	for _, member := range members {
 		if member == nil {
@@ -266,19 +262,13 @@ func (r *PeopleRepo) ResolveTeamStatus(ctx context.Context, team *model.Team) (s
 			continue
 		case comm.WalkStatusNotStart, comm.WalkStatusPending:
 			notStartCount++
+			effectiveCount++
 		case comm.WalkStatusInProgress:
 			activeCount++
+			effectiveCount++
 		case comm.WalkStatusCompleted:
 			completedCount++
-		case comm.WalkStatusViolated:
-			switch violatedStatus {
-			case comm.TeamStatusNotStart:
-				notStartCount++
-			case comm.TeamStatusCompleted:
-				completedCount++
-			default:
-				activeCount++
-			}
+			effectiveCount++
 		default:
 			continue
 		}
@@ -294,7 +284,6 @@ func (r *PeopleRepo) ResolveTeamStatus(ctx context.Context, team *model.Team) (s
 		return comm.TeamStatusWithdrawn, nil
 	}
 
-	effectiveCount := memberCount - abandonedCount - withdrawnCount
 	if activeCount > 0 {
 		return comm.TeamStatusInProgress, nil
 	}
@@ -305,39 +294,6 @@ func (r *PeopleRepo) ResolveTeamStatus(ctx context.Context, team *model.Team) (s
 		return comm.TeamStatusCompleted, nil
 	}
 	return comm.TeamStatusInProgress, nil
-}
-
-func (r *PeopleRepo) resolveViolatedStatus(ctx context.Context, team *model.Team) (string, error) {
-	if team.LatestPointName == "" {
-		return comm.TeamStatusNotStart, nil
-	}
-
-	isEndPoint, err := r.isRouteEndPoint(ctx, team)
-	if err != nil {
-		return "", err
-	}
-	if isEndPoint {
-		return comm.TeamStatusCompleted, nil
-	}
-	return comm.TeamStatusInProgress, nil
-}
-
-func (r *PeopleRepo) isRouteEndPoint(ctx context.Context, team *model.Team) (bool, error) {
-	var total int64
-	err := r.query.RouteEdge.WithContext(ctx).
-		UnderlyingDB().
-		Table("route_edges").
-		Where(
-			"route_name = ? AND point_name = ? AND seq_order = (SELECT MAX(seq_order) FROM route_edges WHERE route_name = ?)",
-			team.RouteName,
-			team.LatestPointName,
-			team.RouteName,
-		).
-		Count(&total).Error
-	if err != nil {
-		return false, err
-	}
-	return total > 0, nil
 }
 
 func (r *PeopleRepo) UpdateWalkStatus(ctx context.Context, userID int64, status string) error {
@@ -373,6 +329,36 @@ func (r *PeopleRepo) UpdateViolationByUserID(ctx context.Context, userID int64, 
 		return err
 	}
 	if person != nil {
+		_ = peoplecache.DelPersonByOpenID(ctx, person.OpenID)
+	}
+	return nil
+}
+
+func (r *PeopleRepo) UpdateMembersViolationExceptStatuses(ctx context.Context, teamID int64, excludedStatuses []string, isViolated bool) error {
+	p := r.query.People
+	people, err := p.WithContext(ctx).
+		Where(
+			p.TeamID.Eq(teamID),
+			p.WalkStatus.NotIn(excludedStatuses...),
+		).
+		Find()
+	if err != nil {
+		return err
+	}
+
+	_, err = p.WithContext(ctx).
+		Where(
+			p.TeamID.Eq(teamID),
+			p.WalkStatus.NotIn(excludedStatuses...),
+		).
+		Update(p.IsViolated, isViolated)
+	if err != nil {
+		return err
+	}
+	for _, person := range people {
+		if person == nil {
+			continue
+		}
 		_ = peoplecache.DelPersonByOpenID(ctx, person.OpenID)
 	}
 	return nil

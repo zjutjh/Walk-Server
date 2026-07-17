@@ -53,6 +53,7 @@ type MemberResponse struct {
 	Name       string `json:"name" desc:"姓名"`
 	UserID     int    `json:"user_id" desc:"用户编号"`
 	WalkStatus string `json:"walk_status" desc:"用户状态"`
+	IsViolated bool   `json:"is_violated" desc:"是否违规"`
 	Role       string `json:"role" desc:"用户身份"`
 }
 
@@ -100,6 +101,7 @@ func (g *GetTeamStatusApi) Run(ctx *gin.Context) kit.Code {
 			Name:       member.Name,
 			UserID:     int(member.ID),
 			WalkStatus: member.WalkStatus,
+			IsViolated: member.IsViolated,
 			Role:       member.Role,
 		})
 	}

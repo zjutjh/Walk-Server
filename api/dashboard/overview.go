@@ -52,7 +52,7 @@ func applyOverviewStatus(route *RoutesRes, walkStatus string, count int) {
 	switch walkStatus {
 	case comm.WalkStatusInProgress:
 		route.InProgress += count
-	case comm.WalkStatusCompleted, comm.WalkStatusViolated:
+	case comm.WalkStatusCompleted:
 		route.Finished += count
 	}
 }

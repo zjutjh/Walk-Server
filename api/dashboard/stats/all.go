@@ -77,7 +77,7 @@ func applyStatus(stat *RouteStatItem, walkStatus string, count int) {
 		stat.InProgress += count
 	case comm.WalkStatusWithdrawn:
 		stat.Withdrawn += count
-	case comm.WalkStatusCompleted, comm.WalkStatusViolated:
+	case comm.WalkStatusCompleted:
 		stat.Finished += count
 	}
 }

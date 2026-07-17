@@ -56,7 +56,6 @@ func effectiveWalkStatuses() []string {
 	return []string{
 		comm.WalkStatusInProgress,
 		comm.WalkStatusCompleted,
-		comm.WalkStatusViolated,
 	}
 }
 
@@ -219,7 +218,7 @@ func (r *RouteRepo) ListRoutePoints(ctx context.Context, routeName string) ([]Ro
 // ListRoutePointPassedCounts 查询各点位累计到达人数（按 people 口径）。
 // 统计逻辑：
 // 1) 先按队伍在该路线内的**最大** seq_order 计算 reached_seq，避免回扫/补扫导致进度回退。
-// 2) 按 reached_seq 聚合有效参与人数（inProgress/completed/violated），再用窗口函数做累计和。
+// 2) 按 reached_seq 聚合有效参与人数（inProgress/completed），再用窗口函数做累计和。
 // 注意：seq_order 只在同一 route_name 下比较；不同路线存在相同 seq_order 不影响结果。
 // 另外确认了非法打卡也会进入checkins。
 // 当前默认业务假设：不考虑"进行中人员半路重组"和"向前异常打卡"场景。
@@ -331,7 +330,7 @@ func (r *RouteRepo) CountSingleRouteWrongPeople(ctx context.Context, routeName s
 }
 
 // CountPeopleOnSegment 统计指定路段上的人数（按 people 计数）。
-// 口径说明：统计"队伍当前 latest_point_name + 有效路线"能匹配到该边且有效成员（进行中/违规）的人数。
+// 口径说明：统计"队伍当前 latest_point_name + 有效路线"能匹配到该边且有效成员（进行中）的人数。
 // 有效路线 = is_wrong_route ? 最新 wrong_route_records.wrong_route_name : route_name，与 buildTeamFilterBaseQuery 一致。
 func (r *RouteRepo) CountPeopleOnSegment(ctx context.Context, campus string, prevPointName string, toPointName string) (int64, error) {
 	filterQuery := TeamFilterQuery{
@@ -343,7 +342,7 @@ func (r *RouteRepo) CountPeopleOnSegment(ctx context.Context, campus string, pre
 	var peopleCount int64
 	err := NewTeamRepo().buildTeamFilterBaseQuery(ctx, filterQuery).
 		Joins("JOIN peoples AS ps ON ps.team_id = t.id").
-		Where("ps.walk_status IN ?", []string{"in_progress", "violated"}).
+		Where("ps.walk_status = ?", comm.WalkStatusInProgress).
 		Count(&peopleCount).Error
 	if err != nil {
 		return 0, err

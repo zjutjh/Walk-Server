@@ -696,11 +696,11 @@ func (r *TeamRepo) buildTeamFilterBaseQuery(ctx context.Context, query TeamFilte
 			query.ToPointName,
 		)
 		// 路段筛选（指定了终点）时，剔除"待出发队伍"——即全队没有任何成员处于有效行进状态
-		// （in_progress/violated）。口径与 route/segment 的人数统计一致，避免
+		// （in_progress）。口径与 route/segment 的人数统计一致，避免
 		// 尚未真正出发的队伍出现在路段队伍列表里。路段为空（仅关键词搜索）时不施加此过滤。
 		db = db.Where(
-			"EXISTS (SELECT 1 FROM peoples AS ps WHERE ps.team_id = t.id AND ps.walk_status IN ?)",
-			[]string{"in_progress", "violated"},
+			"EXISTS (SELECT 1 FROM peoples AS ps WHERE ps.team_id = t.id AND ps.walk_status = ?)",
+			comm.WalkStatusInProgress,
 		)
 	}
 

@@ -28,7 +28,7 @@ type TeamRollbackApi struct {
 	Response struct{}
 }
 
-func (h *TeamRollbackApi) Init(ctx *gin.Context) error   { return nil }
+func (h *TeamRollbackApi) Init(ctx *gin.Context) error { return nil }
 func (h *TeamRollbackApi) Run(ctx *gin.Context) kit.Code {
 	person, code := currentTeamUser(ctx)
 	if code != comm.CodeOK {
@@ -51,7 +51,7 @@ func (h *TeamRollbackApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeServerError
 	}
 	if !submitted {
-		return comm.CodeDataConflict
+		return comm.CodeTeamNotSubmitted
 	}
 	if err := repo.NewTeamRepo().UpdateByID(ctx, team.ID, map[string]any{"submit": false}); err != nil {
 		_ = teamCache.RestoreSubmittedTeam(ctx, team.ID, day, routeCode)

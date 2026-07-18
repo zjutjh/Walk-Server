@@ -33,7 +33,7 @@ type TeamAddMemberApiRequest struct {
 	}
 }
 
-func (h *TeamAddMemberApi) Init(ctx *gin.Context) error   { return ctx.ShouldBindQuery(&h.Request.Query) }
+func (h *TeamAddMemberApi) Init(ctx *gin.Context) error { return ctx.ShouldBindQuery(&h.Request.Query) }
 func (h *TeamAddMemberApi) Run(ctx *gin.Context) kit.Code {
 	person, code := currentTeamUser(ctx)
 	if code != comm.CodeOK {
@@ -50,11 +50,14 @@ func (h *TeamAddMemberApi) Run(ctx *gin.Context) kit.Code {
 	if err != nil {
 		return comm.CodeServerError
 	}
-	if submitted && int(team.Num) >= comm.BizConf.MaxTeamSize {
+	if submitted {
+		return comm.CodeTeamSubmitted
+	}
+	if int(team.Num) >= comm.BizConf.MaxTeamSize {
 		return comm.CodeTeamFull
 	}
 	if h.Request.Query.StuID == person.StuID {
-		return comm.CodeParameterInvalid
+		return comm.CodeCannotAddSelf
 	}
 
 	peopleRepo := repo.NewPeopleRepo()
@@ -69,7 +72,7 @@ func (h *TeamAddMemberApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeAlreadyInTeam
 	}
 	if !canTeacherJoinTeam(person, newMember) {
-		return comm.CodePermissionDenied
+		return comm.CodeTeacherCannotJoinStudentTeam
 	}
 
 	joined, err := repo.NewTeamRepo().JoinTeam(ctx, team.ID, newMember, false, comm.BizConf.MaxTeamSize)
@@ -79,8 +82,10 @@ func (h *TeamAddMemberApi) Run(ctx *gin.Context) kit.Code {
 	if !joined {
 		return comm.CodeTeamFull
 	}
-	sendTeamMessage(ctx, person, newMember, "你被"+person.Name+"添加至团队"+team.Name)
-	sendTeamMessage(ctx, nil, person, "你添加了成员"+newMember.Name)
+	senderID := person.ID
+	messageRepo := repo.NewMessageRepo()
+	_ = messageRepo.CreateMessage(ctx, &senderID, newMember.ID, "你被"+person.Name+"添加至团队"+team.Name)
+	_ = messageRepo.CreateMessage(ctx, nil, person.ID, "你添加了成员"+newMember.Name)
 	return comm.CodeOK
 }
 

@@ -52,7 +52,10 @@ func (h *TeamRemoveMemberApi) Run(ctx *gin.Context) kit.Code {
 	if err != nil {
 		return comm.CodeServerError
 	}
-	if submitted && team.Num <= 4 {
+	if submitted {
+		return comm.CodeTeamSubmitted
+	}
+	if team.Num <= 4 {
 		return comm.CodeTeamNotEnough
 	}
 
@@ -63,11 +66,8 @@ func (h *TeamRemoveMemberApi) Run(ctx *gin.Context) kit.Code {
 	if removed == nil {
 		return comm.CodePeopleNotFound
 	}
-	if removed.TeamID != team.ID {
-		return comm.CodePermissionDenied
-	}
 	if removed.OpenID == person.OpenID {
-		return comm.CodeParameterInvalid
+		return comm.CodeCannotRemoveSelf
 	}
 
 	ok, err := repo.NewTeamRepo().RemoveMember(ctx, team.ID, removed)
@@ -75,10 +75,11 @@ func (h *TeamRemoveMemberApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeServerError
 	}
 	if !ok {
-		return comm.CodeDataConflict
+		return comm.CodeRemoveFailed
 	}
-	sendTeamMessage(ctx, nil, removed, "你被团队"+team.Name+"踢出")
-	sendTeamMessage(ctx, nil, person, "你踢出了成员"+removed.Name)
+	messageRepo := repo.NewMessageRepo()
+	_ = messageRepo.CreateMessage(ctx, nil, removed.ID, "你被团队"+team.Name+"踢出")
+	_ = messageRepo.CreateMessage(ctx, nil, person.ID, "你踢出了成员"+removed.Name)
 	return comm.CodeOK
 }
 

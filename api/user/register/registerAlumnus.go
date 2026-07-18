@@ -40,10 +40,6 @@ func (h *RegisterAlumnusApi) Init(ctx *gin.Context) error {
 }
 
 func (h *RegisterAlumnusApi) Run(ctx *gin.Context) kit.Code {
-	if !comm.IsValidIdentity(h.Request.Body.Identity) {
-		return comm.CodeParameterInvalid
-	}
-
 	openID := comm.GetOpenIDFromCtx(ctx)
 	if openID == "" {
 		return comm.CodeNotLoggedIn
@@ -63,8 +59,8 @@ func (h *RegisterAlumnusApi) Run(ctx *gin.Context) kit.Code {
 	if person == nil {
 		return comm.CodePeopleNotFound
 	}
-	if person.Tel != h.Request.Body.Tel && person.Name != h.Request.Body.Name {
-		return comm.CodeParameterInvalid
+	if person.Tel != h.Request.Body.Tel || person.Name != h.Request.Body.Name {
+		return comm.CodePeopleInfoWrong
 	}
 
 	bound, err := peopleRepo.FindPeopleByOpenID(ctx, openID)
@@ -73,7 +69,7 @@ func (h *RegisterAlumnusApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeServerError
 	}
 	if bound != nil && bound.ID != person.ID {
-		return comm.CodeAlreadyRegistered
+		return comm.CodePeopleInfoWrong
 	}
 
 	if err := peopleRepo.BindAlumnusOpenID(ctx, person, openID); err != nil {

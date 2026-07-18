@@ -42,10 +42,6 @@ func (h *RegisterTeacherApi) Init(ctx *gin.Context) error {
 }
 
 func (h *RegisterTeacherApi) Run(ctx *gin.Context) kit.Code {
-	if !comm.IsValidIdentity(h.Request.Body.Identity) {
-		return comm.CodeParameterInvalid
-	}
-
 	campus := ""
 	if h.Request.Body.Campus != "" {
 		parsedCampus, ok := comm.ParseCampus(h.Request.Body.Campus)
@@ -59,7 +55,7 @@ func (h *RegisterTeacherApi) Run(ctx *gin.Context) kit.Code {
 	if code != comm.CodeOK {
 		return code
 	}
-	if !isTeacherOAuthUser(info.UserTypeDesc) {
+	if info.UserTypeDesc != "教师职工" {
 		return comm.CodeNonTeacherRegister
 	}
 

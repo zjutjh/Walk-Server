@@ -62,11 +62,8 @@ func (h *TeamChangeCaptainApi) Run(ctx *gin.Context) kit.Code {
 	if newCaptain == nil {
 		return comm.CodePeopleNotFound
 	}
-	if newCaptain.TeamID != team.ID {
-		return comm.CodePermissionDenied
-	}
 	if person.Type != comm.MemberTypeStudent && newCaptain.Type == comm.MemberTypeStudent {
-		return comm.CodePermissionDenied
+		return comm.CodeCannotChangeCaptain
 	}
 	if err := repo.NewTeamRepo().ChangeCaptain(ctx, team.ID, person.OpenID, newCaptain.OpenID); err != nil {
 		return comm.CodeServerError

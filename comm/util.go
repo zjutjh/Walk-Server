@@ -140,7 +140,3 @@ func TeamUpperLimit(day int, routeCode int) (int, bool) {
 	limit, ok := routeLimits[routeCode]
 	return limit, ok
 }
-
-func IsValidIdentity(identity string) bool {
-	return len(identity) == 18
-}

@@ -367,7 +367,7 @@ func (r *RouteRepo) GetCheckpointPeopleCounts(ctx context.Context, campus string
 		Joins("JOIN peoples AS ps ON ps.team_id = t.id").
 		Where("t.submit = ?", 1).
 		Where("ps.walk_status IN ?", statuses).
-		Where("EXISTS (SELECT 1 FROM route_edges AS e WHERE e.route_name = t.route_name AND e.point_name = ?)", pointName)
+		Where("EXISTS (SELECT 1 FROM route_edges AS e WHERE e.route_name = (CASE WHEN t.is_wrong_route = 1 THEN COALESCE((SELECT w.wrong_route_name FROM wrong_route_records AS w WHERE w.team_id = t.id ORDER BY w.created_at DESC, w.id DESC LIMIT 1), t.route_name) ELSE t.route_name END) AND e.point_name = ?)", pointName)
 
 	var totalPeople int64
 	err = baseTotal.Distinct("ps.id").Count(&totalPeople).Error
@@ -380,8 +380,8 @@ func (r *RouteRepo) GetCheckpointPeopleCounts(ctx context.Context, campus string
 		Table("teams AS t").
 		Joins("JOIN routes AS rt ON rt.name = t.route_name AND rt.is_active = ? AND rt.campus = ?", 1, campus).
 		Joins("JOIN peoples AS ps ON ps.team_id = t.id").
-		Joins("JOIN (SELECT route_name, MIN(seq_order) AS target_seq FROM route_edges WHERE point_name = ? GROUP BY route_name) AS target ON target.route_name = t.route_name", pointName).
-		Joins("LEFT JOIN (SELECT route_name, point_name, MIN(seq_order) AS seq_order FROM route_edges GROUP BY route_name, point_name) AS curr ON curr.route_name = t.route_name AND curr.point_name = t.latest_point_name").
+		Joins("JOIN (SELECT route_name, MIN(seq_order) AS target_seq FROM route_edges WHERE point_name = ? GROUP BY route_name) AS target ON target.route_name = (CASE WHEN t.is_wrong_route = 1 THEN COALESCE((SELECT w.wrong_route_name FROM wrong_route_records AS w WHERE w.team_id = t.id ORDER BY w.created_at DESC, w.id DESC LIMIT 1), t.route_name) ELSE t.route_name END)", pointName).
+		Joins("LEFT JOIN (SELECT route_name, point_name, MIN(seq_order) AS seq_order FROM route_edges GROUP BY route_name, point_name) AS curr ON curr.route_name = (CASE WHEN t.is_wrong_route = 1 THEN COALESCE((SELECT w.wrong_route_name FROM wrong_route_records AS w WHERE w.team_id = t.id ORDER BY w.created_at DESC, w.id DESC LIMIT 1), t.route_name) ELSE t.route_name END) AND curr.point_name = t.latest_point_name").
 		Where("t.submit = ?", 1).
 		Where("ps.walk_status IN ?", statuses).
 		Where("curr.seq_order >= target.target_seq")

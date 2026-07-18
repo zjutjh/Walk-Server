@@ -59,8 +59,8 @@ func (h *RegisterTeacherApi) Run(ctx *gin.Context) kit.Code {
 	if code != comm.CodeOK {
 		return code
 	}
-	if info.UserTypeDesc != "教师职工" && info.UserTypeDesc != "人才派遣" {
-		return comm.CodeParameterInvalid
+	if !isTeacherOAuthUser(info.UserTypeDesc) {
+		return comm.CodeNonTeacherRegister
 	}
 
 	return createRegisterPerson(ctx, &model.People{

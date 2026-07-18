@@ -42,4 +42,6 @@ var (
 	CodeAdminLoginTooFrequently = kit.NewCode(200322, "登录失败次数过多，请稍后再试")
 	CodeTeamDirectionInvalid    = kit.NewCode(200323, "团队行进方向错误")
 	CodeTeamLostLocked          = kit.NewCode(200324, "团队刚打过卡，不可标记失联")
+	CodeNonStudentRegister      = kit.NewCode(200325, "非学生不可注册学生账号")
+	CodeNonTeacherRegister      = kit.NewCode(200326, "非教职工不可注册教职工账号")
 )

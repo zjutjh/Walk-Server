@@ -7,9 +7,7 @@ const (
 	WalkStatusAbandoned  = "abandoned"
 	WalkStatusInProgress = "in_progress"
 	WalkStatusWithdrawn  = "withdrawn"
-	// Deprecated: violation is now represented by peoples.is_violated.
-	WalkStatusViolated  = "violated"
-	WalkStatusCompleted = "completed"
+	WalkStatusCompleted  = "completed"
 )
 
 // role枚举

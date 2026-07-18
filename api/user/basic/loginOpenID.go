@@ -54,7 +54,7 @@ type WechatLoginByOpenIDUser struct {
 	JoinOp     uint8  `json:"join_op" desc:"剩余加入团队次数"`
 	TeamID     int64  `json:"team_id" desc:"团队ID"`
 	Type       string `json:"type" desc:"人员类型 枚举值:'student''teacher''alumnus'"`
-	WalkStatus string `json:"walk_status" desc:"人员活动状态 枚举值:'not_start''pending''abandoned''in_progress''withdrawn''violated''completed'"`
+	WalkStatus string `json:"walk_status" desc:"人员活动状态 枚举值:'not_start''pending''abandoned''in_progress''withdrawn''completed'"`
 	QQ         string `json:"qq" desc:"QQ号"`
 	Wechat     string `json:"wechat" desc:"微信号"`
 	Tel        string `json:"tel" desc:"电话"`

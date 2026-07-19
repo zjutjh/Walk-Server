@@ -51,9 +51,6 @@ func (h *UserModifyApi) Run(ctx *gin.Context) kit.Code {
 		person.Campus = campus
 	}
 	if h.Request.Body.Identity != "" {
-		if !comm.IsValidIdentity(h.Request.Body.Identity) {
-			return comm.CodeParameterInvalid
-		}
 		person.Identity = h.Request.Body.Identity
 	}
 	person.College = h.Request.Body.College
@@ -61,14 +58,18 @@ func (h *UserModifyApi) Run(ctx *gin.Context) kit.Code {
 	person.Wechat = h.Request.Body.Contact.Wechat
 	person.Tel = h.Request.Body.Contact.Tel
 
-	if err := repo.NewPeopleRepo().UpdateByOpenID(ctx, person.OpenID, map[string]any{
-		"campus":   person.Campus,
-		"college":  person.College,
-		"identity": person.Identity,
-		"qq":       person.Qq,
-		"wechat":   person.Wechat,
-		"tel":      person.Tel,
-	}); err != nil {
+	updates := map[string]any{
+		"campus":  person.Campus,
+		"college": person.College,
+		"qq":      person.Qq,
+		"wechat":  person.Wechat,
+		"tel":     person.Tel,
+	}
+	if h.Request.Body.Identity != "" {
+		updates["identity"] = person.Identity
+	}
+
+	if err := repo.NewPeopleRepo().UpdateByOpenID(ctx, person.OpenID, updates); err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("更新当前用户失败")
 		return comm.CodeServerError
 	}

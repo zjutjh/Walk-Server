@@ -44,7 +44,7 @@ type TeamCreateApiResponse struct {
 	TeamID int64 `json:"team_id" desc:"队伍ID"`
 }
 
-func (h *TeamCreateApi) Init(ctx *gin.Context) error   { return ctx.ShouldBindJSON(&h.Request.Body) }
+func (h *TeamCreateApi) Init(ctx *gin.Context) error { return ctx.ShouldBindJSON(&h.Request.Body) }
 func (h *TeamCreateApi) Run(ctx *gin.Context) kit.Code {
 	person, code := currentTeamUser(ctx)
 	if code != comm.CodeOK {
@@ -140,11 +140,11 @@ func teamQuotaRoute(ctx *gin.Context, routeName string) (int, int, kit.Code) {
 	routeCode, ok := comm.RouteQuotaCode(routeName)
 	if !ok {
 		nlog.Pick().WithContext(ctx).Warn("路线未配置提交名额编号")
-		return 0, 0, comm.CodeServerError
+		return 0, 0, comm.CodeNotInRegisterTime
 	}
 	if _, ok := comm.TeamUpperLimit(day, routeCode); !ok {
 		nlog.Pick().WithContext(ctx).Warn("未配置当天路线提交名额")
-		return 0, 0, comm.CodeServerError
+		return 0, 0, comm.CodeNotInRegisterTime
 	}
 	return day, routeCode, comm.CodeOK
 }
@@ -175,18 +175,6 @@ func teamMemberView(person *model.People) TeamMemberView {
 		},
 		WalkStatus: person.WalkStatus,
 	}
-}
-
-func sendTeamMessage(ctx *gin.Context, sender *model.People, receiver *model.People, message string) {
-	if receiver == nil {
-		return
-	}
-	var senderID *int64
-	if sender != nil {
-		id := sender.ID
-		senderID = &id
-	}
-	_ = repo.NewTeamRepo().CreateMessage(ctx, senderID, receiver.ID, message)
 }
 
 func hfTeamCreate(ctx *gin.Context) {

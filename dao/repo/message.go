@@ -26,6 +26,12 @@ func NewMessageRepo() *MessageRepo {
 	return &MessageRepo{}
 }
 
+func (r *MessageRepo) CreateMessage(ctx context.Context, senderID *int64, receiverID int64, message string) error {
+	return ndb.Pick().WithContext(ctx).
+		Exec("INSERT INTO messages (sender_id, receiver_id, message) VALUES (?, ?, ?)", senderID, receiverID, message).
+		Error
+}
+
 func (r *MessageRepo) ListByReceiverID(ctx context.Context, receiverID int64) ([]Message, error) {
 	messages := make([]Message, 0)
 	err := ndb.Pick().WithContext(ctx).

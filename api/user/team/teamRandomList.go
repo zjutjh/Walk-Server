@@ -45,7 +45,7 @@ type TeamRandomListItem struct {
 	RouteName string `json:"route_name" desc:"团队所属路线"`
 }
 
-func (h *TeamRandomListApi) Init(ctx *gin.Context) error   { return ctx.ShouldBindJSON(&h.Request.Body) }
+func (h *TeamRandomListApi) Init(ctx *gin.Context) error { return ctx.ShouldBindJSON(&h.Request.Body) }
 func (h *TeamRandomListApi) Run(ctx *gin.Context) kit.Code {
 	teamRepo := repo.NewTeamRepo()
 	route, err := teamRepo.FindRouteByName(ctx, h.Request.Body.RouteName)
@@ -60,7 +60,7 @@ func (h *TeamRandomListApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeServerError
 	}
 	if len(teams) == 0 {
-		return comm.CodeDataNotFound
+		return comm.CodeNotFindTeams
 	}
 	h.Response.Teams = make([]TeamRandomListItem, 0, len(teams))
 	for _, team := range teams {

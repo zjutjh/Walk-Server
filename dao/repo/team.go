@@ -458,6 +458,24 @@ func (r *TeamRepo) FindRouteTransitionEdge(ctx context.Context, routeName, prevP
 	return nil, nil
 }
 
+func (r *TeamRepo) FindRouteStartEdge(ctx context.Context, routeName string) (*model.RouteEdge, error) {
+	re := r.query.RouteEdge
+	record, err := re.WithContext(ctx).
+		Where(
+			re.RouteName.Eq(routeName),
+			re.PrevPointName.IsNull(),
+		).
+		Order(re.SeqOrder).
+		First()
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return record, nil
+}
+
 func (r *TeamRepo) FindPointRoutes(ctx context.Context, pointName string) ([]string, error) {
 	if routeNames, hit, err := routeCache.GetPointRoutes(ctx, pointName); err == nil && hit {
 		return routeNames, nil

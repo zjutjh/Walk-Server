@@ -26,6 +26,12 @@ func NewAdminRepo() *AdminRepo {
 	}
 }
 
+func NewAdminRepoWithTx(tx *query.Query) *AdminRepo {
+	return &AdminRepo{
+		query: tx,
+	}
+}
+
 // FindByID 根据ID查询管理员
 func (r *AdminRepo) FindByID(ctx context.Context, id int64) (*model.Admin, error) {
 	if record, hit, err := adminCache.GetAdmin(ctx, id); err == nil && hit {
@@ -48,6 +54,18 @@ func (r *AdminRepo) FindByID(ctx context.Context, id int64) (*model.Admin, error
 func (r *AdminRepo) FindByAccount(ctx context.Context, account string) (*model.Admin, error) {
 	a := r.query.Admin
 	record, err := a.WithContext(ctx).Where(a.Account.Eq(account)).First()
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return record, nil
+}
+
+func (r *AdminRepo) FindByPointName(ctx context.Context, pointName string) (*model.Admin, error) {
+	a := r.query.Admin
+	record, err := a.WithContext(ctx).Where(a.PointName.Eq(pointName)).First()
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
 	}

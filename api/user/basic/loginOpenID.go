@@ -67,7 +67,7 @@ func (h *WechatLoginByOpenIDApi) Init(ctx *gin.Context) error {
 func (h *WechatLoginByOpenIDApi) Run(ctx *gin.Context) kit.Code {
 	openID, err := url.QueryUnescape(h.Request.Query.OpenID)
 	if err != nil {
-		return comm.CodeParameterInvalid
+		return comm.CodeServerError
 	}
 	openID = strings.ReplaceAll(openID, " ", "+")
 	if openID == "" {

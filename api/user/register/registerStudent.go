@@ -55,10 +55,6 @@ func (h *RegisterStudentApi) Init(ctx *gin.Context) error {
 }
 
 func (h *RegisterStudentApi) Run(ctx *gin.Context) kit.Code {
-	if !comm.IsValidIdentity(h.Request.Body.Identity) {
-		return comm.CodeParameterInvalid
-	}
-
 	campus, ok := comm.ParseCampus(h.Request.Body.Campus)
 	if !ok {
 		return comm.CodeParameterInvalid
@@ -68,7 +64,7 @@ func (h *RegisterStudentApi) Run(ctx *gin.Context) kit.Code {
 	if code != comm.CodeOK {
 		return code
 	}
-	if isTeacherOAuthUser(info.UserTypeDesc) {
+	if info.UserTypeDesc == "教师职工" || info.UserTypeDesc == "人才派遣" {
 		return comm.CodeNonStudentRegister
 	}
 
@@ -90,10 +86,6 @@ func (h *RegisterStudentApi) Run(ctx *gin.Context) kit.Code {
 		Type:       comm.MemberTypeStudent,
 		WalkStatus: comm.WalkStatusNotStart,
 	})
-}
-
-func isTeacherOAuthUser(userTypeDesc string) bool {
-	return userTypeDesc == "教师职工" || userTypeDesc == "人才派遣"
 }
 
 func createRegisterPerson(ctx *gin.Context, person *model.People) kit.Code {

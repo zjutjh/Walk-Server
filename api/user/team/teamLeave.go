@@ -27,7 +27,7 @@ type TeamLeaveApi struct {
 	Response struct{}
 }
 
-func (h *TeamLeaveApi) Init(ctx *gin.Context) error   { return nil }
+func (h *TeamLeaveApi) Init(ctx *gin.Context) error { return nil }
 func (h *TeamLeaveApi) Run(ctx *gin.Context) kit.Code {
 	person, code := currentTeamUser(ctx)
 	if code != comm.CodeOK {
@@ -38,7 +38,7 @@ func (h *TeamLeaveApi) Run(ctx *gin.Context) kit.Code {
 		return code
 	}
 	if person.Role == comm.RoleCaptain || team.Captain == person.OpenID {
-		return comm.CodePermissionDenied
+		return comm.CodeCannotLeaveTeam
 	}
 	submitted, err := teamSubmitted(ctx, team.ID)
 	if err != nil {
@@ -56,11 +56,13 @@ func (h *TeamLeaveApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeServerError
 	}
 	if !ok {
-		return comm.CodeDataConflict
+		return comm.CodeLeaveTeamFailed
 	}
+	senderID := person.ID
+	messageRepo := repo.NewMessageRepo()
 	for _, member := range members {
 		if member != nil && member.OpenID != person.OpenID {
-			sendTeamMessage(ctx, person, member, person.Name+"已经离开了队伍")
+			_ = messageRepo.CreateMessage(ctx, &senderID, member.ID, person.Name+"已经离开了队伍")
 		}
 	}
 	return comm.CodeOK

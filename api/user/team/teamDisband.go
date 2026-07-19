@@ -54,9 +54,11 @@ func (h *TeamDisbandApi) Run(ctx *gin.Context) kit.Code {
 	if err := repo.NewTeamRepo().DisbandTeam(ctx, team.ID); err != nil {
 		return comm.CodeServerError
 	}
+	senderID := person.ID
+	messageRepo := repo.NewMessageRepo()
 	for _, member := range members {
 		if member != nil {
-			sendTeamMessage(ctx, person, member, team.Name+"已经被解散")
+			_ = messageRepo.CreateMessage(ctx, &senderID, member.ID, team.Name+"已经被解散")
 		}
 	}
 	return comm.CodeOK

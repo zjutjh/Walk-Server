@@ -34,7 +34,7 @@ type TeamRandomJoinApiRequest struct {
 	}
 }
 
-func (h *TeamRandomJoinApi) Init(ctx *gin.Context) error   { return ctx.ShouldBindJSON(&h.Request.Body) }
+func (h *TeamRandomJoinApi) Init(ctx *gin.Context) error { return ctx.ShouldBindJSON(&h.Request.Body) }
 func (h *TeamRandomJoinApi) Run(ctx *gin.Context) kit.Code {
 	person, code := currentTeamUser(ctx)
 	if code != comm.CodeOK {
@@ -61,6 +61,9 @@ func (h *TeamRandomJoinApi) Run(ctx *gin.Context) kit.Code {
 	if submitted {
 		return comm.CodeTeamSubmitted
 	}
+	if !team.AllowMatch {
+		return comm.CodeTeamNotAllowMatch
+	}
 	if int(team.Num) >= comm.BizConf.MaxTeamSize || !team.AllowMatch {
 		return comm.CodeTeamFull
 	}
@@ -77,7 +80,7 @@ func (h *TeamRandomJoinApi) Run(ctx *gin.Context) kit.Code {
 		}
 	}
 	if !canTeacherJoinTeam(captain, person) {
-		return comm.CodePermissionDenied
+		return comm.CodeTeacherCannotJoinStudentTeam
 	}
 
 	joined, err := teamRepo.JoinTeam(ctx, team.ID, person, true, comm.BizConf.MaxTeamSize)
@@ -85,10 +88,15 @@ func (h *TeamRandomJoinApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeServerError
 	}
 	if !joined {
-		return comm.CodeTeamFull
+		return comm.CodeJoinTeamFailed
 	}
+	senderID := person.ID
+	messageRepo := repo.NewMessageRepo()
 	for _, member := range members {
-		sendTeamMessage(ctx, person, member, person.Name+"通过随机组队加入了队伍")
+		if member == nil {
+			continue
+		}
+		_ = messageRepo.CreateMessage(ctx, &senderID, member.ID, person.Name+"通过随机组队加入了队伍")
 	}
 	return comm.CodeOK
 }

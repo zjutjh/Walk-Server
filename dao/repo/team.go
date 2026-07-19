@@ -368,12 +368,6 @@ func (r *TeamRepo) ListRandomMatchTeams(ctx context.Context, routeName string, m
 	return teams, nil
 }
 
-func (r *TeamRepo) CreateMessage(ctx context.Context, senderID *int64, receiverID int64, message string) error {
-	return r.db.WithContext(ctx).
-		Exec("INSERT INTO messages (sender_id, receiver_id, message) VALUES (?, ?, ?)", senderID, receiverID, message).
-		Error
-}
-
 func (r *TeamRepo) CreateCheckin(ctx context.Context, adminID, teamID int64, pointName, routeName string) error {
 	checkin := &model.Checkin{
 		AdminID:   adminID,

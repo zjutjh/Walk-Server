@@ -56,4 +56,5 @@ var (
 	CodeCannotRemoveSelf             = kit.NewCode(200336, "不能移除自己")
 	CodeRemoveFailed                 = kit.NewCode(200337, "移除成员失败")
 	CodeTeamNotSubmitted             = kit.NewCode(200338, "团队未提交，无法回滚")
+	CodeNotInRegisterTime            = kit.NewCode(200339, "当前时间不在报名时间内")
 )

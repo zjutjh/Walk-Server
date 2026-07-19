@@ -181,19 +181,25 @@ func (r *RouteRepo) ListRouteWrongCountsByCampus(ctx context.Context, campus str
 	return rows, nil
 }
 
-// ExistsActiveRoute 校验路线是否存在且启用。
-func (r *RouteRepo) ExistsActiveRoute(ctx context.Context, routeName string) (bool, error) {
-	var total int64
-	err := r.query.Route.WithContext(ctx).
+// ExistsActiveRoute 校验路线是否存在且启用，同时返回所属校区。
+func (r *RouteRepo) ExistsActiveRoute(ctx context.Context, routeName string) (campus string, exists bool, err error) {
+	var rows []struct {
+		Campus string `gorm:"column:campus"`
+	}
+	err = r.query.Route.WithContext(ctx).
 		UnderlyingDB().
 		Table("routes").
+		Select("campus").
 		Where("name = ? AND is_active = ?", routeName, 1).
-		Count(&total).Error
+		Limit(1).
+		Scan(&rows).Error
 	if err != nil {
-		return false, err
+		return "", false, err
 	}
-
-	return total > 0, nil
+	if len(rows) == 0 {
+		return "", false, nil
+	}
+	return rows[0].Campus, true, nil
 }
 
 // ListRoutePoints 查询路线点位顺序（按 route_edges 原样返回，不 GROUP BY）。

@@ -25,9 +25,10 @@ func RouteHandler() gin.HandlerFunc {
 }
 
 type PointStat struct {
-	PointName   string `json:"point_name" desc:"点位唯一name"`
-	SeqOrder    int    `json:"seq_order" desc:"点位在路线中的顺序"`
-	PassedCount int    `json:"passed_count" desc:"经过该点位的总人数"`
+	PointName          string `json:"point_name" desc:"点位唯一name"`
+	SeqOrder           int    `json:"seq_order" desc:"点位在路线中的顺序"`
+	PassedCount        int    `json:"passed_count" desc:"经过该点位的总人数"`
+	CountOnPrevSegment int    `json:"count_on_prev_segment" desc:"当前在该点位前一路段上的人数，与路段接口口径一致"`
 }
 
 type StatusStat struct {
@@ -97,7 +98,7 @@ func (r *RouteApi) Run(ctx *gin.Context) kit.Code {
 
 	routeRepo := repo.NewRouteRepo()
 
-	exists, err := routeRepo.ExistsActiveRoute(ctx, routeName)
+	campus, exists, err := routeRepo.ExistsActiveRoute(ctx, routeName)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("校验路线存在失败")
 		return comm.CodeServerError
@@ -124,11 +125,22 @@ func (r *RouteApi) Run(ctx *gin.Context) kit.Code {
 	}
 
 	r.Response.PointStats = make([]PointStat, 0, len(pointRows))
-	for _, row := range pointRows {
+	for i, row := range pointRows {
+		var onPrevSeg int
+		if i > 0 {
+			prevPoint := pointRows[i-1].PointName
+			cnt, segErr := routeRepo.CountPeopleOnSegment(ctx, campus, prevPoint, row.PointName)
+			if segErr != nil {
+				nlog.Pick().WithContext(ctx).WithError(segErr).Error("查询路段人数失败")
+				return comm.CodeServerError
+			}
+			onPrevSeg = int(cnt)
+		}
 		r.Response.PointStats = append(r.Response.PointStats, PointStat{
-			PointName:   row.PointName,
-			SeqOrder:    row.SeqOrder,
-			PassedCount: passedMap[row.SeqOrder],
+			PointName:          row.PointName,
+			SeqOrder:           row.SeqOrder,
+			PassedCount:        passedMap[row.SeqOrder],
+			CountOnPrevSegment: onPrevSeg,
 		})
 	}
 

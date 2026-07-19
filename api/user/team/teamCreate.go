@@ -140,11 +140,11 @@ func teamQuotaRoute(ctx *gin.Context, routeName string) (int, int, kit.Code) {
 	routeCode, ok := comm.RouteQuotaCode(routeName)
 	if !ok {
 		nlog.Pick().WithContext(ctx).Warn("路线未配置提交名额编号")
-		return 0, 0, comm.CodeServerError
+		return 0, 0, comm.CodeNotInRegisterTime
 	}
 	if _, ok := comm.TeamUpperLimit(day, routeCode); !ok {
 		nlog.Pick().WithContext(ctx).Warn("未配置当天路线提交名额")
-		return 0, 0, comm.CodeServerError
+		return 0, 0, comm.CodeNotInRegisterTime
 	}
 	return day, routeCode, comm.CodeOK
 }

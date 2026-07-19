@@ -52,7 +52,6 @@ func (m *MarkTeamViolationApi) Run(ctx *gin.Context) kit.Code {
 		return txPeopleRepo.UpdateMembersViolationExceptStatuses(ctx, teamID, []string{
 			comm.WalkStatusAbandoned,
 			comm.WalkStatusWithdrawn,
-			comm.WalkStatusCompleted,
 		}, true)
 	})
 	if err != nil {

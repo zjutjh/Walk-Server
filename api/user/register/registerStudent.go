@@ -68,8 +68,8 @@ func (h *RegisterStudentApi) Run(ctx *gin.Context) kit.Code {
 	if code != comm.CodeOK {
 		return code
 	}
-	if info.UserTypeDesc == "教师职工" {
-		return comm.CodeParameterInvalid
+	if isTeacherOAuthUser(info.UserTypeDesc) {
+		return comm.CodeNonStudentRegister
 	}
 
 	return createRegisterPerson(ctx, &model.People{
@@ -90,6 +90,10 @@ func (h *RegisterStudentApi) Run(ctx *gin.Context) kit.Code {
 		Type:       comm.MemberTypeStudent,
 		WalkStatus: comm.WalkStatusNotStart,
 	})
+}
+
+func isTeacherOAuthUser(userTypeDesc string) bool {
+	return userTypeDesc == "教师职工" || userTypeDesc == "人才派遣"
 }
 
 func createRegisterPerson(ctx *gin.Context, person *model.People) kit.Code {

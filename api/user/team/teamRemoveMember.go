@@ -55,10 +55,6 @@ func (h *TeamRemoveMemberApi) Run(ctx *gin.Context) kit.Code {
 	if submitted {
 		return comm.CodeTeamSubmitted
 	}
-	if team.Num <= 4 {
-		return comm.CodeTeamNotEnough
-	}
-
 	removed, err := repo.NewPeopleRepo().FindPeopleByID(ctx, int64(h.Request.Query.ID))
 	if err != nil {
 		return comm.CodeServerError

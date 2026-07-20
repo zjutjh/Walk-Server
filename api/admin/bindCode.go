@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"reflect"
 	"runtime"
 
@@ -40,8 +41,13 @@ type BindCodeApiResponse struct {
 }
 
 const (
-	minTeamMemberCount = 2
+	minTeamMemberCount = 3
 	maxTeamMemberCount = 6
+)
+
+var (
+	errBindTeamNotEnough = errors.New("bind code team not enough")
+	errBindTeamFull      = errors.New("bind code team full")
 )
 
 // Run Api业务逻辑执行点
@@ -62,13 +68,63 @@ func (b *BindCodeApi) Run(ctx *gin.Context) kit.Code {
 		}
 	}()
 
-	code = b.validatePendingMemberCount(ctx, team.ID)
-	if code != nil {
-		return *code
-	}
+	err := query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
+		txTeamRepo := repo.NewTeamRepoWithTx(tx)
+		txPeopleRepo := repo.NewPeopleRepoWithTx(tx)
+		txAdminRepo := repo.NewAdminRepoWithTx(tx)
 
-	err := b.bindCode(ctx, team.ID)
+		startEdge, err := txTeamRepo.FindRouteStartEdge(ctx, team.RouteName)
+		if err != nil {
+			return err
+		}
+		if startEdge == nil {
+			return errors.New("route start point not found")
+		}
+
+		checkedIn, err := txTeamRepo.HasTeamCheckinAtPoint(ctx, team.ID, startEdge.PointName)
+		if err != nil {
+			return err
+		}
+		if !checkedIn {
+			admin, err := txAdminRepo.FindByPointName(ctx, startEdge.PointName)
+			if err != nil {
+				return err
+			}
+			if admin == nil {
+				return errors.New("start point admin not found")
+			}
+
+			if err := txTeamRepo.UpdateLatestPointName(ctx, team.ID, startEdge.PointName); err != nil {
+				return err
+			}
+			if err := txTeamRepo.CreateCheckin(ctx, admin.ID, team.ID, startEdge.PointName, team.RouteName); err != nil {
+				return err
+			}
+			if err := txPeopleRepo.UpdateMembersWalkStatusByCurrent(ctx, team.ID, comm.WalkStatusNotStart, comm.WalkStatusPending); err != nil {
+				return err
+			}
+		}
+
+		pendingCount, err := txPeopleRepo.CountMembersByStatus(ctx, team.ID, comm.WalkStatusPending)
+		if err != nil {
+			return err
+		}
+		if pendingCount < minTeamMemberCount {
+			return errBindTeamNotEnough
+		}
+		if pendingCount > maxTeamMemberCount {
+			return errBindTeamFull
+		}
+
+		return txTeamRepo.UpdateByID(ctx, team.ID, map[string]any{"code": b.Request.Body.Content})
+	})
 	if err != nil {
+		if errors.Is(err, errBindTeamNotEnough) {
+			return comm.CodeTeamNotEnough
+		}
+		if errors.Is(err, errBindTeamFull) {
+			return comm.CodeTeamFull
+		}
 		nlog.Pick().WithContext(ctx).WithError(err).Error("绑定签到码失败")
 		return comm.CodeBindCodeError
 	}
@@ -88,34 +144,6 @@ func (b *BindCodeApi) getTeam(ctx *gin.Context) (*model.Team, *kit.Code) {
 		return nil, &comm.CodeTeamNotFound
 	}
 	return team, nil
-}
-
-func (b *BindCodeApi) validatePendingMemberCount(ctx *gin.Context, teamID int64) *kit.Code {
-	peopleRepo := repo.NewPeopleRepo()
-
-	pendingCount, err := peopleRepo.CountMembersByStatus(ctx, teamID, comm.WalkStatusPending)
-	if err != nil {
-		nlog.Pick().WithContext(ctx).WithError(err).Error("统计待出发人数失败")
-		return &comm.CodeServerError
-	}
-	if pendingCount < minTeamMemberCount {
-		return &comm.CodeTeamNotEnough
-	}
-	if pendingCount > maxTeamMemberCount {
-		return &comm.CodeTeamFull
-	}
-	return nil
-}
-
-func (b *BindCodeApi) bindCode(ctx *gin.Context, teamID int64) error {
-	return query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
-		txTeamRepo := repo.NewTeamRepoWithTx(tx)
-
-		if err := txTeamRepo.UpdateByID(ctx, teamID, map[string]any{"code": b.Request.Body.Content}); err != nil {
-			return err
-		}
-		return nil
-	})
 }
 
 // Run Api初始化 进行参数校验和绑定

@@ -586,6 +586,19 @@ func (r *TeamRepo) ListLatestCheckins(ctx context.Context, teamID int64, limit i
 	return rows, nil
 }
 
+func (r *TeamRepo) HasTeamCheckinAtPoint(ctx context.Context, teamID int64, pointName string) (bool, error) {
+	var total int64
+	err := r.query.Checkin.WithContext(ctx).
+		UnderlyingDB().
+		Table("checkins").
+		Where("team_id = ? AND point_name = ?", teamID, pointName).
+		Count(&total).Error
+	if err != nil {
+		return false, err
+	}
+	return total > 0, nil
+}
+
 func (r *TeamRepo) GetLatestWrongRouteName(ctx context.Context, teamID int64) (string, bool, error) {
 	var row struct {
 		WrongRouteName string `gorm:"column:wrong_route_name"`

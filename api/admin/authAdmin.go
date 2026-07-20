@@ -1,0 +1,123 @@
+package api
+
+import (
+	"reflect"
+	"runtime"
+	"strings"
+
+	"github.com/gin-gonic/gin"
+	"github.com/zjutjh/mygo/foundation/reply"
+	"github.com/zjutjh/mygo/kit"
+	"github.com/zjutjh/mygo/nlog"
+	"github.com/zjutjh/mygo/session"
+	"github.com/zjutjh/mygo/swagger"
+
+	"app/comm"
+	adminCache "app/dao/cache/admin"
+	repo "app/dao/repo"
+)
+
+func AuthAdminHandler() gin.HandlerFunc {
+	api := AuthAdminApi{}
+	swagger.CM[runtime.FuncForPC(reflect.ValueOf(authAdmin).Pointer()).Name()] = api
+	return authAdmin
+}
+
+type AuthAdminApi struct {
+	Info     struct{} `name:"管理员登录"`
+	Request  AuthAdminApiRequest
+	Response AuthAdminApiResponse
+}
+
+type AuthAdminApiRequest struct {
+	Body struct {
+		Account  string `json:"account" desc:"管理员账号" binding:"required"`
+		Password string `json:"password" desc:"密码" binding:"required"`
+	}
+}
+
+type AuthAdminApiResponse struct {
+	PointName  string `json:"point_name" desc:"点位名称"`
+	Permission string `json:"permission" desc:"管理员权限"`
+	Name       string `json:"name" desc:"管理员姓名"`
+	Campus     string `json:"campus" desc:"校区"`
+}
+
+// Run Api业务逻辑执行点
+func (a *AuthAdminApi) Run(ctx *gin.Context) kit.Code {
+	adminRepo := repo.NewAdminRepo()
+
+	account := strings.TrimSpace(a.Request.Body.Account)
+	rawPassword := a.Request.Body.Password
+
+	blocked, err := adminCache.IsAdminLoginBlocked(ctx, account)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("检查管理员登录限速失败")
+	} else if blocked {
+		return comm.CodeAdminLoginTooFrequently
+	}
+
+	admin, err := adminRepo.FindByAccount(ctx, account)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Error("查询管理员失败")
+		return comm.CodeServerError
+	}
+	if admin == nil {
+		if err := adminCache.IncrementAdminLoginFail(ctx, account); err != nil {
+			nlog.Pick().WithContext(ctx).WithError(err).Warn("记录管理员登录失败次数失败")
+		}
+		return comm.CodeAccountOrPasswordError
+	}
+
+	// 校验密码
+	if !comm.Verify(admin.Password, rawPassword) {
+		if err := adminCache.IncrementAdminLoginFail(ctx, account); err != nil {
+			nlog.Pick().WithContext(ctx).WithError(err).Warn("记录管理员登录失败次数失败")
+		}
+		return comm.CodeAccountOrPasswordError
+	}
+	err = session.SetIdentity(ctx, admin.ID)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Error("写入管理员登录态失败")
+		return comm.CodeServerError
+	}
+	if err := adminCache.ClearAdminLoginFail(ctx, account); err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("清理管理员登录失败次数失败")
+	}
+
+	a.Response = AuthAdminApiResponse{
+		Permission: admin.Permission,
+		Campus:     admin.Campus,
+		PointName:  admin.PointName,
+		Name:       admin.Name,
+	}
+
+	return comm.CodeOK
+}
+
+// Run Api初始化 进行参数校验和绑定
+func (a *AuthAdminApi) Init(ctx *gin.Context) (err error) {
+	err = ctx.ShouldBindJSON(&a.Request.Body)
+	if err != nil {
+		return err
+	}
+	return err
+}
+
+func authAdmin(ctx *gin.Context) {
+	api := &AuthAdminApi{}
+	err := api.Init(ctx)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("参数绑定校验错误")
+		reply.Fail(ctx, comm.CodeParameterInvalid)
+		return
+	}
+	code := api.Run(ctx)
+	if !ctx.IsAborted() {
+		if code == comm.CodeOK {
+			reply.Reply(ctx, comm.CodeOK, api.Response)
+		} else {
+			reply.Fail(ctx, code)
+		}
+	}
+}

@@ -97,6 +97,13 @@ func SetTeamIDByCode(ctx context.Context, code string, teamID int64) error {
 	return client().Set(ctx, BuildTeamIDByCodeCacheKey(code), strconv.FormatInt(teamID, 10), teamCacheTTL).Err()
 }
 
+func DelTeamIDByCode(ctx context.Context, code string) error {
+	if code == "" {
+		return nil
+	}
+	return client().Del(ctx, BuildTeamIDByCodeCacheKey(code)).Err()
+}
+
 func GetTeamByID(ctx context.Context, teamID int64) (*model.Team, bool, error) {
 	value, err := client().Get(ctx, BuildTeamByIDCacheKey(teamID)).Result()
 	if err == redis.Nil {

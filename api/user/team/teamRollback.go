@@ -38,7 +38,7 @@ func (h *TeamRollbackApi) Run(ctx *gin.Context) kit.Code {
 	if code != comm.CodeOK {
 		return code
 	}
-	if !isCaptain(person, team) {
+	if !(person != nil && team != nil && person.Role == comm.RoleCaptain && team.Captain == person.OpenID) {
 		return comm.CodeNotCaptain
 	}
 	day, routeCode, code := teamQuotaRoute(ctx, team.RouteName)

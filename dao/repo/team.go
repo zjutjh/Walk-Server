@@ -158,7 +158,14 @@ func (r *TeamRepo) FindByNameExceptID(ctx context.Context, name string, id int64
 
 func (r *TeamRepo) FindByCode(ctx context.Context, code string) (*model.Team, error) {
 	if teamID, hit, err := teamCache.GetTeamIDByCode(ctx, code); err == nil && hit {
-		return r.FindTeamByID(ctx, teamID)
+		team, err := r.FindTeamByID(ctx, teamID)
+		if err != nil {
+			return nil, err
+		}
+		if team != nil && team.Code == code {
+			return team, nil
+		}
+		_ = teamCache.DelTeamIDByCode(ctx, code)
 	}
 
 	t := r.query.Team
@@ -171,6 +178,27 @@ func (r *TeamRepo) FindByCode(ctx context.Context, code string) (*model.Team, er
 	}
 	_ = teamCache.SetTeamIDByCode(ctx, record.Code, record.ID)
 	return record, nil
+}
+
+func (r *TeamRepo) UpdateCodeByID(ctx context.Context, id int64, code string) error {
+	team, err := r.GetTeamByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	_, err = r.query.Team.WithContext(ctx).
+		Where(r.query.Team.ID.Eq(id)).
+		Update(r.query.Team.Code, code)
+	if err != nil {
+		return err
+	}
+
+	if team != nil {
+		_ = teamCache.DelTeamIDByCode(ctx, team.Code)
+	}
+	_ = teamCache.DelTeamIDByCode(ctx, code)
+	invalidateTeamCaches(ctx, id)
+	return nil
 }
 
 func (r *TeamRepo) UpdateByID(ctx context.Context, id int64, updates map[string]any) error {

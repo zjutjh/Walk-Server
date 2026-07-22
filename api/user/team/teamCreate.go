@@ -5,7 +5,6 @@ import (
 	"runtime"
 	"time"
 
-	teamCache "app/dao/cache/team"
 	"app/dao/model"
 	"app/dao/repo"
 
@@ -50,7 +49,7 @@ func (h *TeamCreateApi) Run(ctx *gin.Context) kit.Code {
 	if code != comm.CodeOK {
 		return code
 	}
-	if !isUnbound(person) {
+	if !(person == nil || person.Role == comm.RoleUnbind || person.TeamID <= 0) {
 		return comm.CodeAlreadyInTeam
 	}
 	if person.CreatedOp == 0 {
@@ -117,7 +116,7 @@ func currentTeamUser(ctx *gin.Context) (*model.People, kit.Code) {
 }
 
 func currentUserTeam(ctx *gin.Context, person *model.People) (*model.Team, kit.Code) {
-	if isUnbound(person) {
+	if person == nil || person.Role == comm.RoleUnbind || person.TeamID <= 0 {
 		return nil, comm.CodeNotInTeam
 	}
 	team, err := repo.NewTeamRepo().FindTeamByID(ctx, person.TeamID)
@@ -129,36 +128,6 @@ func currentUserTeam(ctx *gin.Context, person *model.People) (*model.Team, kit.C
 		return nil, comm.CodeTeamNotFound
 	}
 	return team, comm.CodeOK
-}
-
-func teamSubmitted(ctx *gin.Context, teamID int64) (bool, error) {
-	return teamCache.IsTeamSubmitted(ctx, teamID)
-}
-
-func teamQuotaRoute(ctx *gin.Context, routeName string) (int, int, kit.Code) {
-	day := comm.CurrentActivityDay()
-	routeCode, ok := comm.RouteQuotaCode(routeName)
-	if !ok {
-		nlog.Pick().WithContext(ctx).Warn("路线未配置提交名额编号")
-		return 0, 0, comm.CodeNotInRegisterTime
-	}
-	if _, ok := comm.TeamUpperLimit(day, routeCode); !ok {
-		nlog.Pick().WithContext(ctx).Warn("未配置当天路线提交名额")
-		return 0, 0, comm.CodeNotInRegisterTime
-	}
-	return day, routeCode, comm.CodeOK
-}
-
-func isUnbound(person *model.People) bool {
-	return person == nil || person.Role == comm.RoleUnbind || person.TeamID <= 0
-}
-
-func isCaptain(person *model.People, team *model.Team) bool {
-	return person != nil && team != nil && person.Role == comm.RoleCaptain && team.Captain == person.OpenID
-}
-
-func canTeacherJoinTeam(captain, member *model.People) bool {
-	return !(captain != nil && member != nil && captain.Type == comm.MemberTypeStudent && member.Type == comm.MemberTypeTeacher)
 }
 
 func teamMemberView(person *model.People) TeamMemberView {

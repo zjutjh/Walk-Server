@@ -6,6 +6,8 @@ import (
 
 	"app/dao/repo"
 
+	teamCache "app/dao/cache/team"
+
 	"github.com/gin-gonic/gin"
 	"github.com/zjutjh/mygo/foundation/reply"
 	"github.com/zjutjh/mygo/kit"
@@ -45,10 +47,10 @@ func (h *TeamRemoveMemberApi) Run(ctx *gin.Context) kit.Code {
 	if code != comm.CodeOK {
 		return code
 	}
-	if !isCaptain(person, team) {
+	if !(person != nil && team != nil && person.Role == comm.RoleCaptain && team.Captain == person.OpenID) {
 		return comm.CodeNotCaptain
 	}
-	submitted, err := teamSubmitted(ctx, team.ID)
+	submitted, err := teamCache.IsTeamSubmitted(ctx, team.ID)
 	if err != nil {
 		return comm.CodeServerError
 	}

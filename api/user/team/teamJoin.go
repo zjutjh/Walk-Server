@@ -7,6 +7,8 @@ import (
 	"app/dao/model"
 	"app/dao/repo"
 
+	teamCache "app/dao/cache/team"
+
 	"github.com/gin-gonic/gin"
 	"github.com/zjutjh/mygo/foundation/reply"
 	"github.com/zjutjh/mygo/kit"
@@ -41,7 +43,7 @@ func (h *TeamJoinApi) Run(ctx *gin.Context) kit.Code {
 	if code != comm.CodeOK {
 		return code
 	}
-	if !isUnbound(person) {
+	if !(person == nil || person.Role == comm.RoleUnbind || person.TeamID <= 0) {
 		return comm.CodeAlreadyInTeam
 	}
 	if person.JoinOp == 0 {
@@ -60,7 +62,7 @@ func (h *TeamJoinApi) Run(ctx *gin.Context) kit.Code {
 	if team.Password != h.Request.Body.Password {
 		return comm.CodePasswordWrong
 	}
-	submitted, err := teamSubmitted(ctx, team.ID)
+	submitted, err := teamCache.IsTeamSubmitted(ctx, team.ID)
 	if err != nil {
 		return comm.CodeServerError
 	}
@@ -82,7 +84,7 @@ func (h *TeamJoinApi) Run(ctx *gin.Context) kit.Code {
 			break
 		}
 	}
-	if !canTeacherJoinTeam(captain, person) {
+	if captain != nil && person != nil && captain.Type == comm.MemberTypeStudent && person.Type == comm.MemberTypeTeacher {
 		return comm.CodeTeacherCannotJoinStudentTeam
 	}
 

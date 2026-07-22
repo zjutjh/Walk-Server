@@ -38,7 +38,7 @@ func (h *TeamSubmitApi) Run(ctx *gin.Context) kit.Code {
 	if code != comm.CodeOK {
 		return code
 	}
-	if !isCaptain(person, team) {
+	if !(person != nil && team != nil && person.Role == comm.RoleCaptain && team.Captain == person.OpenID) {
 		return comm.CodeNotCaptain
 	}
 	if team.Num < 4 {
@@ -64,6 +64,20 @@ func (h *TeamSubmitApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeServerError
 	}
 	return comm.CodeOK
+}
+
+func teamQuotaRoute(ctx *gin.Context, routeName string) (int, int, kit.Code) {
+	day := comm.CurrentActivityDay()
+	routeCode, ok := comm.RouteQuotaCode(routeName)
+	if !ok {
+		nlog.Pick().WithContext(ctx).Warn("路线未配置提交名额编号")
+		return 0, 0, comm.CodeNotInRegisterTime
+	}
+	if _, ok := comm.TeamUpperLimit(day, routeCode); !ok {
+		nlog.Pick().WithContext(ctx).Warn("未配置当天路线提交名额")
+		return 0, 0, comm.CodeNotInRegisterTime
+	}
+	return day, routeCode, comm.CodeOK
 }
 
 func hfTeamSubmit(ctx *gin.Context) {

@@ -6,6 +6,8 @@ import (
 
 	"app/dao/repo"
 
+	teamCache "app/dao/cache/team"
+
 	"github.com/gin-gonic/gin"
 	"github.com/zjutjh/mygo/foundation/reply"
 	"github.com/zjutjh/mygo/kit"
@@ -40,7 +42,7 @@ func (h *TeamLeaveApi) Run(ctx *gin.Context) kit.Code {
 	if person.Role == comm.RoleCaptain || team.Captain == person.OpenID {
 		return comm.CodeCannotLeaveTeam
 	}
-	submitted, err := teamSubmitted(ctx, team.ID)
+	submitted, err := teamCache.IsTeamSubmitted(ctx, team.ID)
 	if err != nil {
 		return comm.CodeServerError
 	}

@@ -6,6 +6,8 @@ import (
 
 	"app/dao/repo"
 
+	teamCache "app/dao/cache/team"
+
 	"github.com/gin-gonic/gin"
 	"github.com/zjutjh/mygo/foundation/reply"
 	"github.com/zjutjh/mygo/kit"
@@ -72,7 +74,7 @@ func (h *TeamInfoApi) Run(ctx *gin.Context) kit.Code {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("查询团队成员失败")
 		return comm.CodeServerError
 	}
-	submitted, err := teamSubmitted(ctx, team.ID)
+	submitted, err := teamCache.IsTeamSubmitted(ctx, team.ID)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("查询团队提交状态失败")
 		return comm.CodeServerError

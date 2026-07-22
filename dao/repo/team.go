@@ -158,7 +158,14 @@ func (r *TeamRepo) FindByNameExceptID(ctx context.Context, name string, id int64
 
 func (r *TeamRepo) FindByCode(ctx context.Context, code string) (*model.Team, error) {
 	if teamID, hit, err := teamCache.GetTeamIDByCode(ctx, code); err == nil && hit {
-		return r.FindTeamByID(ctx, teamID)
+		team, err := r.FindTeamByID(ctx, teamID)
+		if err != nil {
+			return nil, err
+		}
+		if team != nil && team.Code == code {
+			return team, nil
+		}
+		_ = teamCache.DelTeamIDByCode(ctx, code)
 	}
 
 	t := r.query.Team
@@ -171,6 +178,27 @@ func (r *TeamRepo) FindByCode(ctx context.Context, code string) (*model.Team, er
 	}
 	_ = teamCache.SetTeamIDByCode(ctx, record.Code, record.ID)
 	return record, nil
+}
+
+func (r *TeamRepo) UpdateCodeByID(ctx context.Context, id int64, code string) error {
+	team, err := r.GetTeamByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	_, err = r.query.Team.WithContext(ctx).
+		Where(r.query.Team.ID.Eq(id)).
+		Update(r.query.Team.Code, code)
+	if err != nil {
+		return err
+	}
+
+	if team != nil {
+		_ = teamCache.DelTeamIDByCode(ctx, team.Code)
+	}
+	_ = teamCache.DelTeamIDByCode(ctx, code)
+	invalidateTeamCaches(ctx, id)
+	return nil
 }
 
 func (r *TeamRepo) UpdateByID(ctx context.Context, id int64, updates map[string]any) error {
@@ -458,6 +486,24 @@ func (r *TeamRepo) FindRouteTransitionEdge(ctx context.Context, routeName, prevP
 	return nil, nil
 }
 
+func (r *TeamRepo) FindRouteStartEdge(ctx context.Context, routeName string) (*model.RouteEdge, error) {
+	re := r.query.RouteEdge
+	record, err := re.WithContext(ctx).
+		Where(
+			re.RouteName.Eq(routeName),
+			re.PrevPointName.IsNull(),
+		).
+		Order(re.SeqOrder).
+		First()
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return record, nil
+}
+
 func (r *TeamRepo) FindPointRoutes(ctx context.Context, pointName string) ([]string, error) {
 	if routeNames, hit, err := routeCache.GetPointRoutes(ctx, pointName); err == nil && hit {
 		return routeNames, nil
@@ -566,6 +612,19 @@ func (r *TeamRepo) ListLatestCheckins(ctx context.Context, teamID int64, limit i
 		return nil, err
 	}
 	return rows, nil
+}
+
+func (r *TeamRepo) HasTeamCheckinAtPoint(ctx context.Context, teamID int64, pointName string) (bool, error) {
+	var total int64
+	err := r.query.Checkin.WithContext(ctx).
+		UnderlyingDB().
+		Table("checkins").
+		Where("team_id = ? AND point_name = ?", teamID, pointName).
+		Count(&total).Error
+	if err != nil {
+		return false, err
+	}
+	return total > 0, nil
 }
 
 func (r *TeamRepo) GetLatestWrongRouteName(ctx context.Context, teamID int64) (string, bool, error) {

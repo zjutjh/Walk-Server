@@ -61,6 +61,7 @@ func (r *RebuildApi) Run(ctx *gin.Context) kit.Code {
 	err := query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
 		txTeamRepo := repo.NewTeamRepoWithTx(tx)
 		txPeopleRepo := repo.NewPeopleRepoWithTx(tx)
+		txAdminRepo := repo.NewAdminRepoWithTx(tx)
 
 		members, err := txPeopleRepo.FindPeopleByIDs(ctx, memberIDs)
 		if err != nil {
@@ -96,21 +97,21 @@ func (r *RebuildApi) Run(ctx *gin.Context) kit.Code {
 		oldTeamIDs = slices.Compact(oldTeamIDs)
 
 		newTeam := &model.Team{
-			Name:          "",
-			Num:           uint8(len(memberIDs)),
-			Password:      "",
-			Slogan:        "",
-			AllowMatch:    false,
-			Captain:       newCaptain.OpenID,
-			Submit:        true,
-			RouteName:     r.Request.Body.RouteName,
+			Name:            "",
+			Num:             uint8(len(memberIDs)),
+			Password:        "",
+			Slogan:          "",
+			AllowMatch:      false,
+			Captain:         newCaptain.OpenID,
+			Submit:          true,
+			RouteName:       r.Request.Body.RouteName,
 			LatestPointName: "",
-			Status:        comm.TeamStatusNotStart,
-			IsWrongRoute:  false,
-			IsReunite:     true,
-			Code:          "",
-			Time:          time.Now(),
-			IsLost:        false,
+			Status:          comm.TeamStatusNotStart,
+			IsWrongRoute:    false,
+			IsReunite:       true,
+			Code:            "",
+			Time:            time.Now(),
+			IsLost:          false,
 		}
 		if err := txTeamRepo.Create(ctx, newTeam); err != nil {
 			return err
@@ -125,7 +126,7 @@ func (r *RebuildApi) Run(ctx *gin.Context) kit.Code {
 		if err := txPeopleRepo.UpdateRoleByUserID(ctx, newCaptain.ID, comm.RoleCaptain); err != nil {
 			return err
 		}
-		if err := txPeopleRepo.UpdateWalkStatusByUserIDs(ctx, memberIDs, comm.WalkStatusPending); err != nil {
+		if err := r.handleStartPointCheckin(ctx, txTeamRepo, txPeopleRepo, txAdminRepo, newTeam); err != nil {
 			return err
 		}
 
@@ -203,6 +204,32 @@ func (r *RebuildApi) Run(ctx *gin.Context) kit.Code {
 
 	r.Response.TeamID = int(teamID)
 	return comm.CodeOK
+}
+
+func (r *RebuildApi) handleStartPointCheckin(ctx *gin.Context, teamRepo *repo.TeamRepo, peopleRepo *repo.PeopleRepo, adminRepo *repo.AdminRepo, team *model.Team) error {
+	startEdge, err := teamRepo.FindRouteStartEdge(ctx, team.RouteName)
+	if err != nil {
+		return err
+	}
+	if startEdge == nil {
+		return gorm.ErrRecordNotFound
+	}
+
+	admin, err := adminRepo.FindByPointName(ctx, startEdge.PointName)
+	if err != nil {
+		return err
+	}
+	if admin == nil {
+		return gorm.ErrRecordNotFound
+	}
+
+	if err := teamRepo.UpdateLatestPointName(ctx, team.ID, startEdge.PointName); err != nil {
+		return err
+	}
+	if err := teamRepo.CreateCheckin(ctx, admin.ID, team.ID, startEdge.PointName, team.RouteName); err != nil {
+		return err
+	}
+	return peopleRepo.UpdateMembersWalkStatusByCurrent(ctx, team.ID, comm.WalkStatusNotStart, comm.WalkStatusPending)
 }
 
 // Run Api初始化 进行参数校验和绑定

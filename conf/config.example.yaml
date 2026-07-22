@@ -13,7 +13,7 @@ http_server:
 
 # 业务私有配置
 biz:
-  aes_secret: "walk_aes_secret"
+  aes_secret: "" 
   wechat_app_id: ""
   wechat_secret: ""
   wechat_redirect: "https://walk.example.com/api/user/login"

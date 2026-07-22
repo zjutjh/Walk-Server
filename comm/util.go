@@ -79,6 +79,34 @@ func padKey(key string) string {
 	return key + strings.Repeat("0", 32-len(key))
 }
 
+func ValidateBizConfig() error {
+	if err := validateDateTimeConfig("biz.start_date", BizConf.StartDate); err != nil {
+		return err
+	}
+	if err := validateDateTimeConfig("biz.expired_date", BizConf.ExpiredDate); err != nil {
+		return err
+	}
+	if BizConf.AESSecret != "" {
+		if BizConf.AESSecret == "walk_aes_secret" {
+			return fmt.Errorf("biz.aes_secret must not use the example value")
+		}
+		if len(BizConf.AESSecret) < 16 {
+			return fmt.Errorf("biz.aes_secret must be at least 16 characters")
+		}
+	}
+	return nil
+}
+
+func validateDateTimeConfig(name, value string) error {
+	if value == "" {
+		return nil
+	}
+	if _, err := time.ParseInLocation(time.DateTime, value, time.Local); err != nil {
+		return fmt.Errorf("%s must use format %q: %w", name, time.DateTime, err)
+	}
+	return nil
+}
+
 // IsExpired 判断是否已过报名截止时间
 func IsExpired() bool {
 	if BizConf.ExpiredDate == "" {

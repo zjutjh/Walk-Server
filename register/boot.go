@@ -57,8 +57,8 @@ func BizConfBoot() func() error {
 			return fmt.Errorf("%w: 解析应用业务配置错误: %w", kit.ErrDataUnmarshal, err)
 		}
 		legacy := struct {
-			StartDate      string             `mapstructure:"startDate"`
-			ExpiredDate    string             `mapstructure:"expiredDate"`
+			StartDate      string              `mapstructure:"startDate"`
+			ExpiredDate    string              `mapstructure:"expiredDate"`
 			TeamUpperLimit map[int]map[int]int `mapstructure:"teamUpperLimit"`
 		}{}
 		if err := config.Pick().Unmarshal(&legacy); err != nil {
@@ -72,6 +72,9 @@ func BizConfBoot() func() error {
 		}
 		if len(comm.BizConf.TeamUpperLimit) == 0 {
 			comm.BizConf.TeamUpperLimit = legacy.TeamUpperLimit
+		}
+		if err := comm.ValidateBizConfig(); err != nil {
+			return fmt.Errorf("业务配置校验失败: %w", err)
 		}
 		return nil
 	}

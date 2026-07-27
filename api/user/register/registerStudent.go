@@ -8,6 +8,7 @@ import (
 	"github.com/zjutjh/WeJH-SDK/oauth"
 	"github.com/zjutjh/WeJH-SDK/oauth/oauthException"
 
+	peopleCache "app/dao/cache/people"
 	"app/dao/model"
 	"app/dao/repo"
 
@@ -146,6 +147,7 @@ func createRegisterPerson(ctx *gin.Context, person *model.People) kit.Code {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("创建报名记录失败")
 		return comm.CodeServerError
 	}
+	_ = peopleCache.SetPersonByOpenID(ctx, person)
 	return comm.CodeOK
 }
 

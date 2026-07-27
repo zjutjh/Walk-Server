@@ -6,7 +6,6 @@ import (
 
 	"app/comm"
 	peoplecache "app/dao/cache/people"
-	teamcache "app/dao/cache/team"
 	"github.com/zjutjh/mygo/ndb"
 	"gorm.io/gorm"
 
@@ -132,7 +131,6 @@ func (r *PeopleRepo) Create(ctx context.Context, person *model.People) error {
 	if err := r.query.People.WithContext(ctx).Create(person); err != nil {
 		return err
 	}
-	_ = peoplecache.SetPersonByOpenID(ctx, person)
 	return nil
 }
 
@@ -143,28 +141,15 @@ func (r *PeopleRepo) UpdateByOpenID(ctx context.Context, openID string, updates 
 	if err != nil {
 		return err
 	}
-	_ = peoplecache.DelPersonByOpenID(ctx, openID)
 	return err
 }
 
 func (r *PeopleRepo) UpdateByTeamID(ctx context.Context, teamID int64, updates map[string]any) error {
-	members, err := r.FindPeopleByTeamID(ctx, teamID)
-	if err != nil {
-		return err
-	}
-
-	_, err = r.query.People.WithContext(ctx).
+	_, err := r.query.People.WithContext(ctx).
 		Where(r.query.People.TeamID.Eq(teamID)).
 		Updates(updates)
 	if err != nil {
 		return err
-	}
-
-	for _, member := range members {
-		if member == nil {
-			continue
-		}
-		_ = peoplecache.DelPersonByOpenID(ctx, member.OpenID)
 	}
 	return nil
 }
@@ -193,11 +178,6 @@ func (r *PeopleRepo) BindAlumnusOpenID(ctx context.Context, person *model.People
 		return err
 	}
 
-	_ = peoplecache.DelPersonByOpenID(ctx, person.OpenID)
-	_ = peoplecache.DelPersonByOpenID(ctx, openID)
-	if person.Role == comm.RoleCaptain {
-		_ = teamcache.DelTeamByID(ctx, person.TeamID)
-	}
 	return nil
 }
 
@@ -298,55 +278,29 @@ func (r *PeopleRepo) ResolveTeamStatus(ctx context.Context, team *model.Team) (s
 
 func (r *PeopleRepo) UpdateWalkStatus(ctx context.Context, userID int64, status string) error {
 	p := r.query.People
-	person, err := r.FindPeopleByID(ctx, userID)
-	if err != nil {
-		return err
-	}
-
-	_, err = p.WithContext(ctx).
+	_, err := p.WithContext(ctx).
 		Where(p.ID.Eq(userID)).
 		Update(p.WalkStatus, status)
 	if err != nil {
 		return err
-	}
-	if person != nil {
-		_ = peoplecache.DelPersonByOpenID(ctx, person.OpenID)
 	}
 	return err
 }
 
 func (r *PeopleRepo) UpdateViolationByUserID(ctx context.Context, userID int64, isViolated bool) error {
 	p := r.query.People
-	person, err := r.FindPeopleByID(ctx, userID)
-	if err != nil {
-		return err
-	}
-
-	_, err = p.WithContext(ctx).
+	_, err := p.WithContext(ctx).
 		Where(p.ID.Eq(userID)).
 		Update(p.IsViolated, isViolated)
 	if err != nil {
 		return err
-	}
-	if person != nil {
-		_ = peoplecache.DelPersonByOpenID(ctx, person.OpenID)
 	}
 	return nil
 }
 
 func (r *PeopleRepo) UpdateMembersViolationExceptStatuses(ctx context.Context, teamID int64, excludedStatuses []string, isViolated bool) error {
 	p := r.query.People
-	people, err := p.WithContext(ctx).
-		Where(
-			p.TeamID.Eq(teamID),
-			p.WalkStatus.NotIn(excludedStatuses...),
-		).
-		Find()
-	if err != nil {
-		return err
-	}
-
-	_, err = p.WithContext(ctx).
+	_, err := p.WithContext(ctx).
 		Where(
 			p.TeamID.Eq(teamID),
 			p.WalkStatus.NotIn(excludedStatuses...),
@@ -354,12 +308,6 @@ func (r *PeopleRepo) UpdateMembersViolationExceptStatuses(ctx context.Context, t
 		Update(p.IsViolated, isViolated)
 	if err != nil {
 		return err
-	}
-	for _, person := range people {
-		if person == nil {
-			continue
-		}
-		_ = peoplecache.DelPersonByOpenID(ctx, person.OpenID)
 	}
 	return nil
 }
@@ -369,63 +317,33 @@ func (r *PeopleRepo) UpdateWalkStatusByUserIDs(ctx context.Context, userIDs []in
 		return nil
 	}
 	p := r.query.People
-	people, err := r.FindPeopleByIDs(ctx, userIDs)
-	if err != nil {
-		return err
-	}
-
-	_, err = p.WithContext(ctx).
+	_, err := p.WithContext(ctx).
 		Where(p.ID.In(userIDs...)).
 		Update(p.WalkStatus, status)
 	if err != nil {
 		return err
-	}
-	for _, person := range people {
-		if person == nil {
-			continue
-		}
-		_ = peoplecache.DelPersonByOpenID(ctx, person.OpenID)
 	}
 	return err
 }
 
 func (r *PeopleRepo) UpdateTeamIDByUserIDs(ctx context.Context, userIDs []int64, teamID int64) error {
 	p := r.query.People
-	people, err := r.FindPeopleByIDs(ctx, userIDs)
-	if err != nil {
-		return err
-	}
-
-	_, err = p.WithContext(ctx).
+	_, err := p.WithContext(ctx).
 		Where(p.ID.In(userIDs...)).
 		Update(p.TeamID, teamID)
 	if err != nil {
 		return err
-	}
-	for _, person := range people {
-		if person == nil {
-			continue
-		}
-		_ = peoplecache.DelPersonByOpenID(ctx, person.OpenID)
 	}
 	return err
 }
 
 func (r *PeopleRepo) UpdateRoleByUserID(ctx context.Context, userID int64, role string) error {
 	p := r.query.People
-	person, err := r.FindPeopleByID(ctx, userID)
-	if err != nil {
-		return err
-	}
-
-	_, err = p.WithContext(ctx).
+	_, err := p.WithContext(ctx).
 		Where(p.ID.Eq(userID)).
 		Update(p.Role, role)
 	if err != nil {
 		return err
-	}
-	if person != nil {
-		_ = peoplecache.DelPersonByOpenID(ctx, person.OpenID)
 	}
 	return err
 }
@@ -435,39 +353,18 @@ func (r *PeopleRepo) UpdateRoleByUserIDs(ctx context.Context, userIDs []int64, r
 		return nil
 	}
 	p := r.query.People
-	people, err := r.FindPeopleByIDs(ctx, userIDs)
-	if err != nil {
-		return err
-	}
-
-	_, err = p.WithContext(ctx).
+	_, err := p.WithContext(ctx).
 		Where(p.ID.In(userIDs...)).
 		Update(p.Role, role)
 	if err != nil {
 		return err
-	}
-	for _, person := range people {
-		if person == nil {
-			continue
-		}
-		_ = peoplecache.DelPersonByOpenID(ctx, person.OpenID)
 	}
 	return err
 }
 
 func (r *PeopleRepo) UpdateMembersWalkStatusByCurrent(ctx context.Context, teamID int64, fromStatus string, toStatus string) error {
 	p := r.query.People
-	people, err := p.WithContext(ctx).
-		Where(
-			p.TeamID.Eq(teamID),
-			p.WalkStatus.Eq(fromStatus),
-		).
-		Find()
-	if err != nil {
-		return err
-	}
-
-	_, err = p.WithContext(ctx).
+	_, err := p.WithContext(ctx).
 		Where(
 			p.TeamID.Eq(teamID),
 			p.WalkStatus.Eq(fromStatus),
@@ -476,32 +373,26 @@ func (r *PeopleRepo) UpdateMembersWalkStatusByCurrent(ctx context.Context, teamI
 	if err != nil {
 		return err
 	}
-	for _, person := range people {
-		if person == nil {
-			continue
-		}
-		_ = peoplecache.DelPersonByOpenID(ctx, person.OpenID)
-	}
 	return err
 }
 
-func (r *PeopleRepo) UpdateWalkStatusByCurrent(ctx context.Context, fromStatus string, toStatus string) (int64, []int64, error) {
+func (r *PeopleRepo) UpdateWalkStatusByCurrent(ctx context.Context, fromStatus string, toStatus string) (int64, []int64, []*model.People, error) {
 	p := r.query.People
 	people, err := p.WithContext(ctx).
 		Where(p.WalkStatus.Eq(fromStatus)).
 		Find()
 	if err != nil {
-		return 0, nil, err
+		return 0, nil, nil, err
 	}
 	if len(people) == 0 {
-		return 0, nil, nil
+		return 0, nil, nil, nil
 	}
 
 	_, err = p.WithContext(ctx).
 		Where(p.WalkStatus.Eq(fromStatus)).
 		Update(p.WalkStatus, toStatus)
 	if err != nil {
-		return 0, nil, err
+		return 0, nil, nil, err
 	}
 
 	teamIDSet := make(map[int64]struct{})
@@ -509,7 +400,6 @@ func (r *PeopleRepo) UpdateWalkStatusByCurrent(ctx context.Context, fromStatus s
 		if person == nil {
 			continue
 		}
-		_ = peoplecache.DelPersonByOpenID(ctx, person.OpenID)
 		if person.TeamID > 0 {
 			teamIDSet[person.TeamID] = struct{}{}
 		}
@@ -519,5 +409,5 @@ func (r *PeopleRepo) UpdateWalkStatusByCurrent(ctx context.Context, fromStatus s
 	for teamID := range teamIDSet {
 		teamIDs = append(teamIDs, teamID)
 	}
-	return int64(len(people)), teamIDs, nil
+	return int64(len(people)), teamIDs, people, nil
 }

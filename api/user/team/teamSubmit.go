@@ -63,6 +63,8 @@ func (h *TeamSubmitApi) Run(ctx *gin.Context) kit.Code {
 		_, _ = teamCache.RollbackTeamSubmit(ctx, team.ID, day, routeCode)
 		return comm.CodeServerError
 	}
+	_ = teamCache.DelTeamByID(ctx, team.ID)
+	_ = teamCache.DeleteTeamInfo(ctx, team.ID)
 	return comm.CodeOK
 }
 

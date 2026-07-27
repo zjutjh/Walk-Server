@@ -14,6 +14,7 @@ import (
 	"gorm.io/gorm"
 
 	"app/comm"
+	peopleCache "app/dao/cache/people"
 	"app/dao/query"
 	repo "app/dao/repo"
 )
@@ -40,10 +41,10 @@ type MarkTeamViolationApiResponse struct {
 }
 
 func (m *MarkTeamViolationApi) Run(ctx *gin.Context) kit.Code {
+	teamID := int64(m.Request.Body.TeamID)
 	err := query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
 		txTeamRepo := repo.NewTeamRepoWithTx(tx)
 		txPeopleRepo := repo.NewPeopleRepoWithTx(tx)
-		teamID := int64(m.Request.Body.TeamID)
 
 		if _, err := txTeamRepo.GetTeamByID(ctx, teamID); err != nil {
 			return err
@@ -60,6 +61,13 @@ func (m *MarkTeamViolationApi) Run(ctx *gin.Context) kit.Code {
 		}
 		nlog.Pick().WithContext(ctx).WithError(err).Error("标记队伍违规失败")
 		return comm.CodeServerError
+	}
+	if members, err := repo.NewPeopleRepo().FindPeopleByTeamID(ctx, teamID); err == nil {
+		for _, member := range members {
+			if member != nil && member.OpenID != "" {
+				_ = peopleCache.DelPersonByOpenID(ctx, member.OpenID)
+			}
+		}
 	}
 
 	return comm.CodeOK

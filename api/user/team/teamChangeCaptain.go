@@ -4,9 +4,9 @@ import (
 	"reflect"
 	"runtime"
 
-	"app/dao/repo"
-
+	peopleCache "app/dao/cache/people"
 	teamCache "app/dao/cache/team"
+	"app/dao/repo"
 
 	"github.com/gin-gonic/gin"
 	"github.com/zjutjh/mygo/foundation/reply"
@@ -70,6 +70,10 @@ func (h *TeamChangeCaptainApi) Run(ctx *gin.Context) kit.Code {
 	if err := repo.NewTeamRepo().ChangeCaptain(ctx, team.ID, person.OpenID, newCaptain.OpenID); err != nil {
 		return comm.CodeServerError
 	}
+	_ = teamCache.DelTeamByID(ctx, team.ID)
+	_ = teamCache.DeleteTeamInfo(ctx, team.ID)
+	_ = peopleCache.DelPersonByOpenID(ctx, person.OpenID)
+	_ = peopleCache.DelPersonByOpenID(ctx, newCaptain.OpenID)
 	return comm.CodeOK
 }
 

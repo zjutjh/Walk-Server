@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"runtime"
 
+	peopleCache "app/dao/cache/people"
 	"app/dao/repo"
 
 	"github.com/gin-gonic/gin"
@@ -73,6 +74,7 @@ func (h *UserModifyApi) Run(ctx *gin.Context) kit.Code {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("更新当前用户失败")
 		return comm.CodeServerError
 	}
+	_ = peopleCache.DelPersonByOpenID(ctx, person.OpenID)
 	return comm.CodeOK
 }
 

@@ -4,6 +4,8 @@ import (
 	"reflect"
 	"runtime"
 
+	peopleCache "app/dao/cache/people"
+	teamCache "app/dao/cache/team"
 	"app/dao/repo"
 
 	"github.com/gin-gonic/gin"
@@ -78,6 +80,14 @@ func (h *RegisterAlumnusApi) Run(ctx *gin.Context) kit.Code {
 		}
 		nlog.Pick().WithContext(ctx).WithError(err).Error("绑定校友OpenID失败")
 		return comm.CodeServerError
+	}
+	if person.OpenID != "" {
+		_ = peopleCache.DelPersonByOpenID(ctx, person.OpenID)
+	}
+	_ = peopleCache.DelPersonByOpenID(ctx, openID)
+	if person.Role == comm.RoleCaptain && person.TeamID > 0 {
+		_ = teamCache.DelTeamByID(ctx, person.TeamID)
+		_ = teamCache.DeleteTeamInfo(ctx, person.TeamID)
 	}
 
 	return comm.CodeOK

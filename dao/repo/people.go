@@ -388,26 +388,34 @@ func (r *PeopleRepo) UpdateWalkStatusByCurrent(ctx context.Context, fromStatus s
 		return 0, nil, nil, nil
 	}
 
-	_, err = p.WithContext(ctx).
-		Where(p.WalkStatus.Eq(fromStatus)).
-		Update(p.WalkStatus, toStatus)
-	if err != nil {
-		return 0, nil, nil, err
-	}
-
+	userIDs := make([]int64, 0, len(people))
 	teamIDSet := make(map[int64]struct{})
 	for _, person := range people {
 		if person == nil {
 			continue
 		}
+		userIDs = append(userIDs, person.ID)
 		if person.TeamID > 0 {
 			teamIDSet[person.TeamID] = struct{}{}
 		}
+	}
+	if len(userIDs) == 0 {
+		return 0, nil, nil, nil
+	}
+
+	_, err = p.WithContext(ctx).
+		Where(
+			p.ID.In(userIDs...),
+			p.WalkStatus.Eq(fromStatus),
+		).
+		Update(p.WalkStatus, toStatus)
+	if err != nil {
+		return 0, nil, nil, err
 	}
 
 	teamIDs := make([]int64, 0, len(teamIDSet))
 	for teamID := range teamIDSet {
 		teamIDs = append(teamIDs, teamID)
 	}
-	return int64(len(people)), teamIDs, people, nil
+	return int64(len(userIDs)), teamIDs, people, nil
 }

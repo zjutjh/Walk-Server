@@ -4,10 +4,10 @@ import (
 	"reflect"
 	"runtime"
 
+	peopleCache "app/dao/cache/people"
+	teamCache "app/dao/cache/team"
 	"app/dao/model"
 	"app/dao/repo"
-
-	teamCache "app/dao/cache/team"
 
 	"github.com/gin-gonic/gin"
 	"github.com/zjutjh/mygo/foundation/reply"
@@ -96,6 +96,9 @@ func (h *TeamJoinApi) Run(ctx *gin.Context) kit.Code {
 	if !joined {
 		return comm.CodeJoinTeamFailed
 	}
+	_ = teamCache.DelTeamByID(ctx, team.ID)
+	_ = teamCache.DeleteTeamInfo(ctx, team.ID)
+	_ = peopleCache.DelPersonByOpenID(ctx, person.OpenID)
 	senderID := person.ID
 	messageRepo := repo.NewMessageRepo()
 	for _, member := range members {

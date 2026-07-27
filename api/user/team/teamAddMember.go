@@ -4,9 +4,9 @@ import (
 	"reflect"
 	"runtime"
 
-	"app/dao/repo"
-
+	peopleCache "app/dao/cache/people"
 	teamCache "app/dao/cache/team"
+	"app/dao/repo"
 
 	"github.com/gin-gonic/gin"
 	"github.com/zjutjh/mygo/foundation/reply"
@@ -84,6 +84,9 @@ func (h *TeamAddMemberApi) Run(ctx *gin.Context) kit.Code {
 	if !joined {
 		return comm.CodeTeamFull
 	}
+	_ = teamCache.DelTeamByID(ctx, team.ID)
+	_ = teamCache.DeleteTeamInfo(ctx, team.ID)
+	_ = peopleCache.DelPersonByOpenID(ctx, newMember.OpenID)
 	senderID := person.ID
 	messageRepo := repo.NewMessageRepo()
 	_ = messageRepo.CreateMessage(ctx, &senderID, newMember.ID, "你被"+person.Name+"添加至团队"+team.Name)

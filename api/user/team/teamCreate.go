@@ -5,6 +5,8 @@ import (
 	"runtime"
 	"time"
 
+	peopleCache "app/dao/cache/people"
+	teamCache "app/dao/cache/team"
 	"app/dao/model"
 	"app/dao/repo"
 
@@ -90,6 +92,11 @@ func (h *TeamCreateApi) Run(ctx *gin.Context) kit.Code {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("创建团队失败")
 		return comm.CodeServerError
 	}
+	_ = teamCache.SetTeamByID(ctx, team)
+	if team.Code != "" {
+		_ = teamCache.SetTeamIDByCode(ctx, team.Code, team.ID)
+	}
+	_ = peopleCache.DelPersonByOpenID(ctx, person.OpenID)
 	h.Response.TeamID = team.ID
 	return comm.CodeOK
 }

@@ -14,6 +14,8 @@ import (
 	"github.com/zjutjh/mygo/swagger"
 
 	"app/comm"
+	peopleCache "app/dao/cache/people"
+	teamCache "app/dao/cache/team"
 	"app/dao/model"
 	"app/dao/query"
 	repo "app/dao/repo"
@@ -71,11 +73,11 @@ func (b *BindCodeApi) Run(ctx *gin.Context) kit.Code {
 		}
 	}()
 
+	newCode := strings.TrimSpace(b.Request.Body.Content)
 	err := query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
 		txTeamRepo := repo.NewTeamRepoWithTx(tx)
 		txPeopleRepo := repo.NewPeopleRepoWithTx(tx)
 		txAdminRepo := repo.NewAdminRepoWithTx(tx)
-		newCode := strings.TrimSpace(b.Request.Body.Content)
 		if newCode == "" {
 			return errBindCodeEmpty
 		}
@@ -152,6 +154,21 @@ func (b *BindCodeApi) Run(ctx *gin.Context) kit.Code {
 		}
 		nlog.Pick().WithContext(ctx).WithError(err).Error("绑定签到码失败")
 		return comm.CodeBindCodeError
+	}
+	_ = teamCache.DelTeamByID(ctx, team.ID)
+	_ = teamCache.DeleteTeamInfo(ctx, team.ID)
+	if team.Code != "" {
+		_ = teamCache.DelTeamIDByCode(ctx, team.Code)
+	}
+	if newCode != "" {
+		_ = teamCache.DelTeamIDByCode(ctx, newCode)
+	}
+	if members, err := repo.NewPeopleRepo().FindPeopleByTeamID(ctx, team.ID); err == nil {
+		for _, member := range members {
+			if member != nil && member.OpenID != "" {
+				_ = peopleCache.DelPersonByOpenID(ctx, member.OpenID)
+			}
+		}
 	}
 
 	return comm.CodeOK

@@ -115,10 +115,8 @@ func (l *LostApi) Run(ctx *gin.Context) kit.Code {
 		keepLock = true
 	}
 
-	err = teamCache.DeleteTeamInfo(ctx, teamID)
-	if err != nil {
-		nlog.Pick().WithContext(ctx).WithError(err).Warn("删除队伍详情缓存失败")
-	}
+	_ = teamCache.DelTeamByID(ctx, teamID)
+	_ = teamCache.DeleteTeamInfo(ctx, teamID)
 
 	return comm.CodeOK
 }

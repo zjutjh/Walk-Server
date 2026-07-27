@@ -4,9 +4,9 @@ import (
 	"reflect"
 	"runtime"
 
-	"app/dao/repo"
-
+	peopleCache "app/dao/cache/people"
 	teamCache "app/dao/cache/team"
+	"app/dao/repo"
 
 	"github.com/gin-gonic/gin"
 	"github.com/zjutjh/mygo/foundation/reply"
@@ -55,6 +55,16 @@ func (h *TeamDisbandApi) Run(ctx *gin.Context) kit.Code {
 	}
 	if err := repo.NewTeamRepo().DisbandTeam(ctx, team.ID); err != nil {
 		return comm.CodeServerError
+	}
+	_ = teamCache.DelTeamByID(ctx, team.ID)
+	_ = teamCache.DeleteTeamInfo(ctx, team.ID)
+	if team.Code != "" {
+		_ = teamCache.DelTeamIDByCode(ctx, team.Code)
+	}
+	for _, member := range members {
+		if member != nil && member.OpenID != "" {
+			_ = peopleCache.DelPersonByOpenID(ctx, member.OpenID)
+		}
 	}
 	senderID := person.ID
 	messageRepo := repo.NewMessageRepo()

@@ -4,9 +4,9 @@ import (
 	"reflect"
 	"runtime"
 
-	"app/dao/repo"
-
+	peopleCache "app/dao/cache/people"
 	teamCache "app/dao/cache/team"
+	"app/dao/repo"
 
 	"github.com/gin-gonic/gin"
 	"github.com/zjutjh/mygo/foundation/reply"
@@ -75,6 +75,9 @@ func (h *TeamRemoveMemberApi) Run(ctx *gin.Context) kit.Code {
 	if !ok {
 		return comm.CodeRemoveFailed
 	}
+	_ = teamCache.DelTeamByID(ctx, team.ID)
+	_ = teamCache.DeleteTeamInfo(ctx, team.ID)
+	_ = peopleCache.DelPersonByOpenID(ctx, removed.OpenID)
 	messageRepo := repo.NewMessageRepo()
 	_ = messageRepo.CreateMessage(ctx, nil, removed.ID, "你被团队"+team.Name+"踢出")
 	_ = messageRepo.CreateMessage(ctx, nil, person.ID, "你踢出了成员"+removed.Name)

@@ -11,6 +11,7 @@ import (
 	"github.com/zjutjh/mygo/swagger"
 
 	"app/comm"
+	peopleCache "app/dao/cache/people"
 	repo "app/dao/repo"
 )
 
@@ -50,6 +51,9 @@ func (m *MarkUserViolationApi) Run(ctx *gin.Context) kit.Code {
 	if err := peopleRepo.UpdateViolationByUserID(ctx, person.ID, m.Request.Body.IsViolated); err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("标记成员违规失败")
 		return comm.CodeServerError
+	}
+	if person.OpenID != "" {
+		_ = peopleCache.DelPersonByOpenID(ctx, person.OpenID)
 	}
 	return comm.CodeOK
 }

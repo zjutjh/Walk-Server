@@ -6,7 +6,6 @@ import (
 	"app/api/dashboard/stats"
 	"app/api/dashboard/teams"
 	basicapi "app/api/user/basic"
-	messageapi "app/api/user/message"
 	registerapi "app/api/user/register"
 	teamapi "app/api/user/team"
 	userapi "app/api/user/user"
@@ -77,36 +76,32 @@ func Route(router *gin.Engine) {
 		}
 		user := r.Group("/user")
 		{
-			user.GET("/oauth", basicapi.WechatOAuthRedirectHandler())
-			user.GET("/login", basicapi.WechatOAuthCallbackHandler())
-			user.GET("/login/openid", basicapi.WechatLoginByOpenIDHandler())
+			user.POST("/login", basicapi.LoginHandler())
+			user.POST("/register/student", registerapi.RegisterStudentHandler())
+			user.POST("/register/teacher", registerapi.RegisterTeacherHandler())
+			user.POST("/register/alumnus", registerapi.RegisterAlumnusHandler())
 
 			auth := user.Group("")
 			auth.Use(jwtmiddleware.Auth[string](true))
 			{
-				auth.POST("/register/student", registerapi.RegisterStudentHandler())
-				auth.POST("/register/teacher", registerapi.RegisterTeacherHandler())
-				auth.POST("/register/alumnus", registerapi.RegisterAlumnusHandler())
-
 				auth.GET("/info", userapi.UserInfoHandler())
 				auth.POST("/modify", userapi.UserModifyHandler())
 
 				auth.POST("/team/create", teamapi.TeamCreateHandler())
 				auth.POST("/team/join", teamapi.TeamJoinHandler())
-				auth.GET("/team/info", teamapi.TeamInfoHandler())
+				auth.GET("/team/overview", teamapi.TeamOverviewHandler())
+				auth.GET("/team/detail", teamapi.TeamDetailHandler())
+				auth.GET("/team/member", teamapi.TeamMemberHandler())
 				auth.GET("/team/submit", teamapi.TeamSubmitHandler())
 				auth.GET("/team/rollback", teamapi.TeamRollbackHandler())
 				auth.POST("/team/random-list", teamapi.TeamRandomListHandler())
 				auth.POST("/team/random-join", teamapi.TeamRandomJoinHandler())
 				auth.POST("/team/update", teamapi.TeamUpdateHandler())
-				auth.GET("/team/add", teamapi.TeamAddMemberHandler())
 				auth.GET("/team/remove", teamapi.TeamRemoveMemberHandler())
 				auth.POST("/team/captain", teamapi.TeamChangeCaptainHandler())
 				auth.GET("/team/leave", teamapi.TeamLeaveHandler())
 				auth.GET("/team/disband", teamapi.TeamDisbandHandler())
 
-				auth.GET("/message/list", messageapi.ListMessageHandler())
-				auth.POST("/message/delete", messageapi.DeleteMessageHandler())
 			}
 		}
 	}

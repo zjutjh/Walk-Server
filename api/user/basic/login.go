@@ -1,130 +1,96 @@
 package basic
 
 import (
-	"encoding/json"
-	"fmt"
-	"net/http"
-	"net/url"
 	"reflect"
 	"runtime"
-	"time"
+
+	"app/comm"
+	"app/dao/model"
+	"app/dao/repo"
 
 	"github.com/gin-gonic/gin"
 	"github.com/zjutjh/mygo/foundation/reply"
 	"github.com/zjutjh/mygo/kit"
 	"github.com/zjutjh/mygo/nlog"
 	"github.com/zjutjh/mygo/swagger"
-
-	"app/comm"
 )
 
-func WechatOAuthCallbackHandler() gin.HandlerFunc {
-	api := WechatOAuthCallbackApi{}
-	swagger.CM[runtime.FuncForPC(reflect.ValueOf(hfWechatOAuthCallback).Pointer()).Name()] = api
-	return hfWechatOAuthCallback
+func LoginHandler() gin.HandlerFunc {
+	api := LoginApi{}
+	swagger.CM[runtime.FuncForPC(reflect.ValueOf(hfLogin).Pointer()).Name()] = api
+	return hfLogin
 }
 
-type WechatOAuthCallbackApi struct {
-	Info     struct{} `name:"微信OAuth回调" desc:"接收微信回调code并换取系统JWT"`
-	Request  WechatOAuthCallbackApiRequest
-	Response struct{}
+type LoginApi struct {
+	Info     struct{} `name:"用户登录" desc:"使用手机号和报名密码登录"`
+	Request  LoginApiRequest
+	Response LoginApiResponse
 }
 
-type WechatOAuthCallbackApiRequest struct {
-	Query struct {
-		Code string `form:"code" desc:"微信OAuth回调code" binding:"required"`
+type LoginApiRequest struct {
+	Body struct {
+		Tel      string `json:"tel" desc:"手机号码" binding:"required"`
+		Password string `json:"password" desc:"密码" binding:"required"`
 	}
 }
 
-type wechatOAuthAccessTokenResponse struct {
-	AccessToken  string `json:"access_token"`
-	ExpiresIn    int64  `json:"expires_in"`
-	RefreshToken string `json:"refresh_token"`
-	OpenID       string `json:"openid"`
-	Scope        string `json:"scope"`
-	ErrCode      int    `json:"errcode"`
-	ErrMsg       string `json:"errmsg"`
+type LoginApiResponse struct {
+	JWT  string     `json:"jwt" desc:"系统JWT"`
+	User *LoginUser `json:"user" desc:"用户信息"`
 }
 
-func (h *WechatOAuthCallbackApi) Init(ctx *gin.Context) error {
-	return ctx.ShouldBindQuery(&h.Request.Query)
+type LoginUser struct {
+	ID         int64  `json:"id"`
+	Name       string `json:"name"`
+	StuID      string `json:"stu_id"`
+	Role       string `json:"role"`
+	CreateOp   uint8  `json:"create_op"`
+	JoinOp     uint8  `json:"join_op"`
+	TeamID     int64  `json:"team_id"`
+	Type       string `json:"type"`
+	WalkStatus string `json:"walk_status"`
+	QQ         string `json:"qq"`
+	Wechat     string `json:"wechat"`
+	Tel        string `json:"tel"`
 }
 
-func (h *WechatOAuthCallbackApi) Run(ctx *gin.Context) kit.Code {
-	openID, err := fetchWechatOpenID(h.Request.Query.Code)
+func (h *LoginApi) Init(ctx *gin.Context) error { return ctx.ShouldBindJSON(&h.Request.Body) }
+
+func (h *LoginApi) Run(ctx *gin.Context) kit.Code {
+	person, err := repo.NewPeopleRepo().FindPeopleByTel(ctx, h.Request.Body.Tel)
 	if err != nil {
-		nlog.Pick().WithContext(ctx).WithError(err).Warn("获取微信OpenID失败")
-		return comm.CodeOAuthFailed
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("查询登录用户失败")
+		return comm.CodeServerError
 	}
-	if openID == "" {
-		return comm.CodeOpenIDEmpty
+	if person == nil || person.Password == "" || !comm.Verify(person.Password, h.Request.Body.Password) {
+		return comm.CodeAccountOrPasswordError
 	}
-
-	tokenOpenID := openID
-	if comm.BizConf.AESSecret != "" {
-		tokenOpenID, err = comm.AesEncrypt(openID, comm.BizConf.AESSecret)
-		if err != nil {
-			nlog.Pick().WithContext(ctx).WithError(err).Warn("加密OpenID失败")
-			return comm.CodeServerError
-		}
-	}
-
-	jwt, err := comm.GenerateToken(tokenOpenID)
+	token, err := comm.GenerateToken(person.ID)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("生成用户JWT失败")
 		return comm.CodeServerError
 	}
-
-	if comm.BizConf.FrontEndURL != "" {
-		redirectURL := comm.BizConf.FrontEndURL
-		separator := "?"
-		if parsed, parseErr := url.Parse(redirectURL); parseErr == nil && parsed.RawQuery != "" {
-			separator = "&"
-		}
-		ctx.Redirect(http.StatusTemporaryRedirect, redirectURL+separator+"jwt="+url.QueryEscape(jwt))
-		ctx.Abort()
-	}
+	h.Response.JWT = token
+	h.Response.User = buildLoginUser(person)
 	return comm.CodeOK
 }
 
-func fetchWechatOpenID(code string) (string, error) {
-	endpoint := "https://api.weixin.qq.com/sns/oauth2/access_token"
-	query := url.Values{}
-	query.Set("appid", comm.BizConf.WechatAppID)
-	query.Set("secret", comm.BizConf.WechatSecret)
-	query.Set("code", code)
-	query.Set("grant_type", "authorization_code")
-
-	client := &http.Client{Timeout: 5 * time.Second}
-	resp, err := client.Get(endpoint + "?" + query.Encode())
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	var data wechatOAuthAccessTokenResponse
-	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		return "", err
-	}
-	if data.ErrCode != 0 {
-		return "", fmt.Errorf("wechat oauth failed: %d %s", data.ErrCode, data.ErrMsg)
-	}
-	return data.OpenID, nil
+func buildLoginUser(p *model.People) *LoginUser {
+	return &LoginUser{ID: p.ID, Name: p.Name, StuID: p.StuID,
+		Role: p.Role, CreateOp: p.CreatedOp, JoinOp: p.JoinOp,
+		TeamID: p.TeamID, Type: p.Type, WalkStatus: p.WalkStatus, QQ: p.Qq, Wechat: p.Wechat, Tel: p.Tel}
 }
 
-func hfWechatOAuthCallback(ctx *gin.Context) {
-	api := &WechatOAuthCallbackApi{}
+func hfLogin(ctx *gin.Context) {
+	api := &LoginApi{}
 	if err := api.Init(ctx); err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("参数绑定校验错误")
 		reply.Fail(ctx, comm.CodeParameterInvalid)
 		return
 	}
-	code := api.Run(ctx)
-	if !ctx.IsAborted() {
-		if code == comm.CodeOK {
-			reply.Reply(ctx, comm.CodeOK, api.Response)
-		} else {
-			reply.Fail(ctx, code)
-		}
+	if code := api.Run(ctx); code == comm.CodeOK {
+		reply.Reply(ctx, comm.CodeOK, api.Response)
+	} else {
+		reply.Fail(ctx, code)
 	}
 }

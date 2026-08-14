@@ -5,7 +5,7 @@ CREATE TABLE `teams` (
   `password` varchar(64) NOT NULL COMMENT '团队加入密码',
   `slogan` varchar(128) DEFAULT NULL COMMENT '团队标语',
   `allow_match` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否允许随机匹配',
-  `captain` varchar(64) NOT NULL COMMENT '队长OpenID',
+  `captain` bigint unsigned NOT NULL COMMENT '队长用户ID',
   `submit` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否已提交报名',
   `route_name` varchar(64) DEFAULT NULL COMMENT '团队所属路线', 
   `latest_point_name` varchar(64) DEFAULT NULL COMMENT '最新经过点位ID',

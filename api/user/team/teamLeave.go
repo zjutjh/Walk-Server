@@ -31,6 +31,9 @@ type TeamLeaveApi struct {
 
 func (h *TeamLeaveApi) Init(ctx *gin.Context) error { return nil }
 func (h *TeamLeaveApi) Run(ctx *gin.Context) kit.Code {
+	if code := comm.CheckBizPhase(comm.PhaseRegistration, comm.PhaseAdjustment); code != comm.CodeOK {
+		return code
+	}
 	person, code := currentTeamUser(ctx)
 	if code != comm.CodeOK {
 		return code
@@ -39,19 +42,15 @@ func (h *TeamLeaveApi) Run(ctx *gin.Context) kit.Code {
 	if code != comm.CodeOK {
 		return code
 	}
-	if person.Role == comm.RoleCaptain || team.Captain == person.OpenID {
+	if person.Role == comm.RoleCaptain || team.Captain == person.ID {
 		return comm.CodeCannotLeaveTeam
 	}
 	submitted, err := teamCache.IsTeamSubmitted(ctx, team.ID)
 	if err != nil {
 		return comm.CodeServerError
 	}
-	if submitted {
+	if submitted && !comm.IsInBizPhase(comm.PhaseAdjustment) {
 		return comm.CodeTeamSubmitted
-	}
-	members, err := repo.NewPeopleRepo().FindPeopleByTeamID(ctx, team.ID)
-	if err != nil {
-		return comm.CodeServerError
 	}
 	ok, err := repo.NewTeamRepo().RemoveMember(ctx, team.ID, person)
 	if err != nil {
@@ -62,14 +61,7 @@ func (h *TeamLeaveApi) Run(ctx *gin.Context) kit.Code {
 	}
 	_ = teamCache.DelTeamByID(ctx, team.ID)
 	_ = teamCache.DeleteTeamInfo(ctx, team.ID)
-	_ = peopleCache.DelPersonByOpenID(ctx, person.OpenID)
-	senderID := person.ID
-	messageRepo := repo.NewMessageRepo()
-	for _, member := range members {
-		if member != nil && member.OpenID != person.OpenID {
-			_ = messageRepo.CreateMessage(ctx, &senderID, member.ID, person.Name+"已经离开了队伍")
-		}
-	}
+	_ = peopleCache.DelPersonByID(ctx, person.ID)
 	return comm.CodeOK
 }
 

@@ -22,6 +22,8 @@ const (
 	teamByIDCacheKeyPrefix     = "walk:user:team:info"
 	teamCacheTTL               = time.Hour
 	submittedTeamsKey          = "teams"
+	submittedTeamDaysKey       = "walk:team:submitted_days"
+	totalTeamQuotaKey          = "walk:team:quota:total"
 	teamInfoCacheKeyPrefix     = "dashboard:teams:info"
 	teamInfoCacheTTL           = 60 * time.Second
 	teamFilterCacheKeyPrefix   = "dashboard:teams:filter"
@@ -33,19 +35,30 @@ var teamInfoLocks sync.Map
 
 var submitTeamScript = redis.NewScript(`
 local teamID = KEYS[1]
-local dailyRouteKey = KEYS[2]
+local dailyQuotaKey = KEYS[2]
+local totalQuotaKey = KEYS[3]
+local submittedDaysKey = KEYS[4]
+local day = ARGV[1]
 
-local num = redis.call("GET", dailyRouteKey)
-if not num or tonumber(num) <= 0 then
-	return 2
-end
-
-local added = redis.call("SADD", "teams", teamID)
-if added == 0 then
+local submitted = redis.call("SISMEMBER", "teams", teamID)
+if submitted == 1 then
 	return 1
 end
 
-redis.call("DECR", dailyRouteKey)
+local total = redis.call("GET", totalQuotaKey)
+if not total or tonumber(total) <= 0 then
+	return 3
+end
+
+local daily = redis.call("GET", dailyQuotaKey)
+if not daily or tonumber(daily) <= 0 then
+	return 2
+end
+
+redis.call("SADD", "teams", teamID)
+redis.call("HSET", submittedDaysKey, teamID, day)
+redis.call("DECR", dailyQuotaKey)
+redis.call("DECR", totalQuotaKey)
 return 0
 `)
 
@@ -73,8 +86,8 @@ func BuildTeamInfoLockCacheKey(teamID int64) string {
 	return fmt.Sprintf("%s:%d", teamInfoLockCacheKeyPrefix, teamID)
 }
 
-func buildDailyRouteQuotaKey(day int, routeCode int) string {
-	return strconv.Itoa(day*10 + routeCode)
+func buildDailyTeamQuotaKey(day int) string {
+	return "walk:team:quota:day:" + strconv.Itoa(day)
 }
 
 func GetTeamIDByCode(ctx context.Context, code string) (int64, bool, error) {
@@ -143,50 +156,74 @@ func IsTeamSubmitted(ctx context.Context, teamID int64) (bool, error) {
 	return client().SIsMember(ctx, submittedTeamsKey, strconv.FormatInt(teamID, 10)).Result()
 }
 
-func SubmitTeam(ctx context.Context, teamID int64, day int, routeCode int) (int64, error) {
+func SubmitTeam(ctx context.Context, teamID int64, day int) (int64, error) {
 	return submitTeamScript.Run(
 		ctx,
 		client(),
 		[]string{
 			strconv.FormatInt(teamID, 10),
-			buildDailyRouteQuotaKey(day, routeCode),
+			buildDailyTeamQuotaKey(day),
+			totalTeamQuotaKey,
+			submittedTeamDaysKey,
 		},
+		day,
 	).Int64()
 }
 
-func RollbackTeamSubmit(ctx context.Context, teamID int64, day int, routeCode int) (bool, error) {
+func RollbackTeamSubmit(ctx context.Context, teamID int64, fallbackDay int) (bool, int, error) {
 	teamIDValue := strconv.FormatInt(teamID, 10)
 	submitted, err := client().SIsMember(ctx, submittedTeamsKey, teamIDValue).Result()
 	if err != nil {
-		return false, err
+		return false, 0, err
 	}
 	if !submitted {
-		return false, nil
+		return false, 0, nil
+	}
+	day := fallbackDay
+	if value, err := client().HGet(ctx, submittedTeamDaysKey, teamIDValue).Int(); err == nil {
+		day = value
+	} else if err != redis.Nil {
+		return false, 0, err
 	}
 	if err := client().SRem(ctx, submittedTeamsKey, teamIDValue).Err(); err != nil {
-		return false, err
+		return false, 0, err
 	}
-	if err := client().Incr(ctx, buildDailyRouteQuotaKey(day, routeCode)).Err(); err != nil {
-		return false, err
+	_ = client().HDel(ctx, submittedTeamDaysKey, teamIDValue).Err()
+	if err := client().Incr(ctx, buildDailyTeamQuotaKey(day)).Err(); err != nil {
+		return false, 0, err
 	}
-	return true, nil
+	if err := client().Incr(ctx, totalTeamQuotaKey).Err(); err != nil {
+		return false, 0, err
+	}
+	return true, day, nil
 }
 
-func RestoreSubmittedTeam(ctx context.Context, teamID int64, day int, routeCode int) error {
-	if err := client().SAdd(ctx, submittedTeamsKey, strconv.FormatInt(teamID, 10)).Err(); err != nil {
+func RestoreSubmittedTeam(ctx context.Context, teamID int64, day int) error {
+	teamIDValue := strconv.FormatInt(teamID, 10)
+	if err := client().SAdd(ctx, submittedTeamsKey, teamIDValue).Err(); err != nil {
 		return err
 	}
-	return client().Decr(ctx, buildDailyRouteQuotaKey(day, routeCode)).Err()
+	if err := client().HSet(ctx, submittedTeamDaysKey, teamIDValue, day).Err(); err != nil {
+		return err
+	}
+	if err := client().Decr(ctx, buildDailyTeamQuotaKey(day)).Err(); err != nil {
+		return err
+	}
+	return client().Decr(ctx, totalTeamQuotaKey).Err()
 }
 
-func InitDailyRouteQuota(ctx context.Context, day int, routeCode int, limit int) error {
-	key := buildDailyRouteQuotaKey(day, routeCode)
+func InitDailyTeamQuota(ctx context.Context, day int, limit int) error {
+	key := buildDailyTeamQuotaKey(day)
 	if _, err := client().Get(ctx, key).Result(); err == redis.Nil {
 		return client().Set(ctx, key, limit, 0).Err()
 	} else if err != nil {
 		return err
 	}
 	return nil
+}
+
+func InitTotalTeamQuota(ctx context.Context, limit int) error {
+	return client().SetNX(ctx, totalTeamQuotaKey, limit, 0).Err()
 }
 
 func GetTeamInfo(ctx context.Context, teamID int64) ([]byte, bool, error) {

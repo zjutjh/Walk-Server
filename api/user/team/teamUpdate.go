@@ -41,6 +41,9 @@ type TeamUpdateApiRequest struct {
 
 func (h *TeamUpdateApi) Init(ctx *gin.Context) error { return ctx.ShouldBindJSON(&h.Request.Body) }
 func (h *TeamUpdateApi) Run(ctx *gin.Context) kit.Code {
+	if code := comm.CheckBizPhase(comm.PhaseRegistration, comm.PhaseAdjustment); code != comm.CodeOK {
+		return code
+	}
 	person, code := currentTeamUser(ctx)
 	if code != comm.CodeOK {
 		return code
@@ -49,14 +52,14 @@ func (h *TeamUpdateApi) Run(ctx *gin.Context) kit.Code {
 	if code != comm.CodeOK {
 		return code
 	}
-	if !(person != nil && team != nil && person.Role == comm.RoleCaptain && team.Captain == person.OpenID) {
+	if !(person != nil && team != nil && person.Role == comm.RoleCaptain && team.Captain == person.ID) {
 		return comm.CodeNotCaptain
 	}
 	submitted, err := teamCache.IsTeamSubmitted(ctx, team.ID)
 	if err != nil {
 		return comm.CodeServerError
 	}
-	if submitted {
+	if submitted && !comm.IsInBizPhase(comm.PhaseAdjustment) {
 		return comm.CodeTeamSubmitted
 	}
 	teamRepo := repo.NewTeamRepo()

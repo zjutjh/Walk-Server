@@ -52,9 +52,7 @@ func (m *MarkUserViolationApi) Run(ctx *gin.Context) kit.Code {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("标记成员违规失败")
 		return comm.CodeServerError
 	}
-	if person.OpenID != "" {
-		_ = peopleCache.DelPersonByOpenID(ctx, person.OpenID)
-	}
+	_ = peopleCache.DelPersonByID(ctx, person.ID)
 	return comm.CodeOK
 }
 

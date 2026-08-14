@@ -25,11 +25,10 @@ type TeamRepo struct {
 }
 
 type TeamMemberRow struct {
-	ID     int64
-	OpenID string
-	Name   string
-	Phone  string
-	Role   string
+	ID    int64
+	Name  string
+	Phone string
+	Role  string
 }
 
 type TeamFilterQuery struct {
@@ -246,7 +245,7 @@ func (r *TeamRepo) CreateWithCaptain(ctx context.Context, team *model.Team, capt
 		if err := teamRepo.Create(ctx, team); err != nil {
 			return err
 		}
-		return peopleRepo.UpdateByOpenID(ctx, captain.OpenID, map[string]any{
+		return peopleRepo.UpdateByID(ctx, captain.ID, map[string]any{
 			"created_op": captain.CreatedOp - 1,
 			"role":       comm.RoleCaptain,
 			"team_id":    team.ID,
@@ -273,7 +272,7 @@ func (r *TeamRepo) JoinTeam(ctx context.Context, teamID int64, person *model.Peo
 		if !ok {
 			return nil
 		}
-		if err := NewPeopleRepoWithTx(tx).UpdateByOpenID(ctx, person.OpenID, updates); err != nil {
+		if err := NewPeopleRepoWithTx(tx).UpdateByID(ctx, person.ID, updates); err != nil {
 			return err
 		}
 		joined = true
@@ -293,7 +292,7 @@ func (r *TeamRepo) RemoveMember(ctx context.Context, teamID int64, person *model
 		if !ok {
 			return nil
 		}
-		if err := NewPeopleRepoWithTx(tx).UpdateByOpenID(ctx, person.OpenID, map[string]any{
+		if err := NewPeopleRepoWithTx(tx).UpdateByID(ctx, person.ID, map[string]any{
 			"role":    comm.RoleUnbind,
 			"team_id": int64(-1),
 		}); err != nil {
@@ -305,17 +304,17 @@ func (r *TeamRepo) RemoveMember(ctx context.Context, teamID int64, person *model
 	return removed, err
 }
 
-func (r *TeamRepo) ChangeCaptain(ctx context.Context, teamID int64, oldCaptainOpenID, newCaptainOpenID string) error {
+func (r *TeamRepo) ChangeCaptain(ctx context.Context, teamID, oldCaptainID, newCaptainID int64) error {
 	return query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
 		teamRepo := NewTeamRepoWithTx(tx)
 		peopleRepo := NewPeopleRepoWithTx(tx)
-		if err := teamRepo.UpdateByID(ctx, teamID, map[string]any{"captain": newCaptainOpenID}); err != nil {
+		if err := teamRepo.UpdateByID(ctx, teamID, map[string]any{"captain": newCaptainID}); err != nil {
 			return err
 		}
-		if err := peopleRepo.UpdateByOpenID(ctx, oldCaptainOpenID, map[string]any{"role": comm.RoleMember}); err != nil {
+		if err := peopleRepo.UpdateByID(ctx, oldCaptainID, map[string]any{"role": comm.RoleMember}); err != nil {
 			return err
 		}
-		return peopleRepo.UpdateByOpenID(ctx, newCaptainOpenID, map[string]any{"role": comm.RoleCaptain})
+		return peopleRepo.UpdateByID(ctx, newCaptainID, map[string]any{"role": comm.RoleCaptain})
 	})
 }
 
@@ -634,11 +633,10 @@ func (r *TeamRepo) ListTeamMembers(ctx context.Context, teamID int64) ([]TeamMem
 	members := make([]TeamMemberRow, 0, len(peopleRows))
 	for _, row := range peopleRows {
 		members = append(members, TeamMemberRow{
-			ID:     row.ID,
-			OpenID: row.OpenID,
-			Name:   row.Name,
-			Phone:  row.Tel,
-			Role:   row.Role,
+			ID:    row.ID,
+			Name:  row.Name,
+			Phone: row.Tel,
+			Role:  row.Role,
 		})
 	}
 
@@ -697,7 +695,7 @@ func (r *TeamRepo) buildTeamFilterBaseQuery(ctx context.Context, query TeamFilte
 		UnderlyingDB().
 		Table("teams AS t").
 		Joins("JOIN routes AS r ON r.name = t.route_name AND r.is_active = ? AND r.campus = ?", 1, query.Campus).
-		Joins("LEFT JOIN peoples AS p ON p.team_id = t.id AND p.open_id = t.captain").
+		Joins("LEFT JOIN peoples AS p ON p.team_id = t.id AND CAST(p.id AS CHAR) = t.captain").
 		Where("t.submit = ?", 1)
 
 	effRoute := "(CASE WHEN t.is_wrong_route = 1 THEN COALESCE((SELECT w.wrong_route_name FROM wrong_route_records AS w WHERE w.team_id = t.id ORDER BY w.created_at DESC, w.id DESC LIMIT 1), t.route_name) ELSE t.route_name END)"

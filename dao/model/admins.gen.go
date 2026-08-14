@@ -13,7 +13,6 @@ const TableNameAdmin = "admins"
 // Admin mapped from table <admins>
 type Admin struct {
 	ID         int64     `gorm:"column:id;primaryKey;autoIncrement:true" json:"id"`
-	OpenID     string    `gorm:"column:open_id;comment:微信OpenID" json:"open_id"` // 微信OpenID
 	Name       string    `gorm:"column:name" json:"name"`
 	Account    string    `gorm:"column:account;not null" json:"account"`
 	Password   string    `gorm:"column:password" json:"password"`

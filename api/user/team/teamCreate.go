@@ -47,6 +47,9 @@ type TeamCreateApiResponse struct {
 
 func (h *TeamCreateApi) Init(ctx *gin.Context) error { return ctx.ShouldBindJSON(&h.Request.Body) }
 func (h *TeamCreateApi) Run(ctx *gin.Context) kit.Code {
+	if code := comm.CheckBizPhase(comm.PhaseRegistration); code != comm.CodeOK {
+		return code
+	}
 	person, code := currentTeamUser(ctx)
 	if code != comm.CodeOK {
 		return code
@@ -82,7 +85,7 @@ func (h *TeamCreateApi) Run(ctx *gin.Context) kit.Code {
 		Password:   h.Request.Body.Password,
 		Slogan:     h.Request.Body.Slogan,
 		AllowMatch: *h.Request.Body.AllowMatch,
-		Captain:    person.OpenID,
+		Captain:    person.ID,
 		Submit:     false,
 		RouteName:  h.Request.Body.RouteName,
 		Status:     comm.TeamStatusNotStart,
@@ -96,22 +99,17 @@ func (h *TeamCreateApi) Run(ctx *gin.Context) kit.Code {
 	if team.Code != "" {
 		_ = teamCache.SetTeamIDByCode(ctx, team.Code, team.ID)
 	}
-	_ = peopleCache.DelPersonByOpenID(ctx, person.OpenID)
+	_ = peopleCache.DelPersonByID(ctx, person.ID)
 	h.Response.TeamID = team.ID
 	return comm.CodeOK
 }
 
 func currentTeamUser(ctx *gin.Context) (*model.People, kit.Code) {
-	openID := comm.GetOpenIDFromCtx(ctx)
-	if openID == "" {
+	userID, err := comm.GetUserIDFromCtx(ctx)
+	if err != nil || userID <= 0 {
 		return nil, comm.CodeNotLoggedIn
 	}
-	if comm.BizConf.AESSecret != "" {
-		if decrypted, err := comm.AesDecrypt(openID, comm.BizConf.AESSecret); err == nil && decrypted != "" {
-			openID = decrypted
-		}
-	}
-	person, err := repo.NewPeopleRepo().FindPeopleByOpenID(ctx, openID)
+	person, err := repo.NewPeopleRepo().FindPeopleByID(ctx, userID)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("查询当前用户失败")
 		return nil, comm.CodeServerError
@@ -135,22 +133,6 @@ func currentUserTeam(ctx *gin.Context, person *model.People) (*model.Team, kit.C
 		return nil, comm.CodeTeamNotFound
 	}
 	return team, comm.CodeOK
-}
-
-func teamMemberView(person *model.People) TeamMemberView {
-	return TeamMemberView{
-		Name:   person.Name,
-		Gender: person.Gender,
-		Campus: person.Campus,
-		ID:     int(person.ID),
-		Type:   person.Type,
-		Contact: TeamContact{
-			QQ:     person.Qq,
-			Wechat: person.Wechat,
-			Tel:    person.Tel,
-		},
-		WalkStatus: person.WalkStatus,
-	}
 }
 
 func hfTeamCreate(ctx *gin.Context) {

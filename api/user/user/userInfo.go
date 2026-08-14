@@ -28,6 +28,7 @@ type UserInfoApi struct {
 	Response UserInfoApiResponse
 }
 
+// UserContact 用于修改用户信息接口的联系方式请求体。
 type UserContact struct {
 	QQ     string `json:"qq" desc:"QQ号"`
 	Wechat string `json:"wechat" desc:"微信号"`
@@ -35,18 +36,19 @@ type UserContact struct {
 }
 
 type UserInfoApiResponse struct {
-	ID       int         `json:"id"`
-	Name     string      `json:"name" desc:"姓名"`
-	StuID    string      `json:"stu_id" desc:"学号"`
-	Gender   int8        `json:"gender" desc:"1男2女"`
-	Campus   string      `json:"campus" desc:"校区 枚举值:'zh''pf''mgs'" `
-	College  string      `json:"college" desc:"学院"`
-	Role     string      `json:"role" desc:"队伍中身份 枚举值'unbind''captain''member'"`
-	CreateOp uint8       `json:"create_op" desc:"剩余创建团队次数"`
-	JoinOp   uint8       `json:"join_op" desc:"剩余加入团队次数"`
-	TeamID   int64       `json:"team_id" desc:"团队ID"`
-	Type     string      `json:"type" desc:"人员类型 枚举值：'alumnus''student''teacher'"`
-	Contact  UserContact `json:"contact" desc:"联系方式"`
+	ID       int    `json:"id"`
+	PassCode int64  `json:"pass_code" desc:"个人通行码，即用户ID"`
+	Name     string `json:"name" desc:"姓名"`
+	Gender   int8   `json:"gender" desc:"性别 0未知1男2女"`
+	StuID    string `json:"stu_id" desc:"学号或工号"`
+	Tel      string `json:"tel" desc:"电话"`
+	Wechat   string `json:"wechat" desc:"微信号"`
+	QQ       string `json:"qq" desc:"QQ号"`
+	Role     string `json:"role" desc:"队伍中身份 枚举值'unbind''captain''member'"`
+	CreateOp uint8  `json:"create_op" desc:"剩余创建团队次数"`
+	JoinOp   uint8  `json:"join_op" desc:"剩余加入团队次数"`
+	TeamID   int64  `json:"team_id" desc:"团队ID"`
+	Type     string `json:"type" desc:"人员类型 枚举值：'alumnus''student''teacher'"`
 }
 
 func (h *UserInfoApi) Init(ctx *gin.Context) error { return nil }
@@ -58,36 +60,27 @@ func (h *UserInfoApi) Run(ctx *gin.Context) kit.Code {
 	}
 
 	h.Response.ID = int(person.ID)
+	h.Response.PassCode = person.ID
 	h.Response.Name = person.Name
-	h.Response.StuID = person.StuID
 	h.Response.Gender = person.Gender
-	h.Response.Campus = person.Campus
-	h.Response.College = person.College
+	h.Response.StuID = person.StuID
+	h.Response.Tel = person.Tel
+	h.Response.Wechat = person.Wechat
+	h.Response.QQ = person.Qq
 	h.Response.Role = person.Role
 	h.Response.CreateOp = person.CreatedOp
 	h.Response.JoinOp = person.JoinOp
 	h.Response.TeamID = person.TeamID
 	h.Response.Type = person.Type
-	h.Response.Contact = UserContact{
-		QQ:     person.Qq,
-		Wechat: person.Wechat,
-		Tel:    person.Tel,
-	}
 	return comm.CodeOK
 }
 
 func currentUserPerson(ctx *gin.Context) (*model.People, kit.Code) {
-	openID := comm.GetOpenIDFromCtx(ctx)
-	if openID == "" {
+	userID, err := comm.GetUserIDFromCtx(ctx)
+	if err != nil || userID <= 0 {
 		return nil, comm.CodeNotLoggedIn
 	}
-	if comm.BizConf.AESSecret != "" {
-		if decrypted, err := comm.AesDecrypt(openID, comm.BizConf.AESSecret); err == nil && decrypted != "" {
-			openID = decrypted
-		}
-	}
-
-	person, err := repo.NewPeopleRepo().FindPeopleByOpenID(ctx, openID)
+	person, err := repo.NewPeopleRepo().FindPeopleByID(ctx, userID)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("查询当前用户失败")
 		return nil, comm.CodeServerError

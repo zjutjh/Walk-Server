@@ -4,14 +4,28 @@ package comm
 var BizConf BizConfig
 
 type BizConfig struct {
-	AESSecret      string              `mapstructure:"aes_secret"`
-	WechatAppID    string              `mapstructure:"wechat_app_id"`
-	WechatSecret   string              `mapstructure:"wechat_secret"`
-	WechatRedirect string              `mapstructure:"wechat_redirect"`
-	FrontEndURL    string              `mapstructure:"front_end_url"`
-	StartDate      string              `mapstructure:"start_date"`
-	ExpiredDate    string              `mapstructure:"expired_date"`
-	MaxTeamSize    int                 `mapstructure:"max_team_size"`
-	TeamUpperLimit map[int]map[int]int `mapstructure:"team_upper_limit"`
-	RouteQuotaCodes map[string]int     `mapstructure:"route_quota_codes"`
+	IdentitySecret  string      `mapstructure:"identity_secret"`
+	Phases          PhaseConfig `mapstructure:"phases"`
+	MaxTeamSize     int         `mapstructure:"max_team_size"`
+	TeamTotalLimit  int         `mapstructure:"team_total_limit"`
+	DailyTeamLimits []int       `mapstructure:"daily_team_limits"`
+}
+
+type TimeRangeConfig struct {
+	Start string `mapstructure:"start"`
+	End   string `mapstructure:"end"`
+}
+
+type SubmissionPhaseConfig struct {
+	TimeRangeConfig `mapstructure:",squash"`
+	DailyStartTime  string `mapstructure:"daily_start_time"`
+	DailyEndTime    string `mapstructure:"daily_end_time"`
+}
+
+type PhaseConfig struct {
+	Registration TimeRangeConfig       `mapstructure:"registration"`
+	Submission   SubmissionPhaseConfig `mapstructure:"submission"`
+	Adjustment   TimeRangeConfig       `mapstructure:"adjustment"`
+	Preparation  TimeRangeConfig       `mapstructure:"preparation"`
+	Activity     TimeRangeConfig       `mapstructure:"activity"`
 }

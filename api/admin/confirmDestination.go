@@ -58,8 +58,8 @@ func (c *ConfirmDestinationApi) Run(ctx *gin.Context) kit.Code {
 	_ = teamCache.DeleteTeamInfo(ctx, teamID)
 	if members, err := repo.NewPeopleRepo().FindPeopleByTeamID(ctx, teamID); err == nil {
 		for _, member := range members {
-			if member != nil && member.OpenID != "" {
-				_ = peopleCache.DelPersonByOpenID(ctx, member.OpenID)
+			if member != nil {
+				_ = peopleCache.DelPersonByID(ctx, member.ID)
 			}
 		}
 	}

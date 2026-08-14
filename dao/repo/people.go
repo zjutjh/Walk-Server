@@ -5,7 +5,6 @@ import (
 	"errors"
 
 	"app/comm"
-	peoplecache "app/dao/cache/people"
 	"github.com/zjutjh/mygo/ndb"
 	"gorm.io/gorm"
 
@@ -40,25 +39,15 @@ func (r *PeopleRepo) FindPeopleByID(ctx context.Context, id int64) (*model.Peopl
 	return record, nil
 }
 
-// FindByOpenID 根据OpenID查询人员
-func (r *PeopleRepo) FindPeopleByOpenID(ctx context.Context, openID string) (*model.People, error) {
-	if people, hit, err := peoplecache.GetPersonByOpenID(ctx, openID); err == nil && hit {
-		return people, nil
-	}
-
-	p := r.query.People
-	record, err := p.WithContext(ctx).Where(p.OpenID.Eq(openID)).First()
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, nil
-	}
+func (r *PeopleRepo) FindPeopleByIdentity(ctx context.Context, identity string) (*model.People, error) {
+	digest, err := comm.EncryptIdentity(identity)
 	if err != nil {
 		return nil, err
 	}
-	_ = peoplecache.SetPersonByOpenID(ctx, record)
-	return record, nil
+	return r.FindPeopleByStoredIdentity(ctx, digest)
 }
 
-func (r *PeopleRepo) FindPeopleByIdentity(ctx context.Context, identity string) (*model.People, error) {
+func (r *PeopleRepo) FindPeopleByStoredIdentity(ctx context.Context, identity string) (*model.People, error) {
 	p := r.query.People
 	record, err := p.WithContext(ctx).Where(p.Identity.Eq(identity)).First()
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -105,10 +94,11 @@ func (r *PeopleRepo) FindPeopleByTel(ctx context.Context, tel string) (*model.Pe
 // FindByTeamID 查询队伍成员
 func (r *PeopleRepo) FindPeopleByTeamID(ctx context.Context, teamID int64) ([]*model.People, error) {
 	p := r.query.People
-	return p.WithContext(ctx).
+	records, err := p.WithContext(ctx).
 		Where(p.TeamID.Eq(teamID)).
 		Order(p.ID).
 		Find()
+	return records, err
 }
 
 func (r *PeopleRepo) ListByTeamID(ctx context.Context, teamID int64) ([]model.People, error) {
@@ -134,9 +124,23 @@ func (r *PeopleRepo) Create(ctx context.Context, person *model.People) error {
 	return nil
 }
 
-func (r *PeopleRepo) UpdateByOpenID(ctx context.Context, openID string, updates map[string]any) error {
+func (r *PeopleRepo) CompleteAlumnusRegistration(ctx context.Context, id int64, password string) error {
+	p := r.query.People
+	result, err := p.WithContext(ctx).Where(p.ID.Eq(id), p.Password.Eq("")).Updates(map[string]any{
+		"password": password,
+	})
+	if err != nil {
+		return err
+	}
+	if result.RowsAffected == 0 {
+		return gorm.ErrDuplicatedKey
+	}
+	return nil
+}
+
+func (r *PeopleRepo) UpdateByID(ctx context.Context, id int64, updates map[string]any) error {
 	_, err := r.query.People.WithContext(ctx).
-		Where(r.query.People.OpenID.Eq(openID)).
+		Where(r.query.People.ID.Eq(id)).
 		Updates(updates)
 	if err != nil {
 		return err
@@ -154,38 +158,12 @@ func (r *PeopleRepo) UpdateByTeamID(ctx context.Context, teamID int64, updates m
 	return nil
 }
 
-func (r *PeopleRepo) BindAlumnusOpenID(ctx context.Context, person *model.People, openID string) error {
-	if person == nil {
-		return nil
-	}
-
-	err := query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
-		if _, err := tx.People.WithContext(ctx).
-			Where(tx.People.ID.Eq(person.ID)).
-			UpdateSimple(tx.People.OpenID.Value(openID)); err != nil {
-			return err
-		}
-		if person.Role == comm.RoleCaptain {
-			if err := NewTeamRepoWithTx(tx).UpdateByID(ctx, person.TeamID, map[string]any{
-				"captain": openID,
-			}); err != nil {
-				return err
-			}
-		}
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (r *PeopleRepo) FindPeopleByIDs(ctx context.Context, ids []int64) ([]*model.People, error) {
 	p := r.query.People
-	return p.WithContext(ctx).
+	records, err := p.WithContext(ctx).
 		Where(p.ID.In(ids...)).
 		Find()
+	return records, err
 }
 
 func (r *PeopleRepo) CountMembersByTeamID(ctx context.Context, teamID int64) (int64, error) {

@@ -103,9 +103,7 @@ func (u *UpdateUserApi) Run(ctx *gin.Context) kit.Code {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("更改人员状态失败")
 		return comm.CodeServerError
 	}
-	if user.OpenID != "" {
-		_ = peopleCache.DelPersonByOpenID(ctx, user.OpenID)
-	}
+	_ = peopleCache.DelPersonByID(ctx, user.ID)
 	if user.TeamID > 0 {
 		_ = teamCache.DelTeamByID(ctx, user.TeamID)
 		_ = teamCache.DeleteTeamInfo(ctx, user.TeamID)

@@ -29,16 +29,14 @@ func newPeople(db *gorm.DB, opts ...gen.DOOption) people {
 	tableName := _people.peopleDo.TableName()
 	_people.ALL = field.NewAsterisk(tableName)
 	_people.ID = field.NewInt64(tableName, "id")
-	_people.OpenID = field.NewString(tableName, "open_id")
+	_people.Password = field.NewString(tableName, "password")
 	_people.Name = field.NewString(tableName, "name")
 	_people.Gender = field.NewInt8(tableName, "gender")
 	_people.StuID = field.NewString(tableName, "stu_id")
-	_people.Campus = field.NewString(tableName, "campus")
 	_people.Identity = field.NewString(tableName, "identity")
 	_people.Role = field.NewString(tableName, "role")
 	_people.Qq = field.NewString(tableName, "qq")
 	_people.Wechat = field.NewString(tableName, "wechat")
-	_people.College = field.NewString(tableName, "college")
 	_people.Tel = field.NewString(tableName, "tel")
 	_people.CreatedOp = field.NewUint8(tableName, "created_op")
 	_people.JoinOp = field.NewUint8(tableName, "join_op")
@@ -59,16 +57,14 @@ type people struct {
 
 	ALL        field.Asterisk
 	ID         field.Int64
-	OpenID     field.String // 微信OpenID
+	Password   field.String // bcrypt密码哈希
 	Name       field.String // 姓名
-	Gender     field.Int8   // 性别(1男,2女)
+	Gender     field.Int8   // 性别(0未知,1男,2女)
 	StuID      field.String // 学号
-	Campus     field.String // 校区(zh朝晖,pf屏峰,mgs莫干山)
 	Identity   field.String // 身份证号
 	Role       field.String // 队伍中身份(unbind未绑定,menber成员,captain队长)
 	Qq         field.String // QQ号
 	Wechat     field.String // 微信号
-	College    field.String // 学院
 	Tel        field.String // 联系电话
 	CreatedOp  field.Uint8  // 剩余创建团队次数
 	JoinOp     field.Uint8  // 剩余加入团队次数
@@ -95,16 +91,14 @@ func (p people) As(alias string) *people {
 func (p *people) updateTableName(table string) *people {
 	p.ALL = field.NewAsterisk(table)
 	p.ID = field.NewInt64(table, "id")
-	p.OpenID = field.NewString(table, "open_id")
+	p.Password = field.NewString(table, "password")
 	p.Name = field.NewString(table, "name")
 	p.Gender = field.NewInt8(table, "gender")
 	p.StuID = field.NewString(table, "stu_id")
-	p.Campus = field.NewString(table, "campus")
 	p.Identity = field.NewString(table, "identity")
 	p.Role = field.NewString(table, "role")
 	p.Qq = field.NewString(table, "qq")
 	p.Wechat = field.NewString(table, "wechat")
-	p.College = field.NewString(table, "college")
 	p.Tel = field.NewString(table, "tel")
 	p.CreatedOp = field.NewUint8(table, "created_op")
 	p.JoinOp = field.NewUint8(table, "join_op")
@@ -138,18 +132,16 @@ func (p *people) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (p *people) fillFieldMap() {
-	p.fieldMap = make(map[string]field.Expr, 20)
+	p.fieldMap = make(map[string]field.Expr, 19)
 	p.fieldMap["id"] = p.ID
-	p.fieldMap["open_id"] = p.OpenID
+	p.fieldMap["password"] = p.Password
 	p.fieldMap["name"] = p.Name
 	p.fieldMap["gender"] = p.Gender
 	p.fieldMap["stu_id"] = p.StuID
-	p.fieldMap["campus"] = p.Campus
 	p.fieldMap["identity"] = p.Identity
 	p.fieldMap["role"] = p.Role
 	p.fieldMap["qq"] = p.Qq
 	p.fieldMap["wechat"] = p.Wechat
-	p.fieldMap["college"] = p.College
 	p.fieldMap["tel"] = p.Tel
 	p.fieldMap["created_op"] = p.CreatedOp
 	p.fieldMap["join_op"] = p.JoinOp

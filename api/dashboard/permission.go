@@ -37,12 +37,9 @@ type PermissionApiResponse struct {
 	PointName  string `json:"point_name" desc:"负责的点位name"`
 }
 
-// Run Api业务逻辑执行点
 func (p *PermissionApi) Run(ctx *gin.Context) kit.Code {
-	// TODO: 在此处编写接口业务逻辑
-	admin, ok := repo.GetAdminInfo(ctx) //从中间件获取管理员信息（虽然理论上不应该从中间拿，而是serveice，但是就这样吧
+	admin, ok := repo.GetAdminInfo(ctx)
 	if !ok {
-		//reply.Fail(ctx, comm.CodeUnknownError)  get Fall过了,这里不fall
 		return comm.CodeServerError
 	}
 
@@ -54,12 +51,10 @@ func (p *PermissionApi) Run(ctx *gin.Context) kit.Code {
 	return comm.CodeOK
 }
 
-// Init Api初始化 进行参数校验和绑定
 func (p *PermissionApi) Init(ctx *gin.Context) (err error) {
 	return err
 }
 
-// hfPermission API执行入口
 func hfPermission(ctx *gin.Context) {
 	api := &PermissionApi{}
 	err := api.Init(ctx)

@@ -165,8 +165,8 @@ func (b *BindCodeApi) Run(ctx *gin.Context) kit.Code {
 	}
 	if members, err := repo.NewPeopleRepo().FindPeopleByTeamID(ctx, team.ID); err == nil {
 		for _, member := range members {
-			if member != nil && member.OpenID != "" {
-				_ = peopleCache.DelPersonByOpenID(ctx, member.OpenID)
+			if member != nil {
+				_ = peopleCache.DelPersonByID(ctx, member.ID)
 			}
 		}
 	}

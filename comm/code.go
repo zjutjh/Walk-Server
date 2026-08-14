@@ -54,4 +54,7 @@ var (
 	CodeBindCodeDuplicated      = kit.NewCode(200338, "签到码已被绑定")
 	CodeDailyQuotaFull          = kit.NewCode(200339, "当天名额已满")
 	CodeActivityQuotaFull       = kit.NewCode(200340, "活动名额已满")
+	CodePreparationForbidden    = kit.NewCode(200342, "毅行筹备期间不可进行该操作")
+	CodeActivityForbidden       = kit.NewCode(200343, "毅行期间不可进行该操作")
+	CodeAdjustmentCannotSubmit  = kit.NewCode(200344, "队伍调整期间不可提交队伍")
 )

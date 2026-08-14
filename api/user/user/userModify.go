@@ -37,6 +37,9 @@ type UserModifyApiRequest struct {
 
 func (h *UserModifyApi) Init(ctx *gin.Context) error { return ctx.ShouldBindJSON(&h.Request.Body) }
 func (h *UserModifyApi) Run(ctx *gin.Context) kit.Code {
+	if code := comm.CheckBizPhase(comm.PhaseRegistration, comm.PhaseAdjustment); code != comm.CodeOK {
+		return code
+	}
 	person, code := currentUserPerson(ctx)
 	if code != comm.CodeOK {
 		return code

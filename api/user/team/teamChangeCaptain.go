@@ -39,6 +39,9 @@ func (h *TeamChangeCaptainApi) Init(ctx *gin.Context) error {
 	return ctx.ShouldBindJSON(&h.Request.Body)
 }
 func (h *TeamChangeCaptainApi) Run(ctx *gin.Context) kit.Code {
+	if code := comm.CheckBizPhase(comm.PhaseRegistration, comm.PhaseAdjustment); code != comm.CodeOK {
+		return code
+	}
 	person, code := currentTeamUser(ctx)
 	if code != comm.CodeOK {
 		return code
@@ -54,7 +57,7 @@ func (h *TeamChangeCaptainApi) Run(ctx *gin.Context) kit.Code {
 	if err != nil {
 		return comm.CodeServerError
 	}
-	if submitted {
+	if submitted && !comm.IsInBizPhase(comm.PhaseAdjustment) {
 		return comm.CodeTeamSubmitted
 	}
 	newCaptain, err := repo.NewPeopleRepo().FindPeopleByID(ctx, h.Request.Body.ID)

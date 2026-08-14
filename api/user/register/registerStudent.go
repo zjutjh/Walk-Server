@@ -51,6 +51,9 @@ func (h *RegisterStudentApi) Init(ctx *gin.Context) error {
 }
 
 func (h *RegisterStudentApi) Run(ctx *gin.Context) kit.Code {
+	if code := comm.CheckBizPhase(comm.PhaseRegistration); code != comm.CodeOK {
+		return code
+	}
 	info, code := fetchRegisterOAuthInfo(ctx, h.Request.Body.StuID, h.Request.Body.Password)
 	if code != comm.CodeOK {
 		return code

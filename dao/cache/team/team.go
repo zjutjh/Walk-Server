@@ -22,6 +22,7 @@ const (
 	teamByIDCacheKeyPrefix     = "walk:user:team:info"
 	teamCacheTTL               = time.Hour
 	submittedTeamsKey          = "teams"
+	submittedTeamDaysKey       = "walk:team:submitted_days"
 	totalTeamQuotaKey          = "walk:team:quota:total"
 	teamInfoCacheKeyPrefix     = "dashboard:teams:info"
 	teamInfoCacheTTL           = 60 * time.Second
@@ -36,6 +37,8 @@ var submitTeamScript = redis.NewScript(`
 local teamID = KEYS[1]
 local dailyQuotaKey = KEYS[2]
 local totalQuotaKey = KEYS[3]
+local submittedDaysKey = KEYS[4]
+local day = ARGV[1]
 
 local submitted = redis.call("SISMEMBER", "teams", teamID)
 if submitted == 1 then
@@ -53,6 +56,7 @@ if not daily or tonumber(daily) <= 0 then
 end
 
 redis.call("SADD", "teams", teamID)
+redis.call("HSET", submittedDaysKey, teamID, day)
 redis.call("DECR", dailyQuotaKey)
 redis.call("DECR", totalQuotaKey)
 return 0
@@ -160,33 +164,46 @@ func SubmitTeam(ctx context.Context, teamID int64, day int) (int64, error) {
 			strconv.FormatInt(teamID, 10),
 			buildDailyTeamQuotaKey(day),
 			totalTeamQuotaKey,
+			submittedTeamDaysKey,
 		},
+		day,
 	).Int64()
 }
 
-func RollbackTeamSubmit(ctx context.Context, teamID int64, day int) (bool, error) {
+func RollbackTeamSubmit(ctx context.Context, teamID int64, fallbackDay int) (bool, int, error) {
 	teamIDValue := strconv.FormatInt(teamID, 10)
 	submitted, err := client().SIsMember(ctx, submittedTeamsKey, teamIDValue).Result()
 	if err != nil {
-		return false, err
+		return false, 0, err
 	}
 	if !submitted {
-		return false, nil
+		return false, 0, nil
+	}
+	day := fallbackDay
+	if value, err := client().HGet(ctx, submittedTeamDaysKey, teamIDValue).Int(); err == nil {
+		day = value
+	} else if err != redis.Nil {
+		return false, 0, err
 	}
 	if err := client().SRem(ctx, submittedTeamsKey, teamIDValue).Err(); err != nil {
-		return false, err
+		return false, 0, err
 	}
+	_ = client().HDel(ctx, submittedTeamDaysKey, teamIDValue).Err()
 	if err := client().Incr(ctx, buildDailyTeamQuotaKey(day)).Err(); err != nil {
-		return false, err
+		return false, 0, err
 	}
 	if err := client().Incr(ctx, totalTeamQuotaKey).Err(); err != nil {
-		return false, err
+		return false, 0, err
 	}
-	return true, nil
+	return true, day, nil
 }
 
 func RestoreSubmittedTeam(ctx context.Context, teamID int64, day int) error {
-	if err := client().SAdd(ctx, submittedTeamsKey, strconv.FormatInt(teamID, 10)).Err(); err != nil {
+	teamIDValue := strconv.FormatInt(teamID, 10)
+	if err := client().SAdd(ctx, submittedTeamsKey, teamIDValue).Err(); err != nil {
+		return err
+	}
+	if err := client().HSet(ctx, submittedTeamDaysKey, teamIDValue, day).Err(); err != nil {
 		return err
 	}
 	if err := client().Decr(ctx, buildDailyTeamQuotaKey(day)).Err(); err != nil {

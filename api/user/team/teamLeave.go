@@ -31,6 +31,9 @@ type TeamLeaveApi struct {
 
 func (h *TeamLeaveApi) Init(ctx *gin.Context) error { return nil }
 func (h *TeamLeaveApi) Run(ctx *gin.Context) kit.Code {
+	if code := comm.CheckBizPhase(comm.PhaseRegistration, comm.PhaseAdjustment); code != comm.CodeOK {
+		return code
+	}
 	person, code := currentTeamUser(ctx)
 	if code != comm.CodeOK {
 		return code
@@ -46,7 +49,7 @@ func (h *TeamLeaveApi) Run(ctx *gin.Context) kit.Code {
 	if err != nil {
 		return comm.CodeServerError
 	}
-	if submitted {
+	if submitted && !comm.IsInBizPhase(comm.PhaseAdjustment) {
 		return comm.CodeTeamSubmitted
 	}
 	ok, err := repo.NewTeamRepo().RemoveMember(ctx, team.ID, person)

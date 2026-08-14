@@ -62,7 +62,7 @@ func (h *TeamSubmitApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeActivityQuotaFull
 	}
 	if err := repo.NewTeamRepo().UpdateByID(ctx, team.ID, map[string]any{"submit": true}); err != nil {
-		_, _ = teamCache.RollbackTeamSubmit(ctx, team.ID, day)
+		_, _, _ = teamCache.RollbackTeamSubmit(ctx, team.ID, day)
 		return comm.CodeServerError
 	}
 	_ = teamCache.DelTeamByID(ctx, team.ID)
@@ -71,12 +71,18 @@ func (h *TeamSubmitApi) Run(ctx *gin.Context) kit.Code {
 }
 
 func teamQuotaDay(ctx *gin.Context) (int, kit.Code) {
-	if !comm.IsInRegisterTime() {
-		return 0, comm.CodeNotInRegisterTime
-	}
-	day := comm.CurrentActivityDay()
-	if _, ok := comm.DailyTeamLimit(day); !ok {
-		nlog.Pick().WithContext(ctx).Warn("未配置当天提交名额")
+	day, ok := comm.CurrentSubmissionDay()
+	if !ok {
+		if comm.IsInBizPhase(comm.PhaseAdjustment) {
+			return 0, comm.CodeAdjustmentCannotSubmit
+		}
+		if comm.IsInBizPhase(comm.PhasePreparation) {
+			return 0, comm.CodePreparationForbidden
+		}
+		if comm.IsInBizPhase(comm.PhaseActivity) {
+			return 0, comm.CodeActivityForbidden
+		}
+		nlog.Pick().WithContext(ctx).Warn("当前不在每日抢票开放时间")
 		return 0, comm.CodeNotInRegisterTime
 	}
 	return day, comm.CodeOK

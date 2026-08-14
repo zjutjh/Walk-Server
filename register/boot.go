@@ -56,19 +56,6 @@ func BizConfBoot() func() error {
 		if err != nil {
 			return fmt.Errorf("%w: 解析应用业务配置错误: %w", kit.ErrDataUnmarshal, err)
 		}
-		legacy := struct {
-			StartDate   string `mapstructure:"startDate"`
-			ExpiredDate string `mapstructure:"expiredDate"`
-		}{}
-		if err := config.Pick().Unmarshal(&legacy); err != nil {
-			return fmt.Errorf("%w: 解析旧版业务配置错误: %w", kit.ErrDataUnmarshal, err)
-		}
-		if comm.BizConf.StartDate == "" {
-			comm.BizConf.StartDate = legacy.StartDate
-		}
-		if comm.BizConf.ExpiredDate == "" {
-			comm.BizConf.ExpiredDate = legacy.ExpiredDate
-		}
 		if err := comm.ValidateBizConfig(); err != nil {
 			return fmt.Errorf("业务配置校验失败: %w", err)
 		}

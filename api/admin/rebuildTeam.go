@@ -79,9 +79,6 @@ func (r *RebuildApi) Run(ctx *gin.Context) kit.Code {
 			if member == nil {
 				return gorm.ErrRecordNotFound
 			}
-			if member.WalkStatus != comm.WalkStatusNotStart && member.WalkStatus != comm.WalkStatusPending {
-				return gorm.ErrInvalidData
-			}
 			memberMap[member.ID] = member
 		}
 

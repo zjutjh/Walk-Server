@@ -25,22 +25,6 @@ func BuildPersonByIDCacheKey(id int64) string {
 	return personByIDCacheKeyPrefix + ":" + strconv.FormatInt(id, 10)
 }
 
-func GetPersonByID(ctx context.Context, id int64) (*model.People, bool, error) {
-	value, err := client().Get(ctx, BuildPersonByIDCacheKey(id)).Result()
-	if err == redis.Nil {
-		return nil, false, nil
-	}
-	if err != nil {
-		return nil, false, err
-	}
-
-	var people model.People
-	if err := json.Unmarshal([]byte(value), &people); err != nil {
-		return nil, false, err
-	}
-	return &people, true, nil
-}
-
 func SetPersonByID(ctx context.Context, people *model.People) error {
 	if people == nil || people.ID <= 0 {
 		return nil

@@ -1,15 +1,10 @@
 package comm
 
 import (
-	"crypto/aes"
-	"crypto/cipher"
 	"crypto/hmac"
-	"crypto/rand"
 	"crypto/sha256"
-	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	"io"
 	"strconv"
 	"strings"
 	"time"
@@ -30,57 +25,6 @@ func GetUserIDFromCtx(ctx *gin.Context) (int64, error) {
 		return 0, err
 	}
 	return strconv.ParseInt(identity, 10, 64)
-}
-
-// AesEncrypt AES 加密
-func AesEncrypt(plaintext, key string) (string, error) {
-	block, err := aes.NewCipher([]byte(padKey(key)))
-	if err != nil {
-		return "", err
-	}
-	aesGCM, err := cipher.NewGCM(block)
-	if err != nil {
-		return "", err
-	}
-	nonce := make([]byte, aesGCM.NonceSize())
-	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
-		return "", err
-	}
-	ciphertext := aesGCM.Seal(nonce, nonce, []byte(plaintext), nil)
-	return base64.StdEncoding.EncodeToString(ciphertext), nil
-}
-
-// AesDecrypt AES 解密
-func AesDecrypt(cipherStr, key string) (string, error) {
-	ciphertext, err := base64.StdEncoding.DecodeString(cipherStr)
-	if err != nil {
-		return "", err
-	}
-	block, err := aes.NewCipher([]byte(padKey(key)))
-	if err != nil {
-		return "", err
-	}
-	aesGCM, err := cipher.NewGCM(block)
-	if err != nil {
-		return "", err
-	}
-	nonceSize := aesGCM.NonceSize()
-	if len(ciphertext) < nonceSize {
-		return "", fmt.Errorf("ciphertext too short")
-	}
-	nonce, ciphertext := ciphertext[:nonceSize], ciphertext[nonceSize:]
-	plaintext, err := aesGCM.Open(nil, nonce, ciphertext, nil)
-	if err != nil {
-		return "", err
-	}
-	return string(plaintext), nil
-}
-
-func padKey(key string) string {
-	if len(key) >= 32 {
-		return key[:32]
-	}
-	return key + strings.Repeat("0", 32-len(key))
 }
 
 func NormalizeIdentity(identity string) string {
@@ -105,14 +49,6 @@ func ValidateBizConfig() error {
 	}
 	if err := validateDateTimeConfig("biz.expired_date", BizConf.ExpiredDate); err != nil {
 		return err
-	}
-	if BizConf.AESSecret != "" {
-		if BizConf.AESSecret == "walk_aes_secret" {
-			return fmt.Errorf("biz.aes_secret must not use the example value")
-		}
-		if len(BizConf.AESSecret) < 16 {
-			return fmt.Errorf("biz.aes_secret must be at least 16 characters")
-		}
 	}
 	if len(BizConf.IdentitySecret) < 32 {
 		return fmt.Errorf("biz.identity_secret must be at least 32 characters")
@@ -139,18 +75,6 @@ func validateDateTimeConfig(name, value string) error {
 		return fmt.Errorf("%s must use format %q: %w", name, time.DateTime, err)
 	}
 	return nil
-}
-
-// IsExpired 判断是否已过报名截止时间
-func IsExpired() bool {
-	if BizConf.ExpiredDate == "" {
-		return false
-	}
-	expiredTime, err := time.ParseInLocation(time.DateTime, BizConf.ExpiredDate, time.Local)
-	if err != nil {
-		return false
-	}
-	return time.Now().After(expiredTime)
 }
 
 func CurrentActivityDay() int {

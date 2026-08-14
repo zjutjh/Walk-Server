@@ -29,7 +29,6 @@ func newAdmin(db *gorm.DB, opts ...gen.DOOption) admin {
 	tableName := _admin.adminDo.TableName()
 	_admin.ALL = field.NewAsterisk(tableName)
 	_admin.ID = field.NewInt64(tableName, "id")
-	_admin.OpenID = field.NewString(tableName, "open_id")
 	_admin.Name = field.NewString(tableName, "name")
 	_admin.Account = field.NewString(tableName, "account")
 	_admin.Password = field.NewString(tableName, "password")
@@ -49,7 +48,6 @@ type admin struct {
 
 	ALL        field.Asterisk
 	ID         field.Int64
-	OpenID     field.String // 微信OpenID
 	Name       field.String
 	Account    field.String
 	Password   field.String
@@ -75,7 +73,6 @@ func (a admin) As(alias string) *admin {
 func (a *admin) updateTableName(table string) *admin {
 	a.ALL = field.NewAsterisk(table)
 	a.ID = field.NewInt64(table, "id")
-	a.OpenID = field.NewString(table, "open_id")
 	a.Name = field.NewString(table, "name")
 	a.Account = field.NewString(table, "account")
 	a.Password = field.NewString(table, "password")
@@ -108,9 +105,8 @@ func (a *admin) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (a *admin) fillFieldMap() {
-	a.fieldMap = make(map[string]field.Expr, 10)
+	a.fieldMap = make(map[string]field.Expr, 9)
 	a.fieldMap["id"] = a.ID
-	a.fieldMap["open_id"] = a.OpenID
 	a.fieldMap["name"] = a.Name
 	a.fieldMap["account"] = a.Account
 	a.fieldMap["password"] = a.Password

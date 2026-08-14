@@ -31,7 +31,6 @@ var (
 	CodeTeamNameDuplicated      = kit.NewCode(200310, "团队名称已存在")
 	CodePasswordWrong           = kit.NewCode(200311, "密码错误")
 	CodeTeamNotEnough           = kit.NewCode(200312, "当前团队人数不足")
-	CodeWechatCodeMissing       = kit.NewCode(200314, "微信Code缺失")
 	CodeAccountOrPasswordError  = kit.NewCode(200315, "账号或密码错误")
 	CodeTeamNotFound            = kit.NewCode(200316, "团队不存在")
 	CodeUserNoQuota             = kit.NewCode(200317, "该用户没有名额")

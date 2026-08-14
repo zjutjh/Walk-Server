@@ -29,25 +29,20 @@ func RegisterStudentHandler() gin.HandlerFunc {
 }
 
 type RegisterStudentApi struct {
-	Info     struct{} `name:"学生报名" desc:"学生报名接口"`
+	Info     struct{} `name:"学生报名"`
 	Request  RegisterStudentApiRequest
 	Response struct{}
 }
 
-type RegisterContact struct {
-	QQ     string `json:"qq" desc:"QQ号"`
-	Wechat string `json:"wechat" desc:"微信号"`
-	Tel    string `json:"tel" desc:"电话" binding:"required"`
-}
-
 type RegisterStudentApiRequest struct {
 	Body struct {
-		StuID    string          `json:"stu_id" desc:"学号" binding:"required"`
-		Password string          `json:"password" desc:"密码" binding:"required"`
-		Identity string          `json:"identity" desc:"身份证号" binding:"required"`
-		Campus   string          `json:"campus" desc:"校区枚举值" binding:"required"`
-		College  string          `json:"college" desc:"学院" binding:"required"`
-		Contact  RegisterContact `json:"contact" desc:"联系方式" binding:"required"`
+		Name     string `json:"name" desc:"姓名" binding:"required"`
+		StuID    string `json:"stu_id" desc:"学号" binding:"required"`
+		Password string `json:"password" desc:"密码" binding:"required"`
+		Identity string `json:"identity" desc:"身份证号" binding:"required"`
+		Tel      string `json:"tel" desc:"电话" binding:"required"`
+		Wechat   string `json:"wechat" desc:"微信号"`
+		QQ       string `json:"qq" desc:"QQ号"`
 	}
 }
 
@@ -56,11 +51,6 @@ func (h *RegisterStudentApi) Init(ctx *gin.Context) error {
 }
 
 func (h *RegisterStudentApi) Run(ctx *gin.Context) kit.Code {
-	campus, ok := comm.ParseCampus(h.Request.Body.Campus)
-	if !ok {
-		return comm.CodeParameterInvalid
-	}
-
 	info, code := fetchRegisterOAuthInfo(ctx, h.Request.Body.StuID, h.Request.Body.Password)
 	if code != comm.CodeOK {
 		return code
@@ -68,18 +58,29 @@ func (h *RegisterStudentApi) Run(ctx *gin.Context) kit.Code {
 	if info.UserTypeDesc == "教师职工" || info.UserTypeDesc == "人才派遣" {
 		return comm.CodeNonStudentRegister
 	}
+	if info.Name != h.Request.Body.Name {
+		return comm.CodePeopleInfoWrong
+	}
+	password, err := comm.Hash(h.Request.Body.Password)
+	if err != nil {
+		return comm.CodeServerError
+	}
+	identity, err := comm.EncryptIdentity(h.Request.Body.Identity)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("散列身份证号失败")
+		return comm.CodeServerError
+	}
 
 	return createRegisterPerson(ctx, &model.People{
+		Password:   password,
 		Name:       info.Name,
 		Gender:     comm.ParseGender(info.Gender),
 		StuID:      h.Request.Body.StuID,
-		Campus:     campus,
-		Identity:   h.Request.Body.Identity,
+		Identity:   identity,
 		Role:       comm.RoleUnbind,
-		Qq:         h.Request.Body.Contact.QQ,
-		Wechat:     h.Request.Body.Contact.Wechat,
-		College:    h.Request.Body.College,
-		Tel:        h.Request.Body.Contact.Tel,
+		Qq:         h.Request.Body.QQ,
+		Wechat:     h.Request.Body.Wechat,
+		Tel:        h.Request.Body.Tel,
 		IsViolated: false,
 		CreatedOp:  3,
 		JoinOp:     5,
@@ -90,27 +91,8 @@ func (h *RegisterStudentApi) Run(ctx *gin.Context) kit.Code {
 }
 
 func createRegisterPerson(ctx *gin.Context, person *model.People) kit.Code {
-	openID := comm.GetOpenIDFromCtx(ctx)
-	if openID == "" {
-		return comm.CodeNotLoggedIn
-	}
-	if comm.BizConf.AESSecret != "" {
-		if decrypted, err := comm.AesDecrypt(openID, comm.BizConf.AESSecret); err == nil && decrypted != "" {
-			openID = decrypted
-		}
-	}
-
 	peopleRepo := repo.NewPeopleRepo()
-	existing, err := peopleRepo.FindPeopleByOpenID(ctx, openID)
-	if err != nil {
-		nlog.Pick().WithContext(ctx).WithError(err).Warn("查询OpenID报名记录失败")
-		return comm.CodeServerError
-	}
-	if existing != nil {
-		return comm.CodeAlreadyRegistered
-	}
-
-	byIdentity, err := peopleRepo.FindPeopleByIdentity(ctx, person.Identity)
+	byIdentity, err := peopleRepo.FindPeopleByStoredIdentity(ctx, person.Identity)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("查询身份证报名记录失败")
 		return comm.CodeServerError
@@ -139,7 +121,6 @@ func createRegisterPerson(ctx *gin.Context, person *model.People) kit.Code {
 		}
 	}
 
-	person.OpenID = openID
 	if err := peopleRepo.Create(ctx, person); err != nil {
 		if isRegisterDuplicateError(err) {
 			return comm.CodeAlreadyRegistered
@@ -147,7 +128,7 @@ func createRegisterPerson(ctx *gin.Context, person *model.People) kit.Code {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("创建报名记录失败")
 		return comm.CodeServerError
 	}
-	_ = peopleCache.SetPersonByOpenID(ctx, person)
+	_ = peopleCache.SetPersonByID(ctx, person)
 	return comm.CodeOK
 }
 

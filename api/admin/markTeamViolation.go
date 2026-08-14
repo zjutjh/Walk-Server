@@ -64,8 +64,8 @@ func (m *MarkTeamViolationApi) Run(ctx *gin.Context) kit.Code {
 	}
 	if members, err := repo.NewPeopleRepo().FindPeopleByTeamID(ctx, teamID); err == nil {
 		for _, member := range members {
-			if member != nil && member.OpenID != "" {
-				_ = peopleCache.DelPersonByOpenID(ctx, member.OpenID)
+			if member != nil {
+				_ = peopleCache.DelPersonByID(ctx, member.ID)
 			}
 		}
 	}

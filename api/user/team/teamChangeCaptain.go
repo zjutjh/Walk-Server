@@ -47,7 +47,7 @@ func (h *TeamChangeCaptainApi) Run(ctx *gin.Context) kit.Code {
 	if code != comm.CodeOK {
 		return code
 	}
-	if !(person != nil && team != nil && person.Role == comm.RoleCaptain && team.Captain == person.OpenID) {
+	if !(person != nil && team != nil && person.Role == comm.RoleCaptain && team.Captain == person.ID) {
 		return comm.CodeNotCaptain
 	}
 	submitted, err := teamCache.IsTeamSubmitted(ctx, team.ID)
@@ -61,19 +61,16 @@ func (h *TeamChangeCaptainApi) Run(ctx *gin.Context) kit.Code {
 	if err != nil {
 		return comm.CodeServerError
 	}
-	if newCaptain == nil {
+	if newCaptain == nil || newCaptain.TeamID != team.ID {
 		return comm.CodePeopleNotFound
 	}
-	if person.Type != comm.MemberTypeStudent && newCaptain.Type == comm.MemberTypeStudent {
-		return comm.CodeCannotChangeCaptain
-	}
-	if err := repo.NewTeamRepo().ChangeCaptain(ctx, team.ID, person.OpenID, newCaptain.OpenID); err != nil {
+	if err := repo.NewTeamRepo().ChangeCaptain(ctx, team.ID, person.ID, newCaptain.ID); err != nil {
 		return comm.CodeServerError
 	}
 	_ = teamCache.DelTeamByID(ctx, team.ID)
 	_ = teamCache.DeleteTeamInfo(ctx, team.ID)
-	_ = peopleCache.DelPersonByOpenID(ctx, person.OpenID)
-	_ = peopleCache.DelPersonByOpenID(ctx, newCaptain.OpenID)
+	_ = peopleCache.DelPersonByID(ctx, person.ID)
+	_ = peopleCache.DelPersonByID(ctx, newCaptain.ID)
 	return comm.CodeOK
 }
 

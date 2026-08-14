@@ -13,16 +13,14 @@ const TableNamePeople = "peoples"
 // People mapped from table <peoples>
 type People struct {
 	ID         int64     `gorm:"column:id;primaryKey;autoIncrement:true" json:"id"`
-	OpenID     string    `gorm:"column:open_id;not null;comment:微信OpenID" json:"open_id"`                                     // 微信OpenID
+	Password   string    `gorm:"column:password;not null;comment:bcrypt密码哈希" json:"-"`
 	Name       string    `gorm:"column:name;not null;comment:姓名" json:"name"`                                                 // 姓名
-	Gender     int8      `gorm:"column:gender;not null;comment:性别(1男,2女)" json:"gender"`                                      // 性别(1男,2女)
+	Gender     int8      `gorm:"column:gender;not null;default:0;comment:性别(0未知,1男,2女)" json:"gender"`                        // 性别(0未知,1男,2女)
 	StuID      string    `gorm:"column:stu_id;comment:学号" json:"stu_id"`                                                      // 学号
-	Campus     string    `gorm:"column:campus;not null;comment:校区(zh朝晖,pf屏峰,mgs莫干山)" json:"campus"`                           // 校区(zh朝晖,pf屏峰,mgs莫干山)
-	Identity   string    `gorm:"column:identity;not null;comment:身份证号" json:"identity"`                                       // 身份证号
+	Identity   string    `gorm:"column:identity;not null;comment:身份证号HMAC-SHA256摘要" json:"-"`                                 // 身份证号摘要
 	Role       string    `gorm:"column:role;not null;default:unbind;comment:队伍中身份(unbind未绑定,menber成员,captain队长)" json:"role"` // 队伍中身份(unbind未绑定,menber成员,captain队长)
 	Qq         string    `gorm:"column:qq;comment:QQ号" json:"qq"`                                                             // QQ号
 	Wechat     string    `gorm:"column:wechat;comment:微信号" json:"wechat"`                                                     // 微信号
-	College    string    `gorm:"column:college;not null;comment:学院" json:"college"`                                           // 学院
 	Tel        string    `gorm:"column:tel;not null;comment:联系电话" json:"tel"`                                                 // 联系电话
 	CreatedOp  uint8     `gorm:"column:created_op;not null;default:3;comment:剩余创建团队次数" json:"created_op"`                     // 剩余创建团队次数
 	JoinOp     uint8     `gorm:"column:join_op;not null;default:5;comment:剩余加入团队次数" json:"join_op"`                           // 剩余加入团队次数

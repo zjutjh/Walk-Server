@@ -38,17 +38,17 @@ func (h *TeamSubmitApi) Run(ctx *gin.Context) kit.Code {
 	if code != comm.CodeOK {
 		return code
 	}
-	if !(person != nil && team != nil && person.Role == comm.RoleCaptain && team.Captain == person.OpenID) {
+	if !(person != nil && team != nil && person.Role == comm.RoleCaptain && team.Captain == person.ID) {
 		return comm.CodeNotCaptain
 	}
 	if team.Num < 4 {
 		return comm.CodeTeamNotEnough
 	}
-	day, routeCode, code := teamQuotaRoute(ctx, team.RouteName)
+	day, code := teamQuotaDay(ctx)
 	if code != comm.CodeOK {
 		return code
 	}
-	result, err := teamCache.SubmitTeam(ctx, team.ID, day, routeCode)
+	result, err := teamCache.SubmitTeam(ctx, team.ID, day)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("提交团队扣减名额失败")
 		return comm.CodeServerError
@@ -57,10 +57,12 @@ func (h *TeamSubmitApi) Run(ctx *gin.Context) kit.Code {
 	case 1:
 		return comm.CodeTeamSubmitted
 	case 2:
-		return comm.CodeUserNoQuota
+		return comm.CodeDailyQuotaFull
+	case 3:
+		return comm.CodeActivityQuotaFull
 	}
 	if err := repo.NewTeamRepo().UpdateByID(ctx, team.ID, map[string]any{"submit": true}); err != nil {
-		_, _ = teamCache.RollbackTeamSubmit(ctx, team.ID, day, routeCode)
+		_, _ = teamCache.RollbackTeamSubmit(ctx, team.ID, day)
 		return comm.CodeServerError
 	}
 	_ = teamCache.DelTeamByID(ctx, team.ID)
@@ -68,18 +70,16 @@ func (h *TeamSubmitApi) Run(ctx *gin.Context) kit.Code {
 	return comm.CodeOK
 }
 
-func teamQuotaRoute(ctx *gin.Context, routeName string) (int, int, kit.Code) {
+func teamQuotaDay(ctx *gin.Context) (int, kit.Code) {
+	if !comm.IsInRegisterTime() {
+		return 0, comm.CodeNotInRegisterTime
+	}
 	day := comm.CurrentActivityDay()
-	routeCode, ok := comm.RouteQuotaCode(routeName)
-	if !ok {
-		nlog.Pick().WithContext(ctx).Warn("路线未配置提交名额编号")
-		return 0, 0, comm.CodeNotInRegisterTime
+	if _, ok := comm.DailyTeamLimit(day); !ok {
+		nlog.Pick().WithContext(ctx).Warn("未配置当天提交名额")
+		return 0, comm.CodeNotInRegisterTime
 	}
-	if _, ok := comm.TeamUpperLimit(day, routeCode); !ok {
-		nlog.Pick().WithContext(ctx).Warn("未配置当天路线提交名额")
-		return 0, 0, comm.CodeNotInRegisterTime
-	}
-	return day, routeCode, comm.CodeOK
+	return day, comm.CodeOK
 }
 
 func hfTeamSubmit(ctx *gin.Context) {

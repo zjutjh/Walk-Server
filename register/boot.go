@@ -57,9 +57,8 @@ func BizConfBoot() func() error {
 			return fmt.Errorf("%w: 解析应用业务配置错误: %w", kit.ErrDataUnmarshal, err)
 		}
 		legacy := struct {
-			StartDate      string              `mapstructure:"startDate"`
-			ExpiredDate    string              `mapstructure:"expiredDate"`
-			TeamUpperLimit map[int]map[int]int `mapstructure:"teamUpperLimit"`
+			StartDate   string `mapstructure:"startDate"`
+			ExpiredDate string `mapstructure:"expiredDate"`
 		}{}
 		if err := config.Pick().Unmarshal(&legacy); err != nil {
 			return fmt.Errorf("%w: 解析旧版业务配置错误: %w", kit.ErrDataUnmarshal, err)
@@ -69,9 +68,6 @@ func BizConfBoot() func() error {
 		}
 		if comm.BizConf.ExpiredDate == "" {
 			comm.BizConf.ExpiredDate = legacy.ExpiredDate
-		}
-		if len(comm.BizConf.TeamUpperLimit) == 0 {
-			comm.BizConf.TeamUpperLimit = legacy.TeamUpperLimit
 		}
 		if err := comm.ValidateBizConfig(); err != nil {
 			return fmt.Errorf("业务配置校验失败: %w", err)
@@ -89,11 +85,12 @@ func AppBoot() func() error {
 
 func TeamQuotaBoot() func() error {
 	return func() error {
-		for day, routeLimits := range comm.BizConf.TeamUpperLimit {
-			for routeCode, limit := range routeLimits {
-				if err := teamCache.InitDailyRouteQuota(context.Background(), day, routeCode, limit); err != nil {
-					return err
-				}
+		if err := teamCache.InitTotalTeamQuota(context.Background(), comm.BizConf.TeamTotalLimit); err != nil {
+			return err
+		}
+		for day, limit := range comm.BizConf.DailyTeamLimits {
+			if err := teamCache.InitDailyTeamQuota(context.Background(), day, limit); err != nil {
+				return err
 			}
 		}
 		return nil

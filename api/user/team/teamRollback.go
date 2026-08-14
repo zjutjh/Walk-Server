@@ -38,14 +38,14 @@ func (h *TeamRollbackApi) Run(ctx *gin.Context) kit.Code {
 	if code != comm.CodeOK {
 		return code
 	}
-	if !(person != nil && team != nil && person.Role == comm.RoleCaptain && team.Captain == person.OpenID) {
+	if !(person != nil && team != nil && person.Role == comm.RoleCaptain && team.Captain == person.ID) {
 		return comm.CodeNotCaptain
 	}
-	day, routeCode, code := teamQuotaRoute(ctx, team.RouteName)
+	day, code := teamQuotaDay(ctx)
 	if code != comm.CodeOK {
 		return code
 	}
-	submitted, err := teamCache.RollbackTeamSubmit(ctx, team.ID, day, routeCode)
+	submitted, err := teamCache.RollbackTeamSubmit(ctx, team.ID, day)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("撤销团队提交归还名额失败")
 		return comm.CodeServerError
@@ -54,7 +54,7 @@ func (h *TeamRollbackApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeTeamNotSubmitted
 	}
 	if err := repo.NewTeamRepo().UpdateByID(ctx, team.ID, map[string]any{"submit": false}); err != nil {
-		_ = teamCache.RestoreSubmittedTeam(ctx, team.ID, day, routeCode)
+		_ = teamCache.RestoreSubmittedTeam(ctx, team.ID, day)
 		return comm.CodeServerError
 	}
 	_ = teamCache.DelTeamByID(ctx, team.ID)

@@ -3,7 +3,7 @@ package peoplecache
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -13,20 +13,20 @@ import (
 )
 
 const (
-	personByOpenIDCacheKeyPrefix = "walk:user:profile"
-	peopleCacheTTL               = time.Hour
+	personByIDCacheKeyPrefix = "walk:user:profile"
+	peopleCacheTTL           = time.Hour
 )
 
 func client() redis.UniversalClient {
 	return nedis.Pick("redis")
 }
 
-func BuildPersonByOpenIDCacheKey(openID string) string {
-	return fmt.Sprintf("%s:%s", personByOpenIDCacheKeyPrefix, openID)
+func BuildPersonByIDCacheKey(id int64) string {
+	return personByIDCacheKeyPrefix + ":" + strconv.FormatInt(id, 10)
 }
 
-func GetPersonByOpenID(ctx context.Context, openID string) (*model.People, bool, error) {
-	value, err := client().Get(ctx, BuildPersonByOpenIDCacheKey(openID)).Result()
+func GetPersonByID(ctx context.Context, id int64) (*model.People, bool, error) {
+	value, err := client().Get(ctx, BuildPersonByIDCacheKey(id)).Result()
 	if err == redis.Nil {
 		return nil, false, nil
 	}
@@ -41,8 +41,8 @@ func GetPersonByOpenID(ctx context.Context, openID string) (*model.People, bool,
 	return &people, true, nil
 }
 
-func SetPersonByOpenID(ctx context.Context, people *model.People) error {
-	if people == nil || people.OpenID == "" {
+func SetPersonByID(ctx context.Context, people *model.People) error {
+	if people == nil || people.ID <= 0 {
 		return nil
 	}
 
@@ -50,12 +50,12 @@ func SetPersonByOpenID(ctx context.Context, people *model.People) error {
 	if err != nil {
 		return err
 	}
-	return client().Set(ctx, BuildPersonByOpenIDCacheKey(people.OpenID), payload, peopleCacheTTL).Err()
+	return client().Set(ctx, BuildPersonByIDCacheKey(people.ID), payload, peopleCacheTTL).Err()
 }
 
-func DelPersonByOpenID(ctx context.Context, openID string) error {
-	if openID == "" {
+func DelPersonByID(ctx context.Context, id int64) error {
+	if id <= 0 {
 		return nil
 	}
-	return client().Del(ctx, BuildPersonByOpenIDCacheKey(openID)).Err()
+	return client().Del(ctx, BuildPersonByIDCacheKey(id)).Err()
 }

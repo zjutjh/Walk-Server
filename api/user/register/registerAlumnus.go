@@ -1,11 +1,12 @@
 package register
 
 import (
+	"errors"
 	"reflect"
 	"runtime"
 
+	"app/comm"
 	peopleCache "app/dao/cache/people"
-	teamCache "app/dao/cache/team"
 	"app/dao/repo"
 
 	"github.com/gin-gonic/gin"
@@ -13,8 +14,7 @@ import (
 	"github.com/zjutjh/mygo/kit"
 	"github.com/zjutjh/mygo/nlog"
 	"github.com/zjutjh/mygo/swagger"
-
-	"app/comm"
+	"gorm.io/gorm"
 )
 
 func RegisterAlumnusHandler() gin.HandlerFunc {
@@ -24,7 +24,7 @@ func RegisterAlumnusHandler() gin.HandlerFunc {
 }
 
 type RegisterAlumnusApi struct {
-	Info     struct{} `name:"校友登录" desc:"校友登录绑定当前OpenID"`
+	Info     struct{} `name:"校友注册"`
 	Request  RegisterAlumnusApiRequest
 	Response struct{}
 }
@@ -34,79 +34,54 @@ type RegisterAlumnusApiRequest struct {
 		Name     string `json:"name" desc:"姓名" binding:"required"`
 		Identity string `json:"identity" desc:"身份证号" binding:"required"`
 		Tel      string `json:"tel" desc:"电话" binding:"required"`
+		Password string `json:"password" desc:"登录密码" binding:"required"`
 	}
 }
 
-func (h *RegisterAlumnusApi) Init(ctx *gin.Context) error {
-	return ctx.ShouldBindJSON(&h.Request.Body)
-}
+func (h *RegisterAlumnusApi) Init(ctx *gin.Context) error { return ctx.ShouldBindJSON(&h.Request.Body) }
 
 func (h *RegisterAlumnusApi) Run(ctx *gin.Context) kit.Code {
-	openID := comm.GetOpenIDFromCtx(ctx)
-	if openID == "" {
-		return comm.CodeNotLoggedIn
-	}
-	if comm.BizConf.AESSecret != "" {
-		if decrypted, err := comm.AesDecrypt(openID, comm.BizConf.AESSecret); err == nil && decrypted != "" {
-			openID = decrypted
-		}
-	}
-
 	peopleRepo := repo.NewPeopleRepo()
 	person, err := peopleRepo.FindPeopleByIdentity(ctx, h.Request.Body.Identity)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("查询校友身份信息失败")
 		return comm.CodeServerError
 	}
-	if person == nil {
+	if person == nil || person.Type != comm.MemberTypeAlumnus {
 		return comm.CodePeopleNotFound
 	}
-	if person.Tel != h.Request.Body.Tel || person.Name != h.Request.Body.Name {
+	// 预导入校友只按姓名、身份证号和电话号码核验。
+	if person.Name != h.Request.Body.Name || person.Tel != h.Request.Body.Tel {
 		return comm.CodePeopleInfoWrong
 	}
-
-	bound, err := peopleRepo.FindPeopleByOpenID(ctx, openID)
+	if person.Password != "" {
+		return comm.CodeAlreadyRegistered
+	}
+	hashed, err := comm.Hash(h.Request.Body.Password)
 	if err != nil {
-		nlog.Pick().WithContext(ctx).WithError(err).Warn("查询OpenID绑定信息失败")
 		return comm.CodeServerError
 	}
-	if bound != nil && bound.ID != person.ID {
-		return comm.CodePeopleInfoWrong
-	}
-
-	if err := peopleRepo.BindAlumnusOpenID(ctx, person, openID); err != nil {
-		if isRegisterDuplicateError(err) {
+	if err := peopleRepo.CompleteAlumnusRegistration(ctx, person.ID, hashed); err != nil {
+		if errors.Is(err, gorm.ErrDuplicatedKey) || isRegisterDuplicateError(err) {
 			return comm.CodeAlreadyRegistered
 		}
-		nlog.Pick().WithContext(ctx).WithError(err).Error("绑定校友OpenID失败")
+		nlog.Pick().WithContext(ctx).WithError(err).Error("完成校友注册失败")
 		return comm.CodeServerError
 	}
-	if person.OpenID != "" {
-		_ = peopleCache.DelPersonByOpenID(ctx, person.OpenID)
-	}
-	_ = peopleCache.DelPersonByOpenID(ctx, openID)
-	if person.Role == comm.RoleCaptain && person.TeamID > 0 {
-		_ = teamCache.DelTeamByID(ctx, person.TeamID)
-		_ = teamCache.DeleteTeamInfo(ctx, person.TeamID)
-	}
-
+	_ = peopleCache.DelPersonByID(ctx, person.ID)
 	return comm.CodeOK
 }
 
 func hfRegisterAlumnus(ctx *gin.Context) {
 	api := &RegisterAlumnusApi{}
-	err := api.Init(ctx)
-	if err != nil {
+	if err := api.Init(ctx); err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("参数绑定校验错误")
 		reply.Fail(ctx, comm.CodeParameterInvalid)
 		return
 	}
-	code := api.Run(ctx)
-	if !ctx.IsAborted() {
-		if code == comm.CodeOK {
-			reply.Reply(ctx, comm.CodeOK, api.Response)
-		} else {
-			reply.Fail(ctx, code)
-		}
+	if code := api.Run(ctx); code == comm.CodeOK {
+		reply.Reply(ctx, comm.CodeOK, api.Response)
+	} else {
+		reply.Fail(ctx, code)
 	}
 }

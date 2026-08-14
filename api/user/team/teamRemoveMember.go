@@ -47,7 +47,7 @@ func (h *TeamRemoveMemberApi) Run(ctx *gin.Context) kit.Code {
 	if code != comm.CodeOK {
 		return code
 	}
-	if !(person != nil && team != nil && person.Role == comm.RoleCaptain && team.Captain == person.OpenID) {
+	if !(person != nil && team != nil && person.Role == comm.RoleCaptain && team.Captain == person.ID) {
 		return comm.CodeNotCaptain
 	}
 	submitted, err := teamCache.IsTeamSubmitted(ctx, team.ID)
@@ -61,10 +61,10 @@ func (h *TeamRemoveMemberApi) Run(ctx *gin.Context) kit.Code {
 	if err != nil {
 		return comm.CodeServerError
 	}
-	if removed == nil {
+	if removed == nil || removed.TeamID != team.ID {
 		return comm.CodePeopleNotFound
 	}
-	if removed.OpenID == person.OpenID {
+	if removed.ID == person.ID {
 		return comm.CodeCannotRemoveSelf
 	}
 
@@ -77,10 +77,7 @@ func (h *TeamRemoveMemberApi) Run(ctx *gin.Context) kit.Code {
 	}
 	_ = teamCache.DelTeamByID(ctx, team.ID)
 	_ = teamCache.DeleteTeamInfo(ctx, team.ID)
-	_ = peopleCache.DelPersonByOpenID(ctx, removed.OpenID)
-	messageRepo := repo.NewMessageRepo()
-	_ = messageRepo.CreateMessage(ctx, nil, removed.ID, "你被团队"+team.Name+"踢出")
-	_ = messageRepo.CreateMessage(ctx, nil, person.ID, "你踢出了成员"+removed.Name)
+	_ = peopleCache.DelPersonByID(ctx, removed.ID)
 	return comm.CodeOK
 }
 

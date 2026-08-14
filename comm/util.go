@@ -3,10 +3,14 @@ package comm
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/hmac"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 	"time"
 
@@ -15,17 +19,17 @@ import (
 )
 
 // GenerateToken 生成 JWT Token
-func GenerateToken(openID string) (string, error) {
-	return myjwt.Pick[string]().GenerateToken(openID)
+func GenerateToken(userID int64) (string, error) {
+	return myjwt.Pick[string]().GenerateToken(strconv.FormatInt(userID, 10))
 }
 
-// GetOpenIDFromCtx 从 gin.Context 获取 OpenID（由中间件注入）
-func GetOpenIDFromCtx(ctx *gin.Context) string {
-	openID, err := myjwt.GetIdentity[string](ctx)
+// GetUserIDFromCtx 从 gin.Context 获取用户 ID（由 JWT 中间件注入）。
+func GetUserIDFromCtx(ctx *gin.Context) (int64, error) {
+	identity, err := myjwt.GetIdentity[string](ctx)
 	if err != nil {
-		return ""
+		return 0, err
 	}
-	return openID
+	return strconv.ParseInt(identity, 10, 64)
 }
 
 // AesEncrypt AES 加密
@@ -79,6 +83,22 @@ func padKey(key string) string {
 	return key + strings.Repeat("0", 32-len(key))
 }
 
+func NormalizeIdentity(identity string) string {
+	return strings.ToUpper(strings.TrimSpace(identity))
+}
+
+// EncryptIdentity 将身份证号标准化后生成不可逆的 HMAC-SHA256 摘要。
+// 数据库只保存该摘要，不保存身份证号明文。
+func EncryptIdentity(identity string) (string, error) {
+	normalized := NormalizeIdentity(identity)
+	if normalized == "" || BizConf.IdentitySecret == "" {
+		return "", fmt.Errorf("identity or identity secret is empty")
+	}
+	mac := hmac.New(sha256.New, []byte(BizConf.IdentitySecret))
+	_, _ = mac.Write([]byte(normalized))
+	return hex.EncodeToString(mac.Sum(nil)), nil
+}
+
 func ValidateBizConfig() error {
 	if err := validateDateTimeConfig("biz.start_date", BizConf.StartDate); err != nil {
 		return err
@@ -92,6 +112,20 @@ func ValidateBizConfig() error {
 		}
 		if len(BizConf.AESSecret) < 16 {
 			return fmt.Errorf("biz.aes_secret must be at least 16 characters")
+		}
+	}
+	if len(BizConf.IdentitySecret) < 32 {
+		return fmt.Errorf("biz.identity_secret must be at least 32 characters")
+	}
+	if BizConf.TeamTotalLimit <= 0 {
+		return fmt.Errorf("biz.team_total_limit must be greater than 0")
+	}
+	if len(BizConf.DailyTeamLimits) == 0 {
+		return fmt.Errorf("biz.daily_team_limits must not be empty")
+	}
+	for day, limit := range BizConf.DailyTeamLimits {
+		if limit < 0 {
+			return fmt.Errorf("biz.daily_team_limits[%d] must not be negative", day)
 		}
 	}
 	return nil
@@ -135,36 +169,27 @@ func CurrentActivityDay() int {
 	return day
 }
 
-func RouteQuotaCode(routeName string) (int, bool) {
-	if BizConf.RouteQuotaCodes != nil {
-		if code, ok := BizConf.RouteQuotaCodes[routeName]; ok {
-			return code, true
+// IsInRegisterTime 判断当前时间是否处于队伍提交时间段。
+func IsInRegisterTime() bool {
+	now := time.Now()
+	if BizConf.StartDate != "" {
+		start, err := time.ParseInLocation(time.DateTime, BizConf.StartDate, time.Local)
+		if err != nil || now.Before(start) {
+			return false
 		}
 	}
-	switch strings.ToLower(routeName) {
-	case "zh", "zh-full", "chaohui", "chaohui-full":
-		return 1, true
-	case "pf-half", "pingfeng-half":
-		return 2, true
-	case "pf-full", "pingfeng-full":
-		return 3, true
-	case "mgs-half", "moganshan-half":
-		return 4, true
-	case "mgs", "mgs-full", "moganshan", "moganshan-full":
-		return 5, true
-	default:
-		return 0, false
+	if BizConf.ExpiredDate != "" {
+		expired, err := time.ParseInLocation(time.DateTime, BizConf.ExpiredDate, time.Local)
+		if err != nil || now.After(expired) {
+			return false
+		}
 	}
+	return true
 }
 
-func TeamUpperLimit(day int, routeCode int) (int, bool) {
-	if BizConf.TeamUpperLimit == nil {
+func DailyTeamLimit(day int) (int, bool) {
+	if day < 0 || day >= len(BizConf.DailyTeamLimits) {
 		return 0, false
 	}
-	routeLimits, ok := BizConf.TeamUpperLimit[day]
-	if !ok {
-		return 0, false
-	}
-	limit, ok := routeLimits[routeCode]
-	return limit, ok
+	return BizConf.DailyTeamLimits[day], true
 }

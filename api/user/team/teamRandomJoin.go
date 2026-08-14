@@ -6,7 +6,6 @@ import (
 
 	peopleCache "app/dao/cache/people"
 	teamCache "app/dao/cache/team"
-	"app/dao/model"
 	"app/dao/repo"
 
 	"github.com/gin-gonic/gin"
@@ -70,21 +69,6 @@ func (h *TeamRandomJoinApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeTeamFull
 	}
 
-	members, err := repo.NewPeopleRepo().FindPeopleByTeamID(ctx, team.ID)
-	if err != nil {
-		return comm.CodeServerError
-	}
-	var captain *model.People
-	for _, member := range members {
-		if member != nil && member.OpenID == team.Captain {
-			captain = member
-			break
-		}
-	}
-	if captain != nil && person != nil && captain.Type == comm.MemberTypeStudent && person.Type == comm.MemberTypeTeacher {
-		return comm.CodeTeacherCannotJoinStudentTeam
-	}
-
 	joined, err := teamRepo.JoinTeam(ctx, team.ID, person, true, comm.BizConf.MaxTeamSize)
 	if err != nil {
 		return comm.CodeServerError
@@ -94,15 +78,7 @@ func (h *TeamRandomJoinApi) Run(ctx *gin.Context) kit.Code {
 	}
 	_ = teamCache.DelTeamByID(ctx, team.ID)
 	_ = teamCache.DeleteTeamInfo(ctx, team.ID)
-	_ = peopleCache.DelPersonByOpenID(ctx, person.OpenID)
-	senderID := person.ID
-	messageRepo := repo.NewMessageRepo()
-	for _, member := range members {
-		if member == nil {
-			continue
-		}
-		_ = messageRepo.CreateMessage(ctx, &senderID, member.ID, person.Name+"通过随机组队加入了队伍")
-	}
+	_ = peopleCache.DelPersonByID(ctx, person.ID)
 	return comm.CodeOK
 }
 

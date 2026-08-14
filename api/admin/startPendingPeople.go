@@ -56,8 +56,8 @@ func (s *StartPendingPeopleApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeServerError
 	}
 	for _, person := range people {
-		if person != nil && person.OpenID != "" {
-			_ = peopleCache.DelPersonByOpenID(ctx, person.OpenID)
+		if person != nil {
+			_ = peopleCache.DelPersonByID(ctx, person.ID)
 		}
 	}
 	for _, teamID := range teamIDs {

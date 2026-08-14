@@ -105,7 +105,7 @@ func (r *RebuildApi) Run(ctx *gin.Context) kit.Code {
 			Password:        "",
 			Slogan:          "",
 			AllowMatch:      false,
-			Captain:         newCaptain.OpenID,
+			Captain:         newCaptain.ID,
 			Submit:          true,
 			RouteName:       r.Request.Body.RouteName,
 			LatestPointName: "",
@@ -184,7 +184,7 @@ func (r *RebuildApi) Run(ctx *gin.Context) kit.Code {
 			}
 
 			if !captainStillExists && nextCaptain != nil {
-				if err := txTeamRepo.UpdateByID(ctx, oldTeamID, map[string]any{"captain": nextCaptain.OpenID}); err != nil {
+				if err := txTeamRepo.UpdateByID(ctx, oldTeamID, map[string]any{"captain": nextCaptain.ID}); err != nil {
 					return err
 				}
 				if err := txPeopleRepo.UpdateRoleByUserID(ctx, nextCaptain.ID, comm.RoleCaptain); err != nil {
@@ -212,8 +212,8 @@ func (r *RebuildApi) Run(ctx *gin.Context) kit.Code {
 		_ = teamCache.DeleteTeamInfo(ctx, affectedTeamID)
 		if members, err := repo.NewPeopleRepo().FindPeopleByTeamID(ctx, affectedTeamID); err == nil {
 			for _, member := range members {
-				if member != nil && member.OpenID != "" {
-					_ = peopleCache.DelPersonByOpenID(ctx, member.OpenID)
+				if member != nil {
+					_ = peopleCache.DelPersonByID(ctx, member.ID)
 				}
 			}
 		}

@@ -312,8 +312,8 @@ func (u *UpdateTeamApi) handlePointCheckin(ctx *gin.Context, team *model.Team, a
 	_ = teamCache.DeleteTeamInfo(ctx, team.ID)
 	if members, err := repo.NewPeopleRepo().FindPeopleByTeamID(ctx, team.ID); err == nil {
 		for _, member := range members {
-			if member != nil && member.OpenID != "" {
-				_ = peopleCache.DelPersonByOpenID(ctx, member.OpenID)
+			if member != nil {
+				_ = peopleCache.DelPersonByID(ctx, member.ID)
 			}
 		}
 	}
@@ -342,8 +342,8 @@ func (u *UpdateTeamApi) handleStartPointCheckin(ctx *gin.Context, team *model.Te
 	_ = teamCache.DeleteTeamInfo(ctx, team.ID)
 	if members, err := repo.NewPeopleRepo().FindPeopleByTeamID(ctx, team.ID); err == nil {
 		for _, member := range members {
-			if member != nil && member.OpenID != "" {
-				_ = peopleCache.DelPersonByOpenID(ctx, member.OpenID)
+			if member != nil {
+				_ = peopleCache.DelPersonByID(ctx, member.ID)
 			}
 		}
 	}
@@ -379,8 +379,8 @@ func (u *UpdateTeamApi) handleWrongRoutePointCheckin(ctx *gin.Context, team *mod
 	_ = teamCache.DeleteTeamInfo(ctx, team.ID)
 	if members, err := repo.NewPeopleRepo().FindPeopleByTeamID(ctx, team.ID); err == nil {
 		for _, member := range members {
-			if member != nil && member.OpenID != "" {
-				_ = peopleCache.DelPersonByOpenID(ctx, member.OpenID)
+			if member != nil {
+				_ = peopleCache.DelPersonByID(ctx, member.ID)
 			}
 		}
 	}
@@ -406,8 +406,8 @@ func (u *UpdateTeamApi) handleDuplicateCheckin(ctx *gin.Context, team *model.Tea
 	_ = teamCache.DeleteTeamInfo(ctx, team.ID)
 	if members, err := repo.NewPeopleRepo().FindPeopleByTeamID(ctx, team.ID); err == nil {
 		for _, member := range members {
-			if member != nil && member.OpenID != "" {
-				_ = peopleCache.DelPersonByOpenID(ctx, member.OpenID)
+			if member != nil {
+				_ = peopleCache.DelPersonByID(ctx, member.ID)
 			}
 		}
 	}

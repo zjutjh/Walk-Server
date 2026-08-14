@@ -22,18 +22,20 @@ func RegisterTeacherHandler() gin.HandlerFunc {
 }
 
 type RegisterTeacherApi struct {
-	Info     struct{} `name:"教职工报名" desc:"教职工报名接口"`
+	Info     struct{} `name:"教职工报名" `
 	Request  RegisterTeacherApiRequest
 	Response struct{}
 }
 
 type RegisterTeacherApiRequest struct {
 	Body struct {
-		Identity string          `json:"identity" desc:"身份证号" binding:"required"`
-		StuID    string          `json:"stu_id" desc:"工号" binding:"required"`
-		Password string          `json:"password" desc:"密码" binding:"required"`
-		Campus   string          `json:"campus" desc:"校区枚举值"`
-		Contact  RegisterContact `json:"contact" desc:"联系方式" binding:"required"`
+		Name     string `json:"name" desc:"姓名" binding:"required"`
+		Identity string `json:"identity" desc:"身份证号" binding:"required"`
+		StuID    string `json:"stu_id" desc:"工号" binding:"required"`
+		Password string `json:"password" desc:"密码" binding:"required"`
+		Tel      string `json:"tel" desc:"电话" binding:"required"`
+		Wechat   string `json:"wechat" desc:"微信号"`
+		QQ       string `json:"qq" desc:"QQ号"`
 	}
 }
 
@@ -42,15 +44,6 @@ func (h *RegisterTeacherApi) Init(ctx *gin.Context) error {
 }
 
 func (h *RegisterTeacherApi) Run(ctx *gin.Context) kit.Code {
-	campus := ""
-	if h.Request.Body.Campus != "" {
-		parsedCampus, ok := comm.ParseCampus(h.Request.Body.Campus)
-		if !ok {
-			return comm.CodeParameterInvalid
-		}
-		campus = parsedCampus
-	}
-
 	info, code := fetchRegisterOAuthInfo(ctx, h.Request.Body.StuID, h.Request.Body.Password)
 	if code != comm.CodeOK {
 		return code
@@ -58,18 +51,29 @@ func (h *RegisterTeacherApi) Run(ctx *gin.Context) kit.Code {
 	if info.UserTypeDesc != "教师职工" {
 		return comm.CodeNonTeacherRegister
 	}
+	if info.Name != h.Request.Body.Name {
+		return comm.CodePeopleInfoWrong
+	}
+	password, err := comm.Hash(h.Request.Body.Password)
+	if err != nil {
+		return comm.CodeServerError
+	}
+	identity, err := comm.EncryptIdentity(h.Request.Body.Identity)
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("散列身份证号失败")
+		return comm.CodeServerError
+	}
 
 	return createRegisterPerson(ctx, &model.People{
+		Password:   password,
 		Name:       info.Name,
 		Gender:     comm.ParseGender(info.Gender),
 		StuID:      h.Request.Body.StuID,
-		Campus:     campus,
-		Identity:   h.Request.Body.Identity,
+		Identity:   identity,
 		Role:       comm.RoleUnbind,
-		Qq:         h.Request.Body.Contact.QQ,
-		Wechat:     h.Request.Body.Contact.Wechat,
-		College:    info.College,
-		Tel:        h.Request.Body.Contact.Tel,
+		Qq:         h.Request.Body.QQ,
+		Wechat:     h.Request.Body.Wechat,
+		Tel:        h.Request.Body.Tel,
 		IsViolated: false,
 		CreatedOp:  3,
 		JoinOp:     5,

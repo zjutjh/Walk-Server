@@ -37,8 +37,8 @@ type UpdateTeamApi struct {
 
 type UpdateTeamApiRequest struct {
 	Body struct {
-		CodeType string `json:"code_type" binding:"required"`
-		Content  string `json:"content" binding:"required"`
+		CodeType string `json:"code_type" desc:"码类型：checkin签到码，team团队码，user个人码" binding:"required"`
+		Content  string `json:"content" desc:"码内容；团队码为团队ID，个人码为用户ID" binding:"required"`
 	}
 }
 
@@ -225,6 +225,23 @@ func (u *UpdateTeamApi) resolveTeam(ctx *gin.Context, admin *model.Admin) (*mode
 			return nil, &comm.CodeParameterInvalid
 		}
 		team, err = teamRepo.FindTeamByID(ctx, teamID)
+	case comm.CodeUser:
+		userID, parseErr := strconv.ParseInt(content, 10, 64)
+		if parseErr != nil || userID <= 0 {
+			return nil, &comm.CodeParameterInvalid
+		}
+		person, findErr := repo.NewPeopleRepo().FindPeopleByID(ctx, userID)
+		if findErr != nil {
+			nlog.Pick().WithContext(ctx).WithError(findErr).Error("通过个人码查询人员失败")
+			return nil, &comm.CodeServerError
+		}
+		if person == nil {
+			return nil, &comm.CodePeopleNotFound
+		}
+		if person.TeamID <= 0 {
+			return nil, &comm.CodeNotInTeam
+		}
+		team, err = teamRepo.FindTeamByID(ctx, person.TeamID)
 	case comm.CodeCheckin:
 		team, err = teamRepo.FindByCode(ctx, content)
 	default:

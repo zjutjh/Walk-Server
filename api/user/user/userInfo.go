@@ -37,7 +37,6 @@ type UserContact struct {
 
 type UserInfoApiResponse struct {
 	ID       int    `json:"id"`
-	PassCode int64  `json:"pass_code" desc:"个人通行码，即用户ID"`
 	Name     string `json:"name" desc:"姓名"`
 	Gender   int8   `json:"gender" desc:"性别 0未知1男2女"`
 	StuID    string `json:"stu_id" desc:"学号或工号"`
@@ -60,7 +59,6 @@ func (h *UserInfoApi) Run(ctx *gin.Context) kit.Code {
 	}
 
 	h.Response.ID = int(person.ID)
-	h.Response.PassCode = person.ID
 	h.Response.Name = person.Name
 	h.Response.Gender = person.Gender
 	h.Response.StuID = person.StuID

@@ -21,6 +21,7 @@ const (
 const (
 	CodeCheckin = "checkin"
 	CodeTeam    = "team"
+	CodeUser    = "user"
 )
 
 // TeamStatus枚举

@@ -37,7 +37,7 @@ type UserModifyApiRequest struct {
 
 func (h *UserModifyApi) Init(ctx *gin.Context) error { return ctx.ShouldBindJSON(&h.Request.Body) }
 func (h *UserModifyApi) Run(ctx *gin.Context) kit.Code {
-	if code := comm.CheckBizPhase(comm.PhaseRegistration, comm.PhaseAdjustment); code != comm.CodeOK {
+	if code := comm.CheckBizPhase(comm.PhaseRegistration, comm.PhaseSubmission, comm.PhaseAdjustment); code != comm.CodeOK {
 		return code
 	}
 	person, code := currentUserPerson(ctx)
@@ -48,7 +48,7 @@ func (h *UserModifyApi) Run(ctx *gin.Context) kit.Code {
 	if h.Request.Body.Identity != "" {
 		identity, err := comm.EncryptIdentity(h.Request.Body.Identity)
 		if err != nil {
-			nlog.Pick().WithContext(ctx).WithError(err).Warn("散列身份证号失败")
+			nlog.Pick().WithContext(ctx).WithError(err).Warn("加密身份证号失败")
 			return comm.CodeServerError
 		}
 		existing, err := repo.NewPeopleRepo().FindPeopleByStoredIdentity(ctx, identity)

@@ -17,7 +17,7 @@ type People struct {
 	Name       string    `gorm:"column:name;not null;comment:姓名" json:"name"`                                                 // 姓名
 	Gender     int8      `gorm:"column:gender;not null;default:0;comment:性别(0未知,1男,2女)" json:"gender"`                        // 性别(0未知,1男,2女)
 	StuID      string    `gorm:"column:stu_id;comment:学号" json:"stu_id"`                                                      // 学号
-	Identity   string    `gorm:"column:identity;not null;comment:身份证号HMAC-SHA256摘要" json:"-"`                                 // 身份证号摘要
+	Identity   string    `gorm:"column:identity;not null;comment:身份证号AES密文" json:"-"`                                         // 身份证号密文
 	Role       string    `gorm:"column:role;not null;default:unbind;comment:队伍中身份(unbind未绑定,menber成员,captain队长)" json:"role"` // 队伍中身份(unbind未绑定,menber成员,captain队长)
 	Qq         string    `gorm:"column:qq;comment:QQ号" json:"qq"`                                                             // QQ号
 	Wechat     string    `gorm:"column:wechat;comment:微信号" json:"wechat"`                                                     // 微信号

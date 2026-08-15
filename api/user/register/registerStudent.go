@@ -51,7 +51,7 @@ func (h *RegisterStudentApi) Init(ctx *gin.Context) error {
 }
 
 func (h *RegisterStudentApi) Run(ctx *gin.Context) kit.Code {
-	if code := comm.CheckBizPhase(comm.PhaseRegistration); code != comm.CodeOK {
+	if code := comm.CheckBizPhase(comm.PhaseRegistration, comm.PhaseSubmission); code != comm.CodeOK {
 		return code
 	}
 	info, code := fetchRegisterOAuthInfo(ctx, h.Request.Body.StuID, h.Request.Body.Password)
@@ -70,7 +70,7 @@ func (h *RegisterStudentApi) Run(ctx *gin.Context) kit.Code {
 	}
 	identity, err := comm.EncryptIdentity(h.Request.Body.Identity)
 	if err != nil {
-		nlog.Pick().WithContext(ctx).WithError(err).Warn("散列身份证号失败")
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("加密身份证号失败")
 		return comm.CodeServerError
 	}
 

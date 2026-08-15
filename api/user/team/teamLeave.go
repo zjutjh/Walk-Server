@@ -31,7 +31,7 @@ type TeamLeaveApi struct {
 
 func (h *TeamLeaveApi) Init(ctx *gin.Context) error { return nil }
 func (h *TeamLeaveApi) Run(ctx *gin.Context) kit.Code {
-	if code := comm.CheckBizPhase(comm.PhaseRegistration, comm.PhaseAdjustment); code != comm.CodeOK {
+	if code := comm.CheckBizPhase(comm.PhaseRegistration, comm.PhaseSubmission, comm.PhaseAdjustment); code != comm.CodeOK {
 		return code
 	}
 	person, code := currentTeamUser(ctx)

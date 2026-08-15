@@ -11,7 +11,7 @@ func Command(root *cobra.Command) {
 	// 基础命令
 	command.Add("server", httpserver.CommandRegister(Route))
 	command.Add("cron", crontab.CommandRegister(Cron))
-	root.AddCommand(hashIdentityCommand())
+	command.Add("hash-identities", hashIdentities)
 
 	// 业务命令
 	//command.Add("xxx", cmd.XXXRun)

@@ -4,7 +4,7 @@ CREATE TABLE `peoples` (
   `name` varchar(128) NOT NULL COMMENT '姓名',
   `gender` tinyint NOT NULL DEFAULT '0' COMMENT '性别(0未知,1男,2女)',
   `stu_id` varchar(32) DEFAULT NULL COMMENT '学号',
-  `identity` char(64) NOT NULL COMMENT '身份证号HMAC-SHA256摘要',
+  `identity` varchar(128) NOT NULL COMMENT '身份证号AES密文',
   `role` varchar(64) NOT NULL DEFAULT 'unbind' COMMENT '队伍中身份(unbind未绑定,menber成员,captain队长)',
   `qq` varchar(20) DEFAULT NULL COMMENT 'QQ号',
   `wechat` varchar(64) DEFAULT NULL COMMENT '微信号',

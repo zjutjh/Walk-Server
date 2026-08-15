@@ -31,7 +31,7 @@ type TeamDisbandApi struct {
 
 func (h *TeamDisbandApi) Init(ctx *gin.Context) error { return nil }
 func (h *TeamDisbandApi) Run(ctx *gin.Context) kit.Code {
-	if code := comm.CheckBizPhase(comm.PhaseRegistration); code != comm.CodeOK {
+	if code := comm.CheckBizPhase(comm.PhaseRegistration, comm.PhaseSubmission); code != comm.CodeOK {
 		return code
 	}
 	person, code := currentTeamUser(ctx)

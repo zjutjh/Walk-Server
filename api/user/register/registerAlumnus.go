@@ -41,7 +41,7 @@ type RegisterAlumnusApiRequest struct {
 func (h *RegisterAlumnusApi) Init(ctx *gin.Context) error { return ctx.ShouldBindJSON(&h.Request.Body) }
 
 func (h *RegisterAlumnusApi) Run(ctx *gin.Context) kit.Code {
-	if code := comm.CheckBizPhase(comm.PhaseRegistration); code != comm.CodeOK {
+	if code := comm.CheckBizPhase(comm.PhaseRegistration, comm.PhaseSubmission); code != comm.CodeOK {
 		return code
 	}
 	peopleRepo := repo.NewPeopleRepo()

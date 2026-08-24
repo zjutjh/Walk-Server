@@ -7,6 +7,9 @@
 *.dll
 *.so
 *.dylib
+/main
+/walk-server
+/walk-server.new
 
 # Test binary, built with `go test -c`
 *.test
@@ -30,6 +33,7 @@ go.work.sum
 # Editor/IDE
 .idea/
 .vscode/
+.DS_Store
 
 # config file
 /config/config.yaml

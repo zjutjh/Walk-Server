@@ -5,6 +5,7 @@ import (
 	"runtime"
 	"time"
 
+	peopleCache "app/dao/cache/people"
 	teamCache "app/dao/cache/team"
 	"app/dao/model"
 	"app/dao/repo"
@@ -46,11 +47,14 @@ type TeamCreateApiResponse struct {
 
 func (h *TeamCreateApi) Init(ctx *gin.Context) error { return ctx.ShouldBindJSON(&h.Request.Body) }
 func (h *TeamCreateApi) Run(ctx *gin.Context) kit.Code {
+	if code := comm.CheckBizPhase(comm.PhaseRegistration, comm.PhaseSubmission); code != comm.CodeOK {
+		return code
+	}
 	person, code := currentTeamUser(ctx)
 	if code != comm.CodeOK {
 		return code
 	}
-	if !isUnbound(person) {
+	if !(person == nil || person.Role == comm.RoleUnbind || person.TeamID <= 0) {
 		return comm.CodeAlreadyInTeam
 	}
 	if person.CreatedOp == 0 {
@@ -81,7 +85,7 @@ func (h *TeamCreateApi) Run(ctx *gin.Context) kit.Code {
 		Password:   h.Request.Body.Password,
 		Slogan:     h.Request.Body.Slogan,
 		AllowMatch: *h.Request.Body.AllowMatch,
-		Captain:    person.OpenID,
+		Captain:    person.ID,
 		Submit:     false,
 		RouteName:  h.Request.Body.RouteName,
 		Status:     comm.TeamStatusNotStart,
@@ -91,21 +95,21 @@ func (h *TeamCreateApi) Run(ctx *gin.Context) kit.Code {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("创建团队失败")
 		return comm.CodeServerError
 	}
+	_ = teamCache.SetTeamByID(ctx, team)
+	if team.Code != "" {
+		_ = teamCache.SetTeamIDByCode(ctx, team.Code, team.ID)
+	}
+	_ = peopleCache.DelPersonByID(ctx, person.ID)
 	h.Response.TeamID = team.ID
 	return comm.CodeOK
 }
 
 func currentTeamUser(ctx *gin.Context) (*model.People, kit.Code) {
-	openID := comm.GetOpenIDFromCtx(ctx)
-	if openID == "" {
+	userID, err := comm.GetUserIDFromCtx(ctx)
+	if err != nil || userID <= 0 {
 		return nil, comm.CodeNotLoggedIn
 	}
-	if comm.BizConf.AESSecret != "" {
-		if decrypted, err := comm.AesDecrypt(openID, comm.BizConf.AESSecret); err == nil && decrypted != "" {
-			openID = decrypted
-		}
-	}
-	person, err := repo.NewPeopleRepo().FindPeopleByOpenID(ctx, openID)
+	person, err := repo.NewPeopleRepo().FindPeopleByID(ctx, userID)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("查询当前用户失败")
 		return nil, comm.CodeServerError
@@ -117,7 +121,7 @@ func currentTeamUser(ctx *gin.Context) (*model.People, kit.Code) {
 }
 
 func currentUserTeam(ctx *gin.Context, person *model.People) (*model.Team, kit.Code) {
-	if isUnbound(person) {
+	if person == nil || person.Role == comm.RoleUnbind || person.TeamID <= 0 {
 		return nil, comm.CodeNotInTeam
 	}
 	team, err := repo.NewTeamRepo().FindTeamByID(ctx, person.TeamID)
@@ -129,52 +133,6 @@ func currentUserTeam(ctx *gin.Context, person *model.People) (*model.Team, kit.C
 		return nil, comm.CodeTeamNotFound
 	}
 	return team, comm.CodeOK
-}
-
-func teamSubmitted(ctx *gin.Context, teamID int64) (bool, error) {
-	return teamCache.IsTeamSubmitted(ctx, teamID)
-}
-
-func teamQuotaRoute(ctx *gin.Context, routeName string) (int, int, kit.Code) {
-	day := comm.CurrentActivityDay()
-	routeCode, ok := comm.RouteQuotaCode(routeName)
-	if !ok {
-		nlog.Pick().WithContext(ctx).Warn("路线未配置提交名额编号")
-		return 0, 0, comm.CodeNotInRegisterTime
-	}
-	if _, ok := comm.TeamUpperLimit(day, routeCode); !ok {
-		nlog.Pick().WithContext(ctx).Warn("未配置当天路线提交名额")
-		return 0, 0, comm.CodeNotInRegisterTime
-	}
-	return day, routeCode, comm.CodeOK
-}
-
-func isUnbound(person *model.People) bool {
-	return person == nil || person.Role == comm.RoleUnbind || person.TeamID <= 0
-}
-
-func isCaptain(person *model.People, team *model.Team) bool {
-	return person != nil && team != nil && person.Role == comm.RoleCaptain && team.Captain == person.OpenID
-}
-
-func canTeacherJoinTeam(captain, member *model.People) bool {
-	return !(captain != nil && member != nil && captain.Type == comm.MemberTypeStudent && member.Type == comm.MemberTypeTeacher)
-}
-
-func teamMemberView(person *model.People) TeamMemberView {
-	return TeamMemberView{
-		Name:   person.Name,
-		Gender: person.Gender,
-		Campus: person.Campus,
-		ID:     int(person.ID),
-		Type:   person.Type,
-		Contact: TeamContact{
-			QQ:     person.Qq,
-			Wechat: person.Wechat,
-			Tel:    person.Tel,
-		},
-		WalkStatus: person.WalkStatus,
-	}
 }
 
 func hfTeamCreate(ctx *gin.Context) {

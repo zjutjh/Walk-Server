@@ -38,17 +38,17 @@ func (h *TeamSubmitApi) Run(ctx *gin.Context) kit.Code {
 	if code != comm.CodeOK {
 		return code
 	}
-	if !isCaptain(person, team) {
+	if !(person != nil && team != nil && person.Role == comm.RoleCaptain && team.Captain == person.ID) {
 		return comm.CodeNotCaptain
 	}
 	if team.Num < 4 {
 		return comm.CodeTeamNotEnough
 	}
-	day, routeCode, code := teamQuotaRoute(ctx, team.RouteName)
+	day, code := teamQuotaDay(ctx)
 	if code != comm.CodeOK {
 		return code
 	}
-	result, err := teamCache.SubmitTeam(ctx, team.ID, day, routeCode)
+	result, err := teamCache.SubmitTeam(ctx, team.ID, day)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("提交团队扣减名额失败")
 		return comm.CodeServerError
@@ -57,13 +57,35 @@ func (h *TeamSubmitApi) Run(ctx *gin.Context) kit.Code {
 	case 1:
 		return comm.CodeTeamSubmitted
 	case 2:
-		return comm.CodeUserNoQuota
+		return comm.CodeDailyQuotaFull
+	case 3:
+		return comm.CodeActivityQuotaFull
 	}
 	if err := repo.NewTeamRepo().UpdateByID(ctx, team.ID, map[string]any{"submit": true}); err != nil {
-		_, _ = teamCache.RollbackTeamSubmit(ctx, team.ID, day, routeCode)
+		_, _, _ = teamCache.RollbackTeamSubmit(ctx, team.ID, day)
 		return comm.CodeServerError
 	}
+	_ = teamCache.DelTeamByID(ctx, team.ID)
+	_ = teamCache.DeleteTeamInfo(ctx, team.ID)
 	return comm.CodeOK
+}
+
+func teamQuotaDay(ctx *gin.Context) (int, kit.Code) {
+	day, ok := comm.CurrentSubmissionDay()
+	if !ok {
+		if comm.IsInBizPhase(comm.PhaseAdjustment) {
+			return 0, comm.CodeAdjustmentCannotSubmit
+		}
+		if comm.IsInBizPhase(comm.PhasePreparation) {
+			return 0, comm.CodePreparationForbidden
+		}
+		if comm.IsInBizPhase(comm.PhaseActivity) {
+			return 0, comm.CodeActivityForbidden
+		}
+		nlog.Pick().WithContext(ctx).Warn("当前不在每日抢票开放时间")
+		return 0, comm.CodeNotInRegisterTime
+	}
+	return day, comm.CodeOK
 }
 
 func hfTeamSubmit(ctx *gin.Context) {

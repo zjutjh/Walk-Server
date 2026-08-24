@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"runtime"
 
+	peopleCache "app/dao/cache/people"
 	"app/dao/repo"
 
 	"github.com/gin-gonic/gin"
@@ -29,8 +30,6 @@ type UserModifyApi struct {
 
 type UserModifyApiRequest struct {
 	Body struct {
-		Campus   string      `json:"campus"`
-		College  string      `json:"college" binding:"required"`
 		Identity string      `json:"identity" `
 		Contact  UserContact `json:"contact" binding:"required"`
 	}
@@ -38,41 +37,47 @@ type UserModifyApiRequest struct {
 
 func (h *UserModifyApi) Init(ctx *gin.Context) error { return ctx.ShouldBindJSON(&h.Request.Body) }
 func (h *UserModifyApi) Run(ctx *gin.Context) kit.Code {
+	if code := comm.CheckBizPhase(comm.PhaseRegistration, comm.PhaseSubmission, comm.PhaseAdjustment); code != comm.CodeOK {
+		return code
+	}
 	person, code := currentUserPerson(ctx)
 	if code != comm.CodeOK {
 		return code
 	}
 
-	if h.Request.Body.Campus != "" {
-		campus, ok := comm.ParseCampus(h.Request.Body.Campus)
-		if !ok {
-			return comm.CodeParameterInvalid
-		}
-		person.Campus = campus
-	}
 	if h.Request.Body.Identity != "" {
-		person.Identity = h.Request.Body.Identity
+		identity, err := comm.EncryptIdentity(h.Request.Body.Identity)
+		if err != nil {
+			nlog.Pick().WithContext(ctx).WithError(err).Warn("加密身份证号失败")
+			return comm.CodeServerError
+		}
+		existing, err := repo.NewPeopleRepo().FindPeopleByStoredIdentity(ctx, identity)
+		if err != nil {
+			return comm.CodeServerError
+		}
+		if existing != nil && existing.ID != person.ID {
+			return comm.CodeAlreadyRegistered
+		}
+		person.Identity = identity
 	}
-	person.College = h.Request.Body.College
 	person.Qq = h.Request.Body.Contact.QQ
 	person.Wechat = h.Request.Body.Contact.Wechat
 	person.Tel = h.Request.Body.Contact.Tel
 
 	updates := map[string]any{
-		"campus":  person.Campus,
-		"college": person.College,
-		"qq":      person.Qq,
-		"wechat":  person.Wechat,
-		"tel":     person.Tel,
+		"qq":     person.Qq,
+		"wechat": person.Wechat,
+		"tel":    person.Tel,
 	}
 	if h.Request.Body.Identity != "" {
 		updates["identity"] = person.Identity
 	}
 
-	if err := repo.NewPeopleRepo().UpdateByOpenID(ctx, person.OpenID, updates); err != nil {
+	if err := repo.NewPeopleRepo().UpdateByID(ctx, person.ID, updates); err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("更新当前用户失败")
 		return comm.CodeServerError
 	}
+	_ = peopleCache.DelPersonByID(ctx, person.ID)
 	return comm.CodeOK
 }
 

@@ -54,13 +54,13 @@ type TeamApiRequest struct {
 }
 
 type TeamApiResponse struct {
-	TeamId        int64        `json:"team_id" desc:"队伍ID（保留）"`
-	Members       []MemberInfo `json:"members" desc:"队员信息列表"`
+	TeamId          int64        `json:"team_id" desc:"队伍ID（保留）"`
+	Members         []MemberInfo `json:"members" desc:"队员信息列表"`
 	LatestPointName string       `json:"latest_point_name" desc:"最新经过点位唯一name"`
 	LatestPointTime string       `json:"latest_point_time" desc:"经过点位时间"`
-	RouteName     string       `json:"route_name" desc:"路线name"`
-	IsLost        bool         `json:"is_lost" desc:"是否失联"`
-	IsWrongRoute  bool         `json:"is_wrong_route" desc:"是否走错路线"`
+	RouteName       string       `json:"route_name" desc:"路线name"`
+	IsLost          bool         `json:"is_lost" desc:"是否失联"`
+	IsWrongRoute    bool         `json:"is_wrong_route" desc:"是否走错路线"`
 }
 
 // Run Api业务逻辑执行点
@@ -118,7 +118,7 @@ func (t *TeamApi) Run(ctx *gin.Context) kit.Code {
 		t.Response.Members = append(t.Response.Members, MemberInfo{
 			Name:  member.Name,
 			Phone: member.Phone,
-			Role:  normalizeMemberRole(member.Role, member.OpenID, team.Captain),
+			Role:  normalizeMemberRole(member.Role, member.ID, team.Captain),
 		})
 	}
 
@@ -136,9 +136,9 @@ func (t *TeamApi) Run(ctx *gin.Context) kit.Code {
 	return comm.CodeOK
 }
 
-// normalizeMemberRole 兼容历史 role 脏数据，并优先以队长 open_id 判定 captain。
-func normalizeMemberRole(role string, memberOpenID string, captainOpenID string) string {
-	if strings.EqualFold(memberOpenID, captainOpenID) || strings.EqualFold(role, "captain") {
+// normalizeMemberRole 兼容历史 role 脏数据，并优先以队长用户 ID 判定 captain。
+func normalizeMemberRole(role string, memberID, captainID int64) string {
+	if memberID == captainID || strings.EqualFold(role, "captain") {
 		return "captain"
 	}
 

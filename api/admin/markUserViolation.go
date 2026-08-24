@@ -11,6 +11,7 @@ import (
 	"github.com/zjutjh/mygo/swagger"
 
 	"app/comm"
+	peopleCache "app/dao/cache/people"
 	repo "app/dao/repo"
 )
 
@@ -51,6 +52,7 @@ func (m *MarkUserViolationApi) Run(ctx *gin.Context) kit.Code {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("标记成员违规失败")
 		return comm.CodeServerError
 	}
+	_ = peopleCache.DelPersonByID(ctx, person.ID)
 	return comm.CodeOK
 }
 

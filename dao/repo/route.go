@@ -52,6 +52,12 @@ type PointPassedCountRow struct {
 	Count     int64  `gorm:"column:cnt"`
 }
 
+type StartCheckpointCountRow struct {
+	TotalPeople     int64 `gorm:"column:total_people"`
+	AbandonedPeople int64 `gorm:"column:abandoned_people"`
+	PassedPeople    int64 `gorm:"column:passed_people"`
+}
+
 func effectiveWalkStatuses() []string {
 	return []string{
 		comm.WalkStatusInProgress,
@@ -65,6 +71,33 @@ func buildInPlaceholders(size int) string {
 	}
 
 	return strings.TrimSuffix(strings.Repeat("?,", size), ",")
+}
+
+// IsActiveRouteStartPoint 判断点位是否为指定校区任意启用路线的起点。
+func (r *RouteRepo) IsActiveRouteStartPoint(ctx context.Context, campus string, pointName string) (bool, error) {
+	var count int64
+	err := r.query.RouteEdge.WithContext(ctx).
+		UnderlyingDB().
+		Raw(
+			"SELECT COUNT(DISTINCT rt.name) "+
+				"FROM routes AS rt "+
+				"JOIN ("+
+				"SELECT route_name, MIN(seq_order) AS start_seq "+
+				"FROM route_edges "+
+				"WHERE point_name IS NOT NULL AND point_name <> '' "+
+				"GROUP BY route_name"+
+				") AS rs ON rs.route_name = rt.name "+
+				"JOIN route_edges AS e ON e.route_name = rt.name AND e.seq_order = rs.start_seq AND e.point_name = ? "+
+				"WHERE rt.is_active = 1 AND rt.campus = ?",
+			pointName,
+			campus,
+		).
+		Scan(&count).Error
+	if err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
 }
 
 // ListActiveRouteNames 查询启用路线，保证没有报名数据的路线也能返回 0 统计。
@@ -335,6 +368,63 @@ func (r *RouteRepo) CountSingleRouteWrongPeople(ctx context.Context, routeName s
 	return total, nil
 }
 
+// CountStartCheckpointPeople 统计起点已签到与未到达人数（按 people 计数）。
+// 起点未到达口径：报名人数 - 放弃人数 - 该起点签到人数。
+// 其中“该起点签到人数”按提交报名队伍在该点存在签到记录、且人员状态为有效参与状态的人数计算。
+func (r *RouteRepo) CountStartCheckpointPeople(ctx context.Context, campus string, pointName string) (passedCount int64, notArrivedCount int64, err error) {
+	statuses := effectiveWalkStatuses()
+	if len(statuses) == 0 {
+		return 0, 0, nil
+	}
+
+	statusPlaceholders := buildInPlaceholders(len(statuses))
+	args := []any{pointName, campus, comm.WalkStatusAbandoned}
+	for _, status := range statuses {
+		args = append(args, status)
+	}
+	args = append(args, pointName)
+
+	row := StartCheckpointCountRow{}
+	err = r.query.People.WithContext(ctx).
+		UnderlyingDB().
+		Raw(
+			"WITH start_routes AS ("+
+				"SELECT rt.name AS route_name "+
+				"FROM routes AS rt "+
+				"JOIN ("+
+				"SELECT route_name, MIN(seq_order) AS start_seq "+
+				"FROM route_edges "+
+				"WHERE point_name IS NOT NULL AND point_name <> '' "+
+				"GROUP BY route_name"+
+				") AS rs ON rs.route_name = rt.name "+
+				"JOIN route_edges AS e ON e.route_name = rt.name AND e.seq_order = rs.start_seq AND e.point_name = ? "+
+				"WHERE rt.is_active = 1 AND rt.campus = ? "+
+				"GROUP BY rt.name"+
+				") "+
+				"SELECT COUNT(DISTINCT ps.id) AS total_people, "+
+				"COUNT(DISTINCT CASE WHEN ps.walk_status = ? THEN ps.id END) AS abandoned_people, "+
+				"COUNT(DISTINCT CASE WHEN ps.walk_status IN ("+statusPlaceholders+") AND EXISTS ("+
+				"SELECT 1 FROM checkins AS c WHERE c.team_id = t.id AND c.point_name = ?"+
+				") THEN ps.id END) AS passed_people "+
+				"FROM teams AS t "+
+				"JOIN start_routes AS sr ON sr.route_name = t.route_name "+
+				"JOIN peoples AS ps ON ps.team_id = t.id "+
+				"WHERE t.submit = 1",
+			args...,
+		).
+		Scan(&row).Error
+	if err != nil {
+		return 0, 0, err
+	}
+
+	notArrivedPeople := row.TotalPeople - row.AbandonedPeople - row.PassedPeople
+	if notArrivedPeople < 0 {
+		notArrivedPeople = 0
+	}
+
+	return row.PassedPeople, notArrivedPeople, nil
+}
+
 // CountPeopleOnSegment 统计指定路段上的人数（按 people 计数）。
 // 口径说明：统计"队伍当前 latest_point_name + 有效路线"能匹配到该边且有效成员（进行中）的人数。
 // 有效路线 = is_wrong_route ? 最新 wrong_route_records.wrong_route_name : route_name，与 buildTeamFilterBaseQuery 一致。
@@ -364,6 +454,14 @@ func (r *RouteRepo) GetCheckpointPeopleCounts(ctx context.Context, campus string
 	statuses := effectiveWalkStatuses()
 	if len(statuses) == 0 {
 		return 0, 0, nil
+	}
+
+	isStartPoint, err := r.IsActiveRouteStartPoint(ctx, campus, pointName)
+	if err != nil {
+		return 0, 0, err
+	}
+	if isStartPoint {
+		return r.CountStartCheckpointPeople(ctx, campus, pointName)
 	}
 
 	baseTotal := r.query.Team.WithContext(ctx).

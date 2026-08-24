@@ -12,6 +12,8 @@ import (
 	"github.com/zjutjh/mygo/swagger"
 
 	"app/comm"
+	peopleCache "app/dao/cache/people"
+	teamCache "app/dao/cache/team"
 	"app/dao/query"
 	repo "app/dao/repo"
 )
@@ -38,10 +40,10 @@ type ConfirmDestinationApiResponse struct {
 }
 
 func (c *ConfirmDestinationApi) Run(ctx *gin.Context) kit.Code {
+	teamID := int64(c.Request.Body.TeamID)
 	err := query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
 		txTeamRepo := repo.NewTeamRepoWithTx(tx)
 		txPeopleRepo := repo.NewPeopleRepoWithTx(tx)
-		teamID := int64(c.Request.Body.TeamID)
 
 		if err := txPeopleRepo.UpdateMembersWalkStatusByCurrent(ctx, teamID, comm.WalkStatusInProgress, comm.WalkStatusCompleted); err != nil {
 			return err
@@ -51,6 +53,15 @@ func (c *ConfirmDestinationApi) Run(ctx *gin.Context) kit.Code {
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("终点确认失败")
 		return comm.CodeServerError
+	}
+	_ = teamCache.DelTeamByID(ctx, teamID)
+	_ = teamCache.DeleteTeamInfo(ctx, teamID)
+	if members, err := repo.NewPeopleRepo().FindPeopleByTeamID(ctx, teamID); err == nil {
+		for _, member := range members {
+			if member != nil {
+				_ = peopleCache.DelPersonByID(ctx, member.ID)
+			}
+		}
 	}
 
 	return comm.CodeOK

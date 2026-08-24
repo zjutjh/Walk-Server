@@ -16,6 +16,8 @@ import (
 	"gorm.io/gorm"
 
 	"app/comm"
+	peopleCache "app/dao/cache/people"
+	teamCache "app/dao/cache/team"
 	"app/dao/model"
 	"app/dao/query"
 	repo "app/dao/repo"
@@ -58,6 +60,7 @@ func (r *RebuildApi) Run(ctx *gin.Context) kit.Code {
 	}
 
 	var teamID int64
+	affectedTeamIDSet := make(map[int64]struct{})
 	err := query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
 		txTeamRepo := repo.NewTeamRepoWithTx(tx)
 		txPeopleRepo := repo.NewPeopleRepoWithTx(tx)
@@ -75,9 +78,6 @@ func (r *RebuildApi) Run(ctx *gin.Context) kit.Code {
 		for _, member := range members {
 			if member == nil {
 				return gorm.ErrRecordNotFound
-			}
-			if member.WalkStatus != comm.WalkStatusNotStart && member.WalkStatus != comm.WalkStatusPending {
-				return gorm.ErrInvalidData
 			}
 			memberMap[member.ID] = member
 		}
@@ -102,7 +102,7 @@ func (r *RebuildApi) Run(ctx *gin.Context) kit.Code {
 			Password:        "",
 			Slogan:          "",
 			AllowMatch:      false,
-			Captain:         newCaptain.OpenID,
+			Captain:         newCaptain.ID,
 			Submit:          true,
 			RouteName:       r.Request.Body.RouteName,
 			LatestPointName: "",
@@ -129,8 +129,10 @@ func (r *RebuildApi) Run(ctx *gin.Context) kit.Code {
 		if err := r.handleStartPointCheckin(ctx, txTeamRepo, txPeopleRepo, txAdminRepo, newTeam); err != nil {
 			return err
 		}
+		affectedTeamIDSet[newTeam.ID] = struct{}{}
 
 		for _, oldTeamID := range oldTeamIDs {
+			affectedTeamIDSet[oldTeamID] = struct{}{}
 			remainingCount, err := txPeopleRepo.CountMembersByTeamID(ctx, oldTeamID)
 			if err != nil {
 				return err
@@ -179,7 +181,7 @@ func (r *RebuildApi) Run(ctx *gin.Context) kit.Code {
 			}
 
 			if !captainStillExists && nextCaptain != nil {
-				if err := txTeamRepo.UpdateByID(ctx, oldTeamID, map[string]any{"captain": nextCaptain.OpenID}); err != nil {
+				if err := txTeamRepo.UpdateByID(ctx, oldTeamID, map[string]any{"captain": nextCaptain.ID}); err != nil {
 					return err
 				}
 				if err := txPeopleRepo.UpdateRoleByUserID(ctx, nextCaptain.ID, comm.RoleCaptain); err != nil {
@@ -200,6 +202,25 @@ func (r *RebuildApi) Run(ctx *gin.Context) kit.Code {
 		}
 		nlog.Pick().WithContext(ctx).WithError(err).Error("重组队伍失败")
 		return comm.CodeServerError
+	}
+
+	for affectedTeamID := range affectedTeamIDSet {
+		_ = teamCache.DelTeamByID(ctx, affectedTeamID)
+		_ = teamCache.DeleteTeamInfo(ctx, affectedTeamID)
+		if members, err := repo.NewPeopleRepo().FindPeopleByTeamID(ctx, affectedTeamID); err == nil {
+			for _, member := range members {
+				if member != nil {
+					_ = peopleCache.DelPersonByID(ctx, member.ID)
+				}
+			}
+		}
+	}
+
+	if createdTeam, err := repo.NewTeamRepo().GetTeamByID(ctx, teamID); err == nil && createdTeam != nil {
+		_ = teamCache.SetTeamByID(ctx, createdTeam)
+		if createdTeam.Code != "" {
+			_ = teamCache.SetTeamIDByCode(ctx, createdTeam.Code, createdTeam.ID)
+		}
 	}
 
 	r.Response.TeamID = int(teamID)

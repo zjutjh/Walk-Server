@@ -21,6 +21,7 @@ const (
 const (
 	CodeCheckin = "checkin"
 	CodeTeam    = "team"
+	CodeUser    = "user"
 )
 
 // TeamStatus枚举
@@ -29,12 +30,6 @@ const (
 	TeamStatusInProgress = "in_progress"
 	TeamStatusCompleted  = "completed"
 	TeamStatusWithdrawn  = "withdrawn"
-)
-
-const (
-	CampusChaohui   = "zh"
-	CampusPingfeng  = "pf"
-	CampusMoganshan = "mgs"
 )
 
 const (
@@ -59,19 +54,6 @@ func IsValidWalkStatus(status string) bool {
 		return true
 	default:
 		return false
-	}
-}
-
-func ParseCampus(raw string) (string, bool) {
-	switch raw {
-	case CampusChaohui:
-		return CampusChaohui, true
-	case CampusPingfeng:
-		return CampusPingfeng, true
-	case CampusMoganshan:
-		return CampusMoganshan, true
-	default:
-		return "", false
 	}
 }
 

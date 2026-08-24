@@ -4,6 +4,8 @@ import (
 	"reflect"
 	"runtime"
 
+	peopleCache "app/dao/cache/people"
+	teamCache "app/dao/cache/team"
 	"app/dao/repo"
 
 	"github.com/gin-gonic/gin"
@@ -29,6 +31,9 @@ type TeamDisbandApi struct {
 
 func (h *TeamDisbandApi) Init(ctx *gin.Context) error { return nil }
 func (h *TeamDisbandApi) Run(ctx *gin.Context) kit.Code {
+	if code := comm.CheckBizPhase(comm.PhaseRegistration, comm.PhaseSubmission); code != comm.CodeOK {
+		return code
+	}
 	person, code := currentTeamUser(ctx)
 	if code != comm.CodeOK {
 		return code
@@ -37,10 +42,10 @@ func (h *TeamDisbandApi) Run(ctx *gin.Context) kit.Code {
 	if code != comm.CodeOK {
 		return code
 	}
-	if !isCaptain(person, team) {
+	if !(person != nil && team != nil && person.Role == comm.RoleCaptain && team.Captain == person.ID) {
 		return comm.CodeNotCaptain
 	}
-	submitted, err := teamSubmitted(ctx, team.ID)
+	submitted, err := teamCache.IsTeamSubmitted(ctx, team.ID)
 	if err != nil {
 		return comm.CodeServerError
 	}
@@ -54,11 +59,14 @@ func (h *TeamDisbandApi) Run(ctx *gin.Context) kit.Code {
 	if err := repo.NewTeamRepo().DisbandTeam(ctx, team.ID); err != nil {
 		return comm.CodeServerError
 	}
-	senderID := person.ID
-	messageRepo := repo.NewMessageRepo()
+	_ = teamCache.DelTeamByID(ctx, team.ID)
+	_ = teamCache.DeleteTeamInfo(ctx, team.ID)
+	if team.Code != "" {
+		_ = teamCache.DelTeamIDByCode(ctx, team.Code)
+	}
 	for _, member := range members {
 		if member != nil {
-			_ = messageRepo.CreateMessage(ctx, &senderID, member.ID, team.Name+"已经被解散")
+			_ = peopleCache.DelPersonByID(ctx, member.ID)
 		}
 	}
 	return comm.CodeOK

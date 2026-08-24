@@ -14,6 +14,8 @@ import (
 	"gorm.io/gorm"
 
 	"app/comm"
+	peopleCache "app/dao/cache/people"
+	teamCache "app/dao/cache/team"
 	"app/dao/query"
 	repo "app/dao/repo"
 )
@@ -100,6 +102,11 @@ func (u *UpdateUserApi) Run(ctx *gin.Context) kit.Code {
 		}
 		nlog.Pick().WithContext(ctx).WithError(err).Error("更改人员状态失败")
 		return comm.CodeServerError
+	}
+	_ = peopleCache.DelPersonByID(ctx, user.ID)
+	if user.TeamID > 0 {
+		_ = teamCache.DelTeamByID(ctx, user.TeamID)
+		_ = teamCache.DeleteTeamInfo(ctx, user.TeamID)
 	}
 
 	return comm.CodeOK

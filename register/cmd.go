@@ -11,7 +11,6 @@ func Command(root *cobra.Command) {
 	// 基础命令
 	command.Add("server", httpserver.CommandRegister(Route))
 	command.Add("cron", crontab.CommandRegister(Cron))
-
 	// 业务命令
 	//command.Add("xxx", cmd.XXXRun)
 }

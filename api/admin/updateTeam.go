@@ -16,6 +16,8 @@ import (
 	"github.com/zjutjh/mygo/swagger"
 
 	"app/comm"
+	peopleCache "app/dao/cache/people"
+	teamCache "app/dao/cache/team"
 	"app/dao/model"
 	"app/dao/query"
 	repo "app/dao/repo"
@@ -35,8 +37,8 @@ type UpdateTeamApi struct {
 
 type UpdateTeamApiRequest struct {
 	Body struct {
-		CodeType string `json:"code_type" binding:"required"`
-		Content  string `json:"content" binding:"required"`
+		CodeType string `json:"code_type" desc:"码类型：checkin签到码，team团队码，user个人码" binding:"required"`
+		Content  string `json:"content" desc:"码内容；团队码为团队ID，个人码为用户ID" binding:"required"`
 	}
 }
 
@@ -82,9 +84,11 @@ func (u *UpdateTeamApi) Run(ctx *gin.Context) kit.Code {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("清除队伍失联状态失败")
 		return comm.CodeServerError
 	}
+	_ = teamCache.DelTeamByID(ctx, team.ID)
+	_ = teamCache.DeleteTeamInfo(ctx, team.ID)
 
 	if team.LatestPointName == admin.PointName {
-		isStartPoint, err := u.isStartPoint(ctx, teamRepo, team.RouteName, admin.PointName)
+		isStartPoint, err := u.isStartCheckinContext(ctx, teamRepo, team, admin.PointName)
 		if err != nil {
 			nlog.Pick().WithContext(ctx).WithError(err).Error("判断重复打卡点位是否起点失败")
 			return comm.CodeServerError
@@ -107,12 +111,12 @@ func (u *UpdateTeamApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeDataNotFound
 	}
 
-	activeRouteName, directionCode := u.resolveActiveRouteForDirection(ctx, teamRepo, team, admin.PointName, pointRoutes)
+	activeRouteName, directionInvalid, directionCode := u.resolveActiveRouteForDirection(ctx, teamRepo, team, admin.PointName, pointRoutes)
 	if directionCode != nil {
-		if *directionCode != comm.CodeTeamDirectionInvalid {
-			return *directionCode
-		}
-		isStartPoint, err := u.isStartPoint(ctx, teamRepo, team.RouteName, admin.PointName)
+		return *directionCode
+	}
+	if directionInvalid {
+		isStartPoint, err := u.isStartCheckinContext(ctx, teamRepo, team, admin.PointName)
 		if err != nil {
 			nlog.Pick().WithContext(ctx).WithError(err).Error("判断方向异常点位是否起点失败")
 			return comm.CodeServerError
@@ -132,7 +136,7 @@ func (u *UpdateTeamApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeServerError
 	}
 	if isBackward {
-		isStartPoint, err := u.isStartPoint(ctx, teamRepo, team.RouteName, admin.PointName)
+		isStartPoint, err := u.isStartCheckinContext(ctx, teamRepo, team, admin.PointName)
 		if err != nil {
 			nlog.Pick().WithContext(ctx).WithError(err).Error("判断反向点位是否起点失败")
 			return comm.CodeServerError
@@ -146,15 +150,6 @@ func (u *UpdateTeamApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeOK
 	}
 
-	if !slices.Contains(pointRoutes, team.RouteName) {
-		if err := u.handleWrongRoutePointCheckin(ctx, team, admin.ID, admin.PointName, activeRouteName); err != nil {
-			nlog.Pick().WithContext(ctx).WithError(err).Error("错路点位打卡失败")
-			return comm.CodeServerError
-		}
-		u.Response.TeamID = int(team.ID)
-		return comm.CodeOK
-	}
-
 	routeEdge, err := teamRepo.FindRouteTransitionEdge(ctx, team.RouteName, team.LatestPointName, admin.PointName)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("查询路线边失败")
@@ -164,6 +159,15 @@ func (u *UpdateTeamApi) Run(ctx *gin.Context) kit.Code {
 	if routeEdge != nil && routeEdge.PrevPointName == "" {
 		if err := u.handleStartPointCheckin(ctx, team, admin.ID, admin.PointName); err != nil {
 			nlog.Pick().WithContext(ctx).WithError(err).Error("起点打卡失败")
+			return comm.CodeServerError
+		}
+		u.Response.TeamID = int(team.ID)
+		return comm.CodeOK
+	}
+
+	if !slices.Contains(pointRoutes, team.RouteName) && team.IsWrongRoute == false {
+		if err := u.handleWrongRoutePointCheckin(ctx, team, admin.ID, admin.PointName, activeRouteName); err != nil {
+			nlog.Pick().WithContext(ctx).WithError(err).Error("错路点位打卡失败")
 			return comm.CodeServerError
 		}
 		u.Response.TeamID = int(team.ID)
@@ -221,6 +225,23 @@ func (u *UpdateTeamApi) resolveTeam(ctx *gin.Context, admin *model.Admin) (*mode
 			return nil, &comm.CodeParameterInvalid
 		}
 		team, err = teamRepo.FindTeamByID(ctx, teamID)
+	case comm.CodeUser:
+		userID, parseErr := strconv.ParseInt(content, 10, 64)
+		if parseErr != nil || userID <= 0 {
+			return nil, &comm.CodeParameterInvalid
+		}
+		person, findErr := repo.NewPeopleRepo().FindPeopleByID(ctx, userID)
+		if findErr != nil {
+			nlog.Pick().WithContext(ctx).WithError(findErr).Error("通过个人码查询人员失败")
+			return nil, &comm.CodeServerError
+		}
+		if person == nil {
+			return nil, &comm.CodePeopleNotFound
+		}
+		if person.TeamID <= 0 {
+			return nil, &comm.CodeNotInTeam
+		}
+		team, err = teamRepo.FindTeamByID(ctx, person.TeamID)
 	case comm.CodeCheckin:
 		team, err = teamRepo.FindByCode(ctx, content)
 	default:
@@ -248,46 +269,46 @@ func (u *UpdateTeamApi) resolveTeam(ctx *gin.Context, admin *model.Admin) (*mode
 	return team, nil
 }
 
-func (u *UpdateTeamApi) resolveActiveRouteForDirection(ctx *gin.Context, teamRepo *repo.TeamRepo, team *model.Team, pointName string, pointRoutes []string) (string, *kit.Code) {
+func (u *UpdateTeamApi) resolveActiveRouteForDirection(ctx *gin.Context, teamRepo *repo.TeamRepo, team *model.Team, pointName string, pointRoutes []string) (string, bool, *kit.Code) {
 	if team.IsWrongRoute != false {
 		wrongRouteName, found, err := teamRepo.GetLatestWrongRouteName(ctx, team.ID)
 		if err != nil {
 			nlog.Pick().WithContext(ctx).WithError(err).Error("查询队伍错路路线失败")
-			return "", &comm.CodeServerError
+			return "", false, &comm.CodeServerError
 		}
 		if !found {
-			return team.RouteName, nil
+			return team.RouteName, false, nil
 		}
 		onWrongRoute, err := teamRepo.IsPointOnRoute(ctx, wrongRouteName, pointName)
 		if err != nil {
 			nlog.Pick().WithContext(ctx).WithError(err).Error("校验错路点位失败")
-			return "", &comm.CodeServerError
+			return "", false, &comm.CodeServerError
 		}
 		if !onWrongRoute {
-			return "", &comm.CodeTeamDirectionInvalid
+			return "", true, nil
 		}
-		return wrongRouteName, nil
+		return wrongRouteName, false, nil
 	}
 
 	if slices.Contains(pointRoutes, team.RouteName) {
-		return team.RouteName, nil
+		return team.RouteName, false, nil
 	}
 
 	for _, routeName := range pointRoutes {
 		prevOnRoute, err := teamRepo.IsPointOnRoute(ctx, routeName, team.LatestPointName)
 		if err != nil {
 			nlog.Pick().WithContext(ctx).WithError(err).Error("校验错路前序点位失败")
-			return "", &comm.CodeServerError
+			return "", false, &comm.CodeServerError
 		}
 		if prevOnRoute {
-			return routeName, nil
+			return routeName, false, nil
 		}
 	}
-	return pointRoutes[0], nil
+	return pointRoutes[0], false, nil
 }
 
 func (u *UpdateTeamApi) handlePointCheckin(ctx *gin.Context, team *model.Team, adminID int64, pointName string) error {
-	return query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
+	err := query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
 		txTeamRepo := repo.NewTeamRepoWithTx(tx)
 		peopleRepo := repo.NewPeopleRepoWithTx(tx)
 		if err := txTeamRepo.UpdateLatestPointName(ctx, team.ID, pointName); err != nil {
@@ -296,12 +317,28 @@ func (u *UpdateTeamApi) handlePointCheckin(ctx *gin.Context, team *model.Team, a
 		if err := txTeamRepo.CreateCheckin(ctx, adminID, team.ID, pointName, team.RouteName); err != nil {
 			return err
 		}
+		if err := peopleRepo.UpdateMembersWalkStatusByCurrent(ctx, team.ID, comm.WalkStatusNotStart, comm.WalkStatusInProgress); err != nil {
+			return err
+		}
 		return peopleRepo.UpdateMembersWalkStatusByCurrent(ctx, team.ID, comm.WalkStatusPending, comm.WalkStatusInProgress)
 	})
+	if err != nil {
+		return err
+	}
+	_ = teamCache.DelTeamByID(ctx, team.ID)
+	_ = teamCache.DeleteTeamInfo(ctx, team.ID)
+	if members, err := repo.NewPeopleRepo().FindPeopleByTeamID(ctx, team.ID); err == nil {
+		for _, member := range members {
+			if member != nil {
+				_ = peopleCache.DelPersonByID(ctx, member.ID)
+			}
+		}
+	}
+	return nil
 }
 
 func (u *UpdateTeamApi) handleStartPointCheckin(ctx *gin.Context, team *model.Team, adminID int64, pointName string) error {
-	return query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
+	err := query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
 		teamRepo := repo.NewTeamRepoWithTx(tx)
 		peopleRepo := repo.NewPeopleRepoWithTx(tx)
 		if err := teamRepo.UpdateLatestPointName(ctx, team.ID, pointName); err != nil {
@@ -315,10 +352,23 @@ func (u *UpdateTeamApi) handleStartPointCheckin(ctx *gin.Context, team *model.Te
 		}
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+	_ = teamCache.DelTeamByID(ctx, team.ID)
+	_ = teamCache.DeleteTeamInfo(ctx, team.ID)
+	if members, err := repo.NewPeopleRepo().FindPeopleByTeamID(ctx, team.ID); err == nil {
+		for _, member := range members {
+			if member != nil {
+				_ = peopleCache.DelPersonByID(ctx, member.ID)
+			}
+		}
+	}
+	return nil
 }
 
 func (u *UpdateTeamApi) handleWrongRoutePointCheckin(ctx *gin.Context, team *model.Team, adminID int64, pointName string, wrongRouteName string) error {
-	return query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
+	err := query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
 		txTeamRepo := repo.NewTeamRepoWithTx(tx)
 		peopleRepo := repo.NewPeopleRepoWithTx(tx)
 		if err := txTeamRepo.UpdateLatestPointName(ctx, team.ID, pointName); err != nil {
@@ -327,21 +377,35 @@ func (u *UpdateTeamApi) handleWrongRoutePointCheckin(ctx *gin.Context, team *mod
 		if err := txTeamRepo.CreateCheckin(ctx, adminID, team.ID, pointName, team.RouteName); err != nil {
 			return err
 		}
-		if team.IsWrongRoute == false {
-			if err := txTeamRepo.UpdateTeamWrongRoute(ctx, team.ID, true); err != nil {
-				return err
-			}
-			if err := txTeamRepo.CreateWrongRouteRecord(ctx, team.ID, team.RouteName, wrongRouteName, adminID); err != nil {
-				return err
-			}
+		if err := txTeamRepo.UpdateTeamWrongRoute(ctx, team.ID, true); err != nil {
+			return err
+		}
+		if err := txTeamRepo.CreateWrongRouteRecord(ctx, team.ID, team.RouteName, wrongRouteName, adminID); err != nil {
+			return err
 		}
 
+		if err := peopleRepo.UpdateMembersWalkStatusByCurrent(ctx, team.ID, comm.WalkStatusNotStart, comm.WalkStatusInProgress); err != nil {
+			return err
+		}
 		return peopleRepo.UpdateMembersWalkStatusByCurrent(ctx, team.ID, comm.WalkStatusPending, comm.WalkStatusInProgress)
 	})
+	if err != nil {
+		return err
+	}
+	_ = teamCache.DelTeamByID(ctx, team.ID)
+	_ = teamCache.DeleteTeamInfo(ctx, team.ID)
+	if members, err := repo.NewPeopleRepo().FindPeopleByTeamID(ctx, team.ID); err == nil {
+		for _, member := range members {
+			if member != nil {
+				_ = peopleCache.DelPersonByID(ctx, member.ID)
+			}
+		}
+	}
+	return nil
 }
 
 func (u *UpdateTeamApi) handleDuplicateCheckin(ctx *gin.Context, team *model.Team, pointName string, isStartPoint bool) error {
-	return query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
+	err := query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
 		teamRepo := repo.NewTeamRepoWithTx(tx)
 		peopleRepo := repo.NewPeopleRepoWithTx(tx)
 		if err := teamRepo.UpdateLatestPointName(ctx, team.ID, pointName); err != nil {
@@ -352,14 +416,35 @@ func (u *UpdateTeamApi) handleDuplicateCheckin(ctx *gin.Context, team *model.Tea
 		}
 		return peopleRepo.UpdateMembersWalkStatusByCurrent(ctx, team.ID, comm.WalkStatusPending, comm.WalkStatusInProgress)
 	})
+	if err != nil {
+		return err
+	}
+	_ = teamCache.DelTeamByID(ctx, team.ID)
+	_ = teamCache.DeleteTeamInfo(ctx, team.ID)
+	if members, err := repo.NewPeopleRepo().FindPeopleByTeamID(ctx, team.ID); err == nil {
+		for _, member := range members {
+			if member != nil {
+				_ = peopleCache.DelPersonByID(ctx, member.ID)
+			}
+		}
+	}
+	return nil
 }
 
-func (u *UpdateTeamApi) isStartPoint(ctx *gin.Context, teamRepo *repo.TeamRepo, routeName string, pointName string) (bool, error) {
-	routeEdge, err := teamRepo.FindRouteTransitionEdge(ctx, routeName, "", pointName)
+func (u *UpdateTeamApi) isStartCheckinContext(ctx *gin.Context, teamRepo *repo.TeamRepo, team *model.Team, pointName string) (bool, error) {
+	startEdge, err := teamRepo.FindRouteStartEdge(ctx, team.RouteName)
 	if err != nil {
 		return false, err
 	}
-	return routeEdge != nil, nil
+	if startEdge == nil || startEdge.PointName != pointName {
+		return false, nil
+	}
+
+	checkins, err := teamRepo.ListLatestCheckins(ctx, team.ID, 2)
+	if err != nil {
+		return false, err
+	}
+	return len(checkins) <= 1, nil
 }
 
 // Run Api初始化 进行参数校验和绑定

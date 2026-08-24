@@ -4,6 +4,7 @@ import (
 	"errors"
 	"reflect"
 	"runtime"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/zjutjh/mygo/foundation/reply"
@@ -13,6 +14,8 @@ import (
 	"github.com/zjutjh/mygo/swagger"
 
 	"app/comm"
+	peopleCache "app/dao/cache/people"
+	teamCache "app/dao/cache/team"
 	"app/dao/model"
 	"app/dao/query"
 	repo "app/dao/repo"
@@ -48,6 +51,8 @@ const (
 var (
 	errBindTeamNotEnough = errors.New("bind code team not enough")
 	errBindTeamFull      = errors.New("bind code team full")
+	errBindCodeDuplicate = errors.New("bind code duplicate")
+	errBindCodeEmpty     = errors.New("bind code empty")
 )
 
 // Run Api业务逻辑执行点
@@ -68,10 +73,26 @@ func (b *BindCodeApi) Run(ctx *gin.Context) kit.Code {
 		}
 	}()
 
+	newCode := strings.TrimSpace(b.Request.Body.Content)
 	err := query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
 		txTeamRepo := repo.NewTeamRepoWithTx(tx)
 		txPeopleRepo := repo.NewPeopleRepoWithTx(tx)
 		txAdminRepo := repo.NewAdminRepoWithTx(tx)
+		if newCode == "" {
+			return errBindCodeEmpty
+		}
+
+		if team.Code == newCode {
+			return nil
+		}
+
+		codeOwner, err := txTeamRepo.FindByCode(ctx, newCode)
+		if err != nil {
+			return err
+		}
+		if codeOwner != nil && codeOwner.ID != team.ID {
+			return errBindCodeDuplicate
+		}
 
 		startEdge, err := txTeamRepo.FindRouteStartEdge(ctx, team.RouteName)
 		if err != nil {
@@ -116,17 +137,38 @@ func (b *BindCodeApi) Run(ctx *gin.Context) kit.Code {
 			return errBindTeamFull
 		}
 
-		return txTeamRepo.UpdateByID(ctx, team.ID, map[string]any{"code": b.Request.Body.Content})
+		return txTeamRepo.UpdateCodeByID(ctx, team.ID, newCode)
 	})
 	if err != nil {
+		if errors.Is(err, errBindCodeEmpty) {
+			return comm.CodeParameterInvalid
+		}
 		if errors.Is(err, errBindTeamNotEnough) {
 			return comm.CodeTeamNotEnough
 		}
 		if errors.Is(err, errBindTeamFull) {
 			return comm.CodeTeamFull
 		}
+		if errors.Is(err, errBindCodeDuplicate) {
+			return comm.CodeBindCodeDuplicated
+		}
 		nlog.Pick().WithContext(ctx).WithError(err).Error("绑定签到码失败")
 		return comm.CodeBindCodeError
+	}
+	_ = teamCache.DelTeamByID(ctx, team.ID)
+	_ = teamCache.DeleteTeamInfo(ctx, team.ID)
+	if team.Code != "" {
+		_ = teamCache.DelTeamIDByCode(ctx, team.Code)
+	}
+	if newCode != "" {
+		_ = teamCache.DelTeamIDByCode(ctx, newCode)
+	}
+	if members, err := repo.NewPeopleRepo().FindPeopleByTeamID(ctx, team.ID); err == nil {
+		for _, member := range members {
+			if member != nil {
+				_ = peopleCache.DelPersonByID(ctx, member.ID)
+			}
+		}
 	}
 
 	return comm.CodeOK

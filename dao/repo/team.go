@@ -25,11 +25,10 @@ type TeamRepo struct {
 }
 
 type TeamMemberRow struct {
-	ID     int64
-	OpenID string
-	Name   string
-	Phone  string
-	Role   string
+	ID    int64
+	Name  string
+	Phone string
+	Role  string
 }
 
 type TeamFilterQuery struct {
@@ -62,11 +61,6 @@ type TeamCheckinRow struct {
 	CreatedAt time.Time `gorm:"column:created_at"`
 }
 
-func invalidateTeamCaches(ctx context.Context, teamID int64) {
-	_ = teamCache.DelTeamByID(ctx, teamID)
-	_ = teamCache.DeleteTeamInfo(ctx, teamID)
-}
-
 func NewTeamRepo() *TeamRepo {
 	db := ndb.Pick()
 	return &TeamRepo{
@@ -86,10 +80,6 @@ func NewTeamRepoWithTx(tx *query.Query) *TeamRepo {
 func (r *TeamRepo) Create(ctx context.Context, team *model.Team) error {
 	if err := r.query.Team.WithContext(ctx).Create(team); err != nil {
 		return err
-	}
-	_ = teamCache.SetTeamByID(ctx, team)
-	if team.Code != "" {
-		_ = teamCache.SetTeamIDByCode(ctx, team.Code, team.ID)
 	}
 	return nil
 }
@@ -158,7 +148,14 @@ func (r *TeamRepo) FindByNameExceptID(ctx context.Context, name string, id int64
 
 func (r *TeamRepo) FindByCode(ctx context.Context, code string) (*model.Team, error) {
 	if teamID, hit, err := teamCache.GetTeamIDByCode(ctx, code); err == nil && hit {
-		return r.FindTeamByID(ctx, teamID)
+		team, err := r.FindTeamByID(ctx, teamID)
+		if err != nil {
+			return nil, err
+		}
+		if team != nil && team.Code == code {
+			return team, nil
+		}
+		_ = teamCache.DelTeamIDByCode(ctx, code)
 	}
 
 	t := r.query.Team
@@ -173,6 +170,16 @@ func (r *TeamRepo) FindByCode(ctx context.Context, code string) (*model.Team, er
 	return record, nil
 }
 
+func (r *TeamRepo) UpdateCodeByID(ctx context.Context, id int64, code string) error {
+	_, err := r.query.Team.WithContext(ctx).
+		Where(r.query.Team.ID.Eq(id)).
+		Update(r.query.Team.Code, code)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (r *TeamRepo) UpdateByID(ctx context.Context, id int64, updates map[string]any) error {
 	_, err := r.query.Team.WithContext(ctx).
 		Where(r.query.Team.ID.Eq(id)).
@@ -180,7 +187,6 @@ func (r *TeamRepo) UpdateByID(ctx context.Context, id int64, updates map[string]
 	if err != nil {
 		return err
 	}
-	invalidateTeamCaches(ctx, id)
 	return nil
 }
 
@@ -195,9 +201,6 @@ func (r *TeamRepo) UpdateStatusByIDs(ctx context.Context, ids []int64, status st
 	if err != nil {
 		return err
 	}
-	for _, id := range ids {
-		invalidateTeamCaches(ctx, id)
-	}
 	return nil
 }
 
@@ -209,9 +212,6 @@ func (r *TeamRepo) IncrementNumIfAvailable(ctx context.Context, id int64, maxTea
 		UpdateColumn("num", gorm.Expr("num + ?", 1))
 	if result.Error != nil {
 		return false, result.Error
-	}
-	if result.RowsAffected > 0 {
-		invalidateTeamCaches(ctx, id)
 	}
 	return result.RowsAffected > 0, nil
 }
@@ -225,9 +225,6 @@ func (r *TeamRepo) DecrementNumIfPositive(ctx context.Context, id int64) (bool, 
 	if result.Error != nil {
 		return false, result.Error
 	}
-	if result.RowsAffected > 0 {
-		invalidateTeamCaches(ctx, id)
-	}
 	return result.RowsAffected > 0, nil
 }
 
@@ -238,7 +235,6 @@ func (r *TeamRepo) DeleteByID(ctx context.Context, id int64) error {
 	if err != nil {
 		return err
 	}
-	invalidateTeamCaches(ctx, id)
 	return nil
 }
 
@@ -249,7 +245,7 @@ func (r *TeamRepo) CreateWithCaptain(ctx context.Context, team *model.Team, capt
 		if err := teamRepo.Create(ctx, team); err != nil {
 			return err
 		}
-		return peopleRepo.UpdateByOpenID(ctx, captain.OpenID, map[string]any{
+		return peopleRepo.UpdateByID(ctx, captain.ID, map[string]any{
 			"created_op": captain.CreatedOp - 1,
 			"role":       comm.RoleCaptain,
 			"team_id":    team.ID,
@@ -276,7 +272,7 @@ func (r *TeamRepo) JoinTeam(ctx context.Context, teamID int64, person *model.Peo
 		if !ok {
 			return nil
 		}
-		if err := NewPeopleRepoWithTx(tx).UpdateByOpenID(ctx, person.OpenID, updates); err != nil {
+		if err := NewPeopleRepoWithTx(tx).UpdateByID(ctx, person.ID, updates); err != nil {
 			return err
 		}
 		joined = true
@@ -296,7 +292,7 @@ func (r *TeamRepo) RemoveMember(ctx context.Context, teamID int64, person *model
 		if !ok {
 			return nil
 		}
-		if err := NewPeopleRepoWithTx(tx).UpdateByOpenID(ctx, person.OpenID, map[string]any{
+		if err := NewPeopleRepoWithTx(tx).UpdateByID(ctx, person.ID, map[string]any{
 			"role":    comm.RoleUnbind,
 			"team_id": int64(-1),
 		}); err != nil {
@@ -308,17 +304,17 @@ func (r *TeamRepo) RemoveMember(ctx context.Context, teamID int64, person *model
 	return removed, err
 }
 
-func (r *TeamRepo) ChangeCaptain(ctx context.Context, teamID int64, oldCaptainOpenID, newCaptainOpenID string) error {
+func (r *TeamRepo) ChangeCaptain(ctx context.Context, teamID, oldCaptainID, newCaptainID int64) error {
 	return query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
 		teamRepo := NewTeamRepoWithTx(tx)
 		peopleRepo := NewPeopleRepoWithTx(tx)
-		if err := teamRepo.UpdateByID(ctx, teamID, map[string]any{"captain": newCaptainOpenID}); err != nil {
+		if err := teamRepo.UpdateByID(ctx, teamID, map[string]any{"captain": newCaptainID}); err != nil {
 			return err
 		}
-		if err := peopleRepo.UpdateByOpenID(ctx, oldCaptainOpenID, map[string]any{"role": comm.RoleMember}); err != nil {
+		if err := peopleRepo.UpdateByID(ctx, oldCaptainID, map[string]any{"role": comm.RoleMember}); err != nil {
 			return err
 		}
-		return peopleRepo.UpdateByOpenID(ctx, newCaptainOpenID, map[string]any{"role": comm.RoleCaptain})
+		return peopleRepo.UpdateByID(ctx, newCaptainID, map[string]any{"role": comm.RoleCaptain})
 	})
 }
 
@@ -384,9 +380,6 @@ func (r *TeamRepo) UpdateTeamWrongRoute(ctx context.Context, teamID int64, isWro
 	_, err := t.WithContext(ctx).
 		Where(t.ID.Eq(teamID)).
 		Update(t.IsWrongRoute, isWrongRoute)
-	if err == nil {
-		invalidateTeamCaches(ctx, teamID)
-	}
 	return err
 }
 
@@ -408,9 +401,6 @@ func (r *TeamRepo) ClearLostStatus(ctx context.Context, teamID int64) error {
 			t.IsLost.Is(true),
 		).
 		Update(t.IsLost, false)
-	if err == nil {
-		invalidateTeamCaches(ctx, teamID)
-	}
 	return err
 }
 
@@ -629,9 +619,6 @@ func (r *TeamRepo) UpdateLatestPointName(ctx context.Context, teamID int64, poin
 			"latest_point_name": pointName,
 			"time":              time.Now(),
 		})
-	if err == nil {
-		invalidateTeamCaches(ctx, teamID)
-	}
 	return err
 }
 
@@ -646,11 +633,10 @@ func (r *TeamRepo) ListTeamMembers(ctx context.Context, teamID int64) ([]TeamMem
 	members := make([]TeamMemberRow, 0, len(peopleRows))
 	for _, row := range peopleRows {
 		members = append(members, TeamMemberRow{
-			ID:     row.ID,
-			OpenID: row.OpenID,
-			Name:   row.Name,
-			Phone:  row.Tel,
-			Role:   row.Role,
+			ID:    row.ID,
+			Name:  row.Name,
+			Phone: row.Tel,
+			Role:  row.Role,
 		})
 	}
 
@@ -709,7 +695,7 @@ func (r *TeamRepo) buildTeamFilterBaseQuery(ctx context.Context, query TeamFilte
 		UnderlyingDB().
 		Table("teams AS t").
 		Joins("JOIN routes AS r ON r.name = t.route_name AND r.is_active = ? AND r.campus = ?", 1, query.Campus).
-		Joins("LEFT JOIN peoples AS p ON p.team_id = t.id AND p.open_id = t.captain").
+		Joins("LEFT JOIN peoples AS p ON p.team_id = t.id AND CAST(p.id AS CHAR) = t.captain").
 		Where("t.submit = ?", 1)
 
 	effRoute := "(CASE WHEN t.is_wrong_route = 1 THEN COALESCE((SELECT w.wrong_route_name FROM wrong_route_records AS w WHERE w.team_id = t.id ORDER BY w.created_at DESC, w.id DESC LIMIT 1), t.route_name) ELSE t.route_name END)"
@@ -764,9 +750,6 @@ func (r *TeamRepo) UpdateTeamLostStatus(ctx context.Context, teamID int64, isLos
 		Updates(m)
 	if tx.Error != nil {
 		return false, tx.Error
-	}
-	if tx.RowsAffected > 0 {
-		invalidateTeamCaches(ctx, teamID)
 	}
 
 	return tx.RowsAffected > 0, nil

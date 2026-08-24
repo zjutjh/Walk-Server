@@ -45,8 +45,6 @@ type TeamMemberSummary struct {
 	Role string `json:"role"`
 }
 
-func (h *TeamOverviewApi) Init(ctx *gin.Context) error { return nil }
-
 func (h *TeamOverviewApi) Run(ctx *gin.Context) kit.Code {
 	person, code := currentTeamUser(ctx)
 	if code != comm.CodeOK {
@@ -80,11 +78,6 @@ func (h *TeamOverviewApi) Run(ctx *gin.Context) kit.Code {
 
 func hfTeamOverview(ctx *gin.Context) {
 	api := &TeamOverviewApi{}
-	if err := api.Init(ctx); err != nil {
-		nlog.Pick().WithContext(ctx).WithError(err).Warn("参数绑定校验错误")
-		reply.Fail(ctx, comm.CodeParameterInvalid)
-		return
-	}
 	if code := api.Run(ctx); code == comm.CodeOK {
 		reply.Reply(ctx, comm.CodeOK, api.Response)
 	} else {

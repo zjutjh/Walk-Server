@@ -14,7 +14,6 @@ import (
 	"gorm.io/gorm"
 
 	"app/comm"
-	peopleCache "app/dao/cache/people"
 	teamCache "app/dao/cache/team"
 	"app/dao/query"
 	repo "app/dao/repo"
@@ -103,7 +102,6 @@ func (u *UpdateUserApi) Run(ctx *gin.Context) kit.Code {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("更改人员状态失败")
 		return comm.CodeServerError
 	}
-	_ = peopleCache.DelPersonByID(ctx, user.ID)
 	if user.TeamID > 0 {
 		_ = teamCache.DelTeamByID(ctx, user.TeamID)
 		_ = teamCache.DeleteTeamInfo(ctx, user.TeamID)
@@ -112,18 +110,13 @@ func (u *UpdateUserApi) Run(ctx *gin.Context) kit.Code {
 	return comm.CodeOK
 }
 
-func (u *UpdateUserApi) Init(ctx *gin.Context) (err error) {
-	err = ctx.ShouldBindJSON(&u.Request.Body)
-	if err != nil {
-		return err
-	}
-	return err
+func (u *UpdateUserApi) Init(ctx *gin.Context) error {
+	return ctx.ShouldBindJSON(&u.Request.Body)
 }
 
 func updateUser(ctx *gin.Context) {
 	api := &UpdateUserApi{}
-	err := api.Init(ctx)
-	if err != nil {
+	if err := api.Init(ctx); err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("参数绑定校验错误")
 		reply.Fail(ctx, comm.CodeParameterInvalid)
 		return

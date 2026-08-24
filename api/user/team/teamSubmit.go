@@ -28,7 +28,6 @@ type TeamSubmitApi struct {
 	Response struct{}
 }
 
-func (h *TeamSubmitApi) Init(ctx *gin.Context) error { return nil }
 func (h *TeamSubmitApi) Run(ctx *gin.Context) kit.Code {
 	person, code := currentTeamUser(ctx)
 	if code != comm.CodeOK {
@@ -90,12 +89,6 @@ func teamQuotaDay(ctx *gin.Context) (int, kit.Code) {
 
 func hfTeamSubmit(ctx *gin.Context) {
 	api := &TeamSubmitApi{}
-	err := api.Init(ctx)
-	if err != nil {
-		nlog.Pick().WithContext(ctx).WithError(err).Warn("参数绑定校验错误")
-		reply.Fail(ctx, comm.CodeParameterInvalid)
-		return
-	}
 	code := api.Run(ctx)
 	if !ctx.IsAborted() {
 		if code == comm.CodeOK {

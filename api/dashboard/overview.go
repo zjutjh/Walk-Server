@@ -154,19 +154,14 @@ func (o *OverviewApi) Run(ctx *gin.Context) kit.Code {
 }
 
 // Init Api初始化 进行参数校验和绑定
-func (o *OverviewApi) Init(ctx *gin.Context) (err error) {
-	err = ctx.ShouldBindQuery(&o.Request.Query)
-	if err != nil {
-		return err
-	}
-	return err
+func (o *OverviewApi) Init(ctx *gin.Context) error {
+	return ctx.ShouldBindQuery(&o.Request.Query)
 }
 
 // hfOverview API执行入口
 func hfOverview(ctx *gin.Context) {
 	api := &OverviewApi{}
-	err := api.Init(ctx)
-	if err != nil {
+	if err := api.Init(ctx); err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("参数绑定校验错误")
 		reply.Fail(ctx, comm.CodeParameterInvalid)
 		return

@@ -20,7 +20,6 @@ import (
 )
 
 type TeamRepo struct {
-	db    *gorm.DB
 	query *query.Query
 }
 
@@ -62,19 +61,11 @@ type TeamCheckinRow struct {
 }
 
 func NewTeamRepo() *TeamRepo {
-	db := ndb.Pick()
-	return &TeamRepo{
-		db:    db,
-		query: query.Use(db),
-	}
-
+	return &TeamRepo{query: query.Use(ndb.Pick())}
 }
 
 func NewTeamRepoWithTx(tx *query.Query) *TeamRepo {
-	return &TeamRepo{
-		db:    tx.Team.WithContext(context.Background()).UnderlyingDB(),
-		query: tx,
-	}
+	return &TeamRepo{query: tx}
 }
 
 func (r *TeamRepo) Create(ctx context.Context, team *model.Team) error {
@@ -205,25 +196,25 @@ func (r *TeamRepo) UpdateStatusByIDs(ctx context.Context, ids []int64, status st
 }
 
 func (r *TeamRepo) IncrementNumIfAvailable(ctx context.Context, id int64, maxTeamSize int) (bool, error) {
-	result := r.db.WithContext(ctx).
-		Model(&model.Team{}).
+	t := r.query.Team
+	result, err := t.WithContext(ctx).
 		Clauses(clause.Locking{Strength: "UPDATE"}).
-		Where("id = ? AND num < ?", id, maxTeamSize).
-		UpdateColumn("num", gorm.Expr("num + ?", 1))
-	if result.Error != nil {
-		return false, result.Error
+		Where(t.ID.Eq(id), t.Num.Lt(uint8(maxTeamSize))).
+		UpdateColumn(t.Num, gorm.Expr("num + ?", 1))
+	if err != nil {
+		return false, err
 	}
 	return result.RowsAffected > 0, nil
 }
 
 func (r *TeamRepo) DecrementNumIfPositive(ctx context.Context, id int64) (bool, error) {
-	result := r.db.WithContext(ctx).
-		Model(&model.Team{}).
+	t := r.query.Team
+	result, err := t.WithContext(ctx).
 		Clauses(clause.Locking{Strength: "UPDATE"}).
-		Where("id = ? AND num > 0", id).
-		UpdateColumn("num", gorm.Expr("num - ?", 1))
-	if result.Error != nil {
-		return false, result.Error
+		Where(t.ID.Eq(id), t.Num.Gt(0)).
+		UpdateColumn(t.Num, gorm.Expr("num - ?", 1))
+	if err != nil {
+		return false, err
 	}
 	return result.RowsAffected > 0, nil
 }
@@ -349,7 +340,7 @@ func (r *TeamRepo) ListRandomMatchTeams(ctx context.Context, routeName string, m
 		if limit <= 0 {
 			continue
 		}
-		err := r.db.WithContext(ctx).
+		err := ndb.Pick().WithContext(ctx).
 			Model(&model.Team{}).
 			Where("route_name = ? AND allow_match = ? AND num < ?", routeName, true, maxTeamSize).
 			Where(tier.where).
@@ -484,12 +475,10 @@ func (r *TeamRepo) FindPointRoutes(ctx context.Context, pointName string) ([]str
 }
 
 func (r *TeamRepo) IsPointOnRoute(ctx context.Context, routeName, pointName string) (bool, error) {
-	var total int64
-	err := r.query.RouteEdge.WithContext(ctx).
-		UnderlyingDB().
-		Table("route_edges").
-		Where("route_name = ? AND point_name = ?", routeName, pointName).
-		Count(&total).Error
+	re := r.query.RouteEdge
+	total, err := re.WithContext(ctx).
+		Where(re.RouteName.Eq(routeName), re.PointName.Eq(pointName)).
+		Count()
 	if err != nil {
 		return false, err
 	}
@@ -497,12 +486,14 @@ func (r *TeamRepo) IsPointOnRoute(ctx context.Context, routeName, pointName stri
 }
 
 func (r *TeamRepo) IsRouteTransitionValid(ctx context.Context, routeName, prevPointName, pointName string) (bool, error) {
-	var total int64
-	err := r.query.RouteEdge.WithContext(ctx).
-		UnderlyingDB().
-		Table("route_edges").
-		Where("route_name = ? AND prev_point_name = ? AND point_name = ?", routeName, prevPointName, pointName).
-		Count(&total).Error
+	re := r.query.RouteEdge
+	total, err := re.WithContext(ctx).
+		Where(
+			re.RouteName.Eq(routeName),
+			re.PrevPointName.Eq(prevPointName),
+			re.PointName.Eq(pointName),
+		).
+		Count()
 	if err != nil {
 		return false, err
 	}
@@ -525,8 +516,7 @@ func (r *TeamRepo) IsDirectionBackward(ctx context.Context, routeName, prevPoint
 	var nextSeq struct {
 		SeqOrder int `gorm:"column:seq_order"`
 	}
-	err = r.query.RouteEdge.WithContext(ctx).
-		UnderlyingDB().
+	err = ndb.Pick().WithContext(ctx).
 		Table("route_edges").
 		Select("MIN(seq_order) AS seq_order").
 		Where("route_name = ? AND prev_point_name = ?", routeName, prevPointName).
@@ -541,8 +531,7 @@ func (r *TeamRepo) IsDirectionBackward(ctx context.Context, routeName, prevPoint
 	var currentSeq struct {
 		SeqOrder int `gorm:"column:seq_order"`
 	}
-	err = r.query.RouteEdge.WithContext(ctx).
-		UnderlyingDB().
+	err = ndb.Pick().WithContext(ctx).
 		Table("route_edges").
 		Select("MAX(seq_order) AS seq_order").
 		Where("route_name = ? AND point_name = ?", routeName, pointName).
@@ -561,8 +550,7 @@ func (r *TeamRepo) ListLatestCheckins(ctx context.Context, teamID int64, limit i
 	if limit <= 0 {
 		return rows, nil
 	}
-	err := r.query.Checkin.WithContext(ctx).
-		UnderlyingDB().
+	err := ndb.Pick().WithContext(ctx).
 		Table("checkins").
 		Select("id, admin_id, team_id, point_name, route_name, time, created_at").
 		Where("team_id = ?", teamID).
@@ -577,12 +565,10 @@ func (r *TeamRepo) ListLatestCheckins(ctx context.Context, teamID int64, limit i
 }
 
 func (r *TeamRepo) HasTeamCheckinAtPoint(ctx context.Context, teamID int64, pointName string) (bool, error) {
-	var total int64
-	err := r.query.Checkin.WithContext(ctx).
-		UnderlyingDB().
-		Table("checkins").
-		Where("team_id = ? AND point_name = ?", teamID, pointName).
-		Count(&total).Error
+	c := r.query.Checkin
+	total, err := c.WithContext(ctx).
+		Where(c.TeamID.Eq(teamID), c.PointName.Eq(pointName)).
+		Count()
 	if err != nil {
 		return false, err
 	}
@@ -593,8 +579,7 @@ func (r *TeamRepo) GetLatestWrongRouteName(ctx context.Context, teamID int64) (s
 	var row struct {
 		WrongRouteName string `gorm:"column:wrong_route_name"`
 	}
-	err := r.query.WrongRouteRecord.WithContext(ctx).
-		UnderlyingDB().
+	err := ndb.Pick().WithContext(ctx).
 		Table("wrong_route_records").
 		Select("wrong_route_name").
 		Where("team_id = ?", teamID).
@@ -691,8 +676,7 @@ func (r *TeamRepo) ListTeamsByFilter(ctx context.Context, query TeamFilterQuery)
 }
 
 func (r *TeamRepo) buildTeamFilterBaseQuery(ctx context.Context, query TeamFilterQuery) *gorm.DB {
-	db := r.query.Team.WithContext(ctx).
-		UnderlyingDB().
+	db := ndb.Pick().WithContext(ctx).
 		Table("teams AS t").
 		Joins("JOIN routes AS r ON r.name = t.route_name AND r.is_active = ? AND r.campus = ?", 1, query.Campus).
 		Joins("LEFT JOIN peoples AS p ON p.team_id = t.id AND CAST(p.id AS CHAR) = t.captain").
@@ -743,14 +727,13 @@ func (r *TeamRepo) UpdateTeamLostStatus(ctx context.Context, teamID int64, isLos
 		"is_lost": isLost,
 	}
 
-	tx := r.query.Team.WithContext(ctx).
-		UnderlyingDB().
-		Table("teams").
-		Where("id = ?", teamID).
+	t := r.query.Team
+	result, err := t.WithContext(ctx).
+		Where(t.ID.Eq(teamID)).
 		Updates(m)
-	if tx.Error != nil {
-		return false, tx.Error
+	if err != nil {
+		return false, err
 	}
 
-	return tx.RowsAffected > 0, nil
+	return result.RowsAffected > 0, nil
 }

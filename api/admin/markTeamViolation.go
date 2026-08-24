@@ -14,7 +14,6 @@ import (
 	"gorm.io/gorm"
 
 	"app/comm"
-	peopleCache "app/dao/cache/people"
 	"app/dao/query"
 	repo "app/dao/repo"
 )
@@ -62,29 +61,16 @@ func (m *MarkTeamViolationApi) Run(ctx *gin.Context) kit.Code {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("标记队伍违规失败")
 		return comm.CodeServerError
 	}
-	if members, err := repo.NewPeopleRepo().FindPeopleByTeamID(ctx, teamID); err == nil {
-		for _, member := range members {
-			if member != nil {
-				_ = peopleCache.DelPersonByID(ctx, member.ID)
-			}
-		}
-	}
-
 	return comm.CodeOK
 }
 
-func (m *MarkTeamViolationApi) Init(ctx *gin.Context) (err error) {
-	err = ctx.ShouldBindJSON(&m.Request.Body)
-	if err != nil {
-		return err
-	}
-	return err
+func (m *MarkTeamViolationApi) Init(ctx *gin.Context) error {
+	return ctx.ShouldBindJSON(&m.Request.Body)
 }
 
 func markTeamViolation(ctx *gin.Context) {
 	api := &MarkTeamViolationApi{}
-	err := api.Init(ctx)
-	if err != nil {
+	if err := api.Init(ctx); err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("参数绑定校验错误")
 		reply.Fail(ctx, comm.CodeParameterInvalid)
 		return

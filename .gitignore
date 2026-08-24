@@ -42,6 +42,3 @@ conf/config.yaml
 # log
 /logs
 *.log
-
-# generate
-/register/generate/status_codes_generated.go

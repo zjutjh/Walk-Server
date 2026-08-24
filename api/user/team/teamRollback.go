@@ -28,7 +28,6 @@ type TeamRollbackApi struct {
 	Response struct{}
 }
 
-func (h *TeamRollbackApi) Init(ctx *gin.Context) error { return nil }
 func (h *TeamRollbackApi) Run(ctx *gin.Context) kit.Code {
 	person, code := currentTeamUser(ctx)
 	if code != comm.CodeOK {
@@ -64,13 +63,6 @@ func (h *TeamRollbackApi) Run(ctx *gin.Context) kit.Code {
 
 func hfTeamRollback(ctx *gin.Context) {
 	api := &TeamRollbackApi{}
-	err := api.Init(ctx)
-	if err != nil {
-		nlog.Pick().WithContext(ctx).WithError(err).Warn("参数绑定校验错误")
-		reply.Fail(ctx, comm.CodeParameterInvalid)
-		return
-	}
-
 	code := api.Run(ctx)
 	if !ctx.IsAborted() {
 		if code == comm.CodeOK {

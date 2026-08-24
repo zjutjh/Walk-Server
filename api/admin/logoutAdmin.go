@@ -34,18 +34,8 @@ func (a *LogoutAdminApi) Run(ctx *gin.Context) kit.Code {
 	return comm.CodeOK
 }
 
-func (a *LogoutAdminApi) Init(ctx *gin.Context) (err error) {
-	return nil
-}
-
 func logoutAdmin(ctx *gin.Context) {
 	api := &LogoutAdminApi{}
-	err := api.Init(ctx)
-	if err != nil {
-		nlog.Pick().WithContext(ctx).WithError(err).Warn("参数绑定校验错误")
-		reply.Fail(ctx, comm.CodeParameterInvalid)
-		return
-	}
 	code := api.Run(ctx)
 	if !ctx.IsAborted() {
 		if code == comm.CodeOK {

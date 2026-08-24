@@ -12,7 +12,6 @@ import (
 	"github.com/zjutjh/mygo/swagger"
 
 	"app/comm"
-	peopleCache "app/dao/cache/people"
 	teamCache "app/dao/cache/team"
 	"app/dao/query"
 	repo "app/dao/repo"
@@ -56,29 +55,16 @@ func (c *ConfirmDestinationApi) Run(ctx *gin.Context) kit.Code {
 	}
 	_ = teamCache.DelTeamByID(ctx, teamID)
 	_ = teamCache.DeleteTeamInfo(ctx, teamID)
-	if members, err := repo.NewPeopleRepo().FindPeopleByTeamID(ctx, teamID); err == nil {
-		for _, member := range members {
-			if member != nil {
-				_ = peopleCache.DelPersonByID(ctx, member.ID)
-			}
-		}
-	}
-
 	return comm.CodeOK
 }
 
-func (c *ConfirmDestinationApi) Init(ctx *gin.Context) (err error) {
-	err = ctx.ShouldBindJSON(&c.Request.Body)
-	if err != nil {
-		return err
-	}
-	return err
+func (c *ConfirmDestinationApi) Init(ctx *gin.Context) error {
+	return ctx.ShouldBindJSON(&c.Request.Body)
 }
 
 func confirmDestination(ctx *gin.Context) {
 	api := &ConfirmDestinationApi{}
-	err := api.Init(ctx)
-	if err != nil {
+	if err := api.Init(ctx); err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("参数绑定校验错误")
 		reply.Fail(ctx, comm.CodeParameterInvalid)
 		return

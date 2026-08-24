@@ -2,11 +2,13 @@ package repo
 
 import (
 	"context"
+	"errors"
 	"strings"
 
 	"app/comm"
 
 	"github.com/zjutjh/mygo/ndb"
+	"gorm.io/gorm"
 
 	"app/dao/query"
 )
@@ -76,8 +78,7 @@ func buildInPlaceholders(size int) string {
 // IsActiveRouteStartPoint 判断点位是否为指定校区任意启用路线的起点。
 func (r *RouteRepo) IsActiveRouteStartPoint(ctx context.Context, campus string, pointName string) (bool, error) {
 	var count int64
-	err := r.query.RouteEdge.WithContext(ctx).
-		UnderlyingDB().
+	err := ndb.Pick().WithContext(ctx).
 		Raw(
 			"SELECT COUNT(DISTINCT rt.name) "+
 				"FROM routes AS rt "+
@@ -104,13 +105,12 @@ func (r *RouteRepo) IsActiveRouteStartPoint(ctx context.Context, campus string, 
 func (r *RouteRepo) ListActiveRouteNames(ctx context.Context) ([]RouteNameRow, error) {
 	rows := make([]RouteNameRow, 0)
 
-	err := r.query.Route.WithContext(ctx).
-		UnderlyingDB().
-		Table("routes").
-		Select("name").
-		Where("is_active = ?", 1).
-		Order("id ASC").
-		Scan(&rows).Error
+	rt := r.query.Route
+	err := rt.WithContext(ctx).
+		Select(rt.Name).
+		Where(rt.IsActive.Is(true)).
+		Order(rt.ID).
+		Scan(&rows)
 	if err != nil {
 		return nil, err
 	}
@@ -122,13 +122,12 @@ func (r *RouteRepo) ListActiveRouteNames(ctx context.Context) ([]RouteNameRow, e
 func (r *RouteRepo) ListActiveRouteNamesByCampus(ctx context.Context, campus string) ([]RouteNameRow, error) {
 	rows := make([]RouteNameRow, 0)
 
-	err := r.query.Route.WithContext(ctx).
-		UnderlyingDB().
-		Table("routes").
-		Select("name").
-		Where("is_active = ? AND campus = ?", 1, campus).
-		Order("id ASC").
-		Scan(&rows).Error
+	rt := r.query.Route
+	err := rt.WithContext(ctx).
+		Select(rt.Name).
+		Where(rt.IsActive.Is(true), rt.Campus.Eq(campus)).
+		Order(rt.ID).
+		Scan(&rows)
 	if err != nil {
 		return nil, err
 	}
@@ -140,8 +139,7 @@ func (r *RouteRepo) ListActiveRouteNamesByCampus(ctx context.Context, campus str
 func (r *RouteRepo) ListRouteStatusCounts(ctx context.Context) ([]RouteStatusCountRow, error) {
 	rows := make([]RouteStatusCountRow, 0)
 
-	err := r.query.People.WithContext(ctx).
-		UnderlyingDB().
+	err := ndb.Pick().WithContext(ctx).
 		Table("peoples AS p").
 		Select("t.route_name, p.walk_status, COUNT(1) AS cnt").
 		Joins("JOIN teams AS t ON t.id = p.team_id").
@@ -159,8 +157,7 @@ func (r *RouteRepo) ListRouteStatusCounts(ctx context.Context) ([]RouteStatusCou
 func (r *RouteRepo) ListRouteStatusCountsByCampus(ctx context.Context, campus string) ([]RouteStatusCountRow, error) {
 	rows := make([]RouteStatusCountRow, 0)
 
-	err := r.query.People.WithContext(ctx).
-		UnderlyingDB().
+	err := ndb.Pick().WithContext(ctx).
 		Table("peoples AS p").
 		Select("t.route_name, p.walk_status, COUNT(1) AS cnt").
 		Joins("JOIN teams AS t ON t.id = p.team_id").
@@ -179,8 +176,7 @@ func (r *RouteRepo) ListRouteStatusCountsByCampus(ctx context.Context, campus st
 func (r *RouteRepo) ListRouteWrongCounts(ctx context.Context) ([]RouteWrongCountRow, error) {
 	rows := make([]RouteWrongCountRow, 0)
 
-	err := r.query.People.WithContext(ctx).
-		UnderlyingDB().
+	err := ndb.Pick().WithContext(ctx).
 		Table("peoples AS p").
 		Select("t.route_name, COUNT(1) AS cnt").
 		Joins("JOIN teams AS t ON t.id = p.team_id").
@@ -198,8 +194,7 @@ func (r *RouteRepo) ListRouteWrongCounts(ctx context.Context) ([]RouteWrongCount
 func (r *RouteRepo) ListRouteWrongCountsByCampus(ctx context.Context, campus string) ([]RouteWrongCountRow, error) {
 	rows := make([]RouteWrongCountRow, 0)
 
-	err := r.query.People.WithContext(ctx).
-		UnderlyingDB().
+	err := ndb.Pick().WithContext(ctx).
 		Table("peoples AS p").
 		Select("t.route_name, COUNT(1) AS cnt").
 		Joins("JOIN teams AS t ON t.id = p.team_id").
@@ -216,23 +211,17 @@ func (r *RouteRepo) ListRouteWrongCountsByCampus(ctx context.Context, campus str
 
 // ExistsActiveRoute 校验路线是否存在且启用，同时返回所属校区。
 func (r *RouteRepo) ExistsActiveRoute(ctx context.Context, routeName string) (campus string, exists bool, err error) {
-	var rows []struct {
-		Campus string `gorm:"column:campus"`
+	rt := r.query.Route
+	record, err := rt.WithContext(ctx).
+		Where(rt.Name.Eq(routeName), rt.IsActive.Is(true)).
+		First()
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return "", false, nil
 	}
-	err = r.query.Route.WithContext(ctx).
-		UnderlyingDB().
-		Table("routes").
-		Select("campus").
-		Where("name = ? AND is_active = ?", routeName, 1).
-		Limit(1).
-		Scan(&rows).Error
 	if err != nil {
 		return "", false, err
 	}
-	if len(rows) == 0 {
-		return "", false, nil
-	}
-	return rows[0].Campus, true, nil
+	return record.Campus, true, nil
 }
 
 // ListRoutePoints 查询路线点位顺序（按 route_edges 原样返回，不 GROUP BY）。
@@ -240,13 +229,12 @@ func (r *RouteRepo) ExistsActiveRoute(ctx context.Context, routeName string) (ca
 func (r *RouteRepo) ListRoutePoints(ctx context.Context, routeName string) ([]RoutePointRow, error) {
 	rows := make([]RoutePointRow, 0)
 
-	err := r.query.RouteEdge.WithContext(ctx).
-		UnderlyingDB().
-		Table("route_edges").
-		Select("point_name, seq_order").
-		Where("route_name = ? AND point_name IS NOT NULL AND point_name <> ''", routeName).
-		Order("seq_order ASC").
-		Scan(&rows).Error
+	re := r.query.RouteEdge
+	err := re.WithContext(ctx).
+		Select(re.PointName, re.SeqOrder).
+		Where(re.RouteName.Eq(routeName), re.PointName.IsNotNull(), re.PointName.Neq("")).
+		Order(re.SeqOrder).
+		Scan(&rows)
 	if err != nil {
 		return nil, err
 	}
@@ -282,8 +270,7 @@ func (r *RouteRepo) ListRoutePointPassedCounts(ctx context.Context, routeName st
 		args = append(args, status)
 	}
 
-	err := r.query.Checkin.WithContext(ctx).
-		UnderlyingDB().
+	err := ndb.Pick().WithContext(ctx).
 		Raw(
 			"WITH route_point_seq AS ("+
 				"SELECT point_name, seq_order "+
@@ -337,8 +324,7 @@ func (r *RouteRepo) ListRoutePointPassedCounts(ctx context.Context, routeName st
 func (r *RouteRepo) ListSingleRouteStatusCounts(ctx context.Context, routeName string) ([]WalkStatusCountRow, error) {
 	rows := make([]WalkStatusCountRow, 0)
 
-	err := r.query.People.WithContext(ctx).
-		UnderlyingDB().
+	err := ndb.Pick().WithContext(ctx).
 		Table("peoples AS p").
 		Select("p.walk_status, COUNT(1) AS cnt").
 		Joins("JOIN teams AS t ON t.id = p.team_id").
@@ -355,8 +341,7 @@ func (r *RouteRepo) ListSingleRouteStatusCounts(ctx context.Context, routeName s
 // CountSingleRouteWrongPeople 查询单路线走错人数。
 func (r *RouteRepo) CountSingleRouteWrongPeople(ctx context.Context, routeName string) (int64, error) {
 	var total int64
-	err := r.query.People.WithContext(ctx).
-		UnderlyingDB().
+	err := ndb.Pick().WithContext(ctx).
 		Table("peoples AS p").
 		Joins("JOIN teams AS t ON t.id = p.team_id").
 		Where("t.submit = ? AND t.route_name = ? AND t.is_wrong_route = ?", true, routeName, true).
@@ -385,8 +370,7 @@ func (r *RouteRepo) CountStartCheckpointPeople(ctx context.Context, campus strin
 	args = append(args, pointName)
 
 	row := StartCheckpointCountRow{}
-	err = r.query.People.WithContext(ctx).
-		UnderlyingDB().
+	err = ndb.Pick().WithContext(ctx).
 		Raw(
 			"WITH start_routes AS ("+
 				"SELECT rt.name AS route_name "+
@@ -464,8 +448,7 @@ func (r *RouteRepo) GetCheckpointPeopleCounts(ctx context.Context, campus string
 		return r.CountStartCheckpointPeople(ctx, campus, pointName)
 	}
 
-	baseTotal := r.query.Team.WithContext(ctx).
-		UnderlyingDB().
+	baseTotal := ndb.Pick().WithContext(ctx).
 		Table("teams AS t").
 		Joins("JOIN routes AS rt ON rt.name = t.route_name AND rt.is_active = ? AND rt.campus = ?", 1, campus).
 		Joins("JOIN peoples AS ps ON ps.team_id = t.id").
@@ -479,8 +462,7 @@ func (r *RouteRepo) GetCheckpointPeopleCounts(ctx context.Context, campus string
 		return 0, 0, err
 	}
 
-	basePassed := r.query.Team.WithContext(ctx).
-		UnderlyingDB().
+	basePassed := ndb.Pick().WithContext(ctx).
 		Table("teams AS t").
 		Joins("JOIN routes AS rt ON rt.name = t.route_name AND rt.is_active = ? AND rt.campus = ?", 1, campus).
 		Joins("JOIN peoples AS ps ON ps.team_id = t.id").

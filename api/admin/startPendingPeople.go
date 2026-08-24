@@ -12,9 +12,7 @@ import (
 	"github.com/zjutjh/mygo/swagger"
 
 	"app/comm"
-	peopleCache "app/dao/cache/people"
 	teamCache "app/dao/cache/team"
-	"app/dao/model"
 	"app/dao/query"
 	repo "app/dao/repo"
 )
@@ -33,13 +31,12 @@ type StartPendingPeopleApi struct {
 
 func (s *StartPendingPeopleApi) Run(ctx *gin.Context) kit.Code {
 	var teamIDs []int64
-	var people []*model.People
 	err := query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
 		txPeopleRepo := repo.NewPeopleRepoWithTx(tx)
 		txTeamRepo := repo.NewTeamRepoWithTx(tx)
 
 		var err error
-		_, teamIDs, people, err = txPeopleRepo.UpdateWalkStatusByCurrent(ctx, comm.WalkStatusPending, comm.WalkStatusInProgress)
+		_, teamIDs, _, err = txPeopleRepo.UpdateWalkStatusByCurrent(ctx, comm.WalkStatusPending, comm.WalkStatusInProgress)
 		if err != nil {
 			return err
 		}
@@ -54,11 +51,6 @@ func (s *StartPendingPeopleApi) Run(ctx *gin.Context) kit.Code {
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("批量更新待出发人员状态失败")
 		return comm.CodeServerError
-	}
-	for _, person := range people {
-		if person != nil {
-			_ = peopleCache.DelPersonByID(ctx, person.ID)
-		}
 	}
 	for _, teamID := range teamIDs {
 		_ = teamCache.DelTeamByID(ctx, teamID)

@@ -98,19 +98,14 @@ func (c *CheckpointApi) Run(ctx *gin.Context) kit.Code {
 }
 
 // Init Api初始化 进行参数校验和绑定
-func (c *CheckpointApi) Init(ctx *gin.Context) (err error) {
-	err = ctx.ShouldBindQuery(&c.Request.Query)
-	if err != nil {
-		return err
-	}
-	return err
+func (c *CheckpointApi) Init(ctx *gin.Context) error {
+	return ctx.ShouldBindQuery(&c.Request.Query)
 }
 
 // hfCheckpoint API执行入口
 func hfCheckpoint(ctx *gin.Context) {
 	api := &CheckpointApi{}
-	err := api.Init(ctx)
-	if err != nil {
+	if err := api.Init(ctx); err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("参数绑定校验错误")
 		reply.Fail(ctx, comm.CodeParameterInvalid)
 		return

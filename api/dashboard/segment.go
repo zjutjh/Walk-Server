@@ -98,19 +98,14 @@ func (s *SegmentApi) Run(ctx *gin.Context) kit.Code {
 }
 
 // Init Api初始化 进行参数校验和绑定
-func (s *SegmentApi) Init(ctx *gin.Context) (err error) {
-	err = ctx.ShouldBindQuery(&s.Request.Query)
-	if err != nil {
-		return err
-	}
-	return err
+func (s *SegmentApi) Init(ctx *gin.Context) error {
+	return ctx.ShouldBindQuery(&s.Request.Query)
 }
 
 // hfSegment API执行入口
 func hfSegment(ctx *gin.Context) {
 	api := &SegmentApi{}
-	err := api.Init(ctx)
-	if err != nil {
+	if err := api.Init(ctx); err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("参数绑定校验错误")
 		reply.Fail(ctx, comm.CodeParameterInvalid)
 		return

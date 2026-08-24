@@ -16,7 +16,6 @@ import (
 	"gorm.io/gorm"
 
 	"app/comm"
-	peopleCache "app/dao/cache/people"
 	teamCache "app/dao/cache/team"
 	"app/dao/model"
 	"app/dao/query"
@@ -207,13 +206,6 @@ func (r *RebuildApi) Run(ctx *gin.Context) kit.Code {
 	for affectedTeamID := range affectedTeamIDSet {
 		_ = teamCache.DelTeamByID(ctx, affectedTeamID)
 		_ = teamCache.DeleteTeamInfo(ctx, affectedTeamID)
-		if members, err := repo.NewPeopleRepo().FindPeopleByTeamID(ctx, affectedTeamID); err == nil {
-			for _, member := range members {
-				if member != nil {
-					_ = peopleCache.DelPersonByID(ctx, member.ID)
-				}
-			}
-		}
 	}
 
 	if createdTeam, err := repo.NewTeamRepo().GetTeamByID(ctx, teamID); err == nil && createdTeam != nil {
@@ -254,18 +246,13 @@ func (r *RebuildApi) handleStartPointCheckin(ctx *gin.Context, teamRepo *repo.Te
 }
 
 // Run Api初始化 进行参数校验和绑定
-func (r *RebuildApi) Init(ctx *gin.Context) (err error) {
-	err = ctx.ShouldBindJSON(&r.Request.Body)
-	if err != nil {
-		return err
-	}
-	return err
+func (r *RebuildApi) Init(ctx *gin.Context) error {
+	return ctx.ShouldBindJSON(&r.Request.Body)
 }
 
 func rebuild(ctx *gin.Context) {
 	api := &RebuildApi{}
-	err := api.Init(ctx)
-	if err != nil {
+	if err := api.Init(ctx); err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("参数绑定校验错误")
 		reply.Fail(ctx, comm.CodeParameterInvalid)
 		return

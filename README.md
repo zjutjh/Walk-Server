@@ -59,11 +59,10 @@
 ├── dao
 │   ├── cache          # Redis 缓存
 │   ├── model          # gorm/gen 生成的 model
-│   ├── query          # gorm/gen 生成的 query
 │   └── repo           # 数据访问层
 ├── deploy/sql         # 建表与测试数据
 ├── middleware         # 登录态、权限等中间件
-├── register           # Boot、路由、命令、定时任务注册
+├── register           # Boot、路由和命令注册
 └── cmd/gen            # GORM Gen 生成入口
 ```
 
@@ -131,10 +130,7 @@ cp conf/config.example.yaml conf/config.yaml
 go run .
 ```
 
-项目入口见 [main.go]。启动后会同时拉起：
-
-- HTTP 服务
-- HTTP 服务伴生定时任务
+项目入口见 [main.go]，启动后会拉起 HTTP 服务。
 
 ## 编译校验
 
@@ -144,7 +140,7 @@ GOCACHE=/tmp/gocache go build ./...
 
 ## 代码生成
 
-项目使用 `gorm.io/gen` 维护 `dao/model` 和 `dao/query`。
+项目使用 `gorm.io/gen` 维护 `dao/model`。
 
 生成入口：
 
@@ -157,4 +153,3 @@ go run cmd/gen/generate.go
 ```
 
 当表结构变更后，建议重新生成。
-

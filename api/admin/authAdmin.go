@@ -96,18 +96,13 @@ func (a *AuthAdminApi) Run(ctx *gin.Context) kit.Code {
 }
 
 // Run Api初始化 进行参数校验和绑定
-func (a *AuthAdminApi) Init(ctx *gin.Context) (err error) {
-	err = ctx.ShouldBindJSON(&a.Request.Body)
-	if err != nil {
-		return err
-	}
-	return err
+func (a *AuthAdminApi) Init(ctx *gin.Context) error {
+	return ctx.ShouldBindJSON(&a.Request.Body)
 }
 
 func authAdmin(ctx *gin.Context) {
 	api := &AuthAdminApi{}
-	err := api.Init(ctx)
-	if err != nil {
+	if err := api.Init(ctx); err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("参数绑定校验错误")
 		reply.Fail(ctx, comm.CodeParameterInvalid)
 		return

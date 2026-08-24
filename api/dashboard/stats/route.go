@@ -200,19 +200,14 @@ func (r *RouteApi) Run(ctx *gin.Context) kit.Code {
 }
 
 // Init Api初始化 进行参数校验和绑定
-func (r *RouteApi) Init(ctx *gin.Context) (err error) {
-	err = ctx.ShouldBindQuery(&r.Request.Query)
-	if err != nil {
-		return err
-	}
-	return err
+func (r *RouteApi) Init(ctx *gin.Context) error {
+	return ctx.ShouldBindQuery(&r.Request.Query)
 }
 
 // hfRoute API执行入口
 func hfRoute(ctx *gin.Context) {
 	api := &RouteApi{}
-	err := api.Init(ctx)
-	if err != nil {
+	if err := api.Init(ctx); err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("参数绑定校验错误")
 		reply.Fail(ctx, comm.CodeParameterInvalid)
 		return

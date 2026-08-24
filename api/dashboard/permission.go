@@ -7,7 +7,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/zjutjh/mygo/foundation/reply"
 	"github.com/zjutjh/mygo/kit"
-	"github.com/zjutjh/mygo/nlog"
 	"github.com/zjutjh/mygo/swagger"
 
 	"app/comm"
@@ -51,18 +50,8 @@ func (p *PermissionApi) Run(ctx *gin.Context) kit.Code {
 	return comm.CodeOK
 }
 
-func (p *PermissionApi) Init(ctx *gin.Context) (err error) {
-	return err
-}
-
 func hfPermission(ctx *gin.Context) {
 	api := &PermissionApi{}
-	err := api.Init(ctx)
-	if err != nil {
-		nlog.Pick().WithContext(ctx).WithError(err).Warn("参数绑定校验错误")
-		reply.Fail(ctx, comm.CodeParameterInvalid)
-		return
-	}
 	code := api.Run(ctx)
 	if !ctx.IsAborted() {
 		if code == comm.CodeOK {

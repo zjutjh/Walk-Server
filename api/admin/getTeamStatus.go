@@ -118,7 +118,7 @@ type teamRouteStatus struct {
 
 func (g *GetTeamStatusApi) resolveRouteStatus(ctx *gin.Context, teamRepo *repo.TeamRepo, team *model.Team) (teamRouteStatus, error) {
 	status := teamRouteStatus{
-		isWrongRoute: team.IsWrongRoute != false,
+		isWrongRoute: team.IsWrongRoute,
 	}
 
 	checkins, err := teamRepo.ListLatestCheckins(ctx, team.ID, 2)
@@ -172,18 +172,13 @@ func (g *GetTeamStatusApi) resolveRouteStatus(ctx *gin.Context, teamRepo *repo.T
 }
 
 // Run Api初始化 进行参数校验和绑定
-func (g *GetTeamStatusApi) Init(ctx *gin.Context) (err error) {
-	err = ctx.ShouldBindQuery(&g.Request.Query)
-	if err != nil {
-		return err
-	}
-	return err
+func (g *GetTeamStatusApi) Init(ctx *gin.Context) error {
+	return ctx.ShouldBindQuery(&g.Request.Query)
 }
 
 func getTeamStatus(ctx *gin.Context) {
 	api := &GetTeamStatusApi{}
-	err := api.Init(ctx)
-	if err != nil {
+	if err := api.Init(ctx); err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("参数绑定校验错误")
 		reply.Fail(ctx, comm.CodeParameterInvalid)
 		return

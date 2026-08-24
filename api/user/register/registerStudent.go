@@ -8,7 +8,6 @@ import (
 	"github.com/zjutjh/WeJH-SDK/oauth"
 	"github.com/zjutjh/WeJH-SDK/oauth/oauthException"
 
-	peopleCache "app/dao/cache/people"
 	"app/dao/model"
 	"app/dao/repo"
 
@@ -131,7 +130,6 @@ func createRegisterPerson(ctx *gin.Context, person *model.People) kit.Code {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("创建报名记录失败")
 		return comm.CodeServerError
 	}
-	_ = peopleCache.SetPersonByID(ctx, person)
 	return comm.CodeOK
 }
 
@@ -171,8 +169,7 @@ func isRegisterDuplicateError(err error) bool {
 
 func hfRegisterStudent(ctx *gin.Context) {
 	api := &RegisterStudentApi{}
-	err := api.Init(ctx)
-	if err != nil {
+	if err := api.Init(ctx); err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("参数绑定校验错误")
 		reply.Fail(ctx, comm.CodeParameterInvalid)
 		return

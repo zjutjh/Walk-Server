@@ -4,14 +4,12 @@ import (
 	"reflect"
 	"runtime"
 
-	peopleCache "app/dao/cache/people"
 	teamCache "app/dao/cache/team"
 	"app/dao/repo"
 
 	"github.com/gin-gonic/gin"
 	"github.com/zjutjh/mygo/foundation/reply"
 	"github.com/zjutjh/mygo/kit"
-	"github.com/zjutjh/mygo/nlog"
 	"github.com/zjutjh/mygo/swagger"
 
 	"app/comm"
@@ -29,7 +27,6 @@ type TeamLeaveApi struct {
 	Response struct{}
 }
 
-func (h *TeamLeaveApi) Init(ctx *gin.Context) error { return nil }
 func (h *TeamLeaveApi) Run(ctx *gin.Context) kit.Code {
 	if code := comm.CheckBizPhase(comm.PhaseRegistration, comm.PhaseSubmission, comm.PhaseAdjustment); code != comm.CodeOK {
 		return code
@@ -61,19 +58,11 @@ func (h *TeamLeaveApi) Run(ctx *gin.Context) kit.Code {
 	}
 	_ = teamCache.DelTeamByID(ctx, team.ID)
 	_ = teamCache.DeleteTeamInfo(ctx, team.ID)
-	_ = peopleCache.DelPersonByID(ctx, person.ID)
 	return comm.CodeOK
 }
 
 func hfTeamLeave(ctx *gin.Context) {
 	api := &TeamLeaveApi{}
-	err := api.Init(ctx)
-	if err != nil {
-		nlog.Pick().WithContext(ctx).WithError(err).Warn("参数绑定校验错误")
-		reply.Fail(ctx, comm.CodeParameterInvalid)
-		return
-	}
-
 	code := api.Run(ctx)
 	if !ctx.IsAborted() {
 		if code == comm.CodeOK {

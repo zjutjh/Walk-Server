@@ -14,7 +14,6 @@ import (
 	"github.com/zjutjh/mygo/swagger"
 
 	"app/comm"
-	peopleCache "app/dao/cache/people"
 	teamCache "app/dao/cache/team"
 	"app/dao/model"
 	"app/dao/query"
@@ -163,14 +162,6 @@ func (b *BindCodeApi) Run(ctx *gin.Context) kit.Code {
 	if newCode != "" {
 		_ = teamCache.DelTeamIDByCode(ctx, newCode)
 	}
-	if members, err := repo.NewPeopleRepo().FindPeopleByTeamID(ctx, team.ID); err == nil {
-		for _, member := range members {
-			if member != nil {
-				_ = peopleCache.DelPersonByID(ctx, member.ID)
-			}
-		}
-	}
-
 	return comm.CodeOK
 }
 
@@ -189,18 +180,13 @@ func (b *BindCodeApi) getTeam(ctx *gin.Context) (*model.Team, *kit.Code) {
 }
 
 // Run Api初始化 进行参数校验和绑定
-func (b *BindCodeApi) Init(ctx *gin.Context) (err error) {
-	err = ctx.ShouldBindJSON(&b.Request.Body)
-	if err != nil {
-		return err
-	}
-	return err
+func (b *BindCodeApi) Init(ctx *gin.Context) error {
+	return ctx.ShouldBindJSON(&b.Request.Body)
 }
 
 func bindCode(ctx *gin.Context) {
 	api := &BindCodeApi{}
-	err := api.Init(ctx)
-	if err != nil {
+	if err := api.Init(ctx); err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("参数绑定校验错误")
 		reply.Fail(ctx, comm.CodeParameterInvalid)
 		return

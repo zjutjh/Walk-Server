@@ -13,11 +13,11 @@ const TableNamePeople = "peoples"
 // People mapped from table <peoples>
 type People struct {
 	ID         int64     `gorm:"column:id;primaryKey;autoIncrement:true" json:"id"`
-	Password   string    `gorm:"column:password;not null;comment:bcrypt密码哈希" json:"-"`
+	Password   string    `gorm:"column:password;not null;comment:bcrypt密码哈希，空值表示预导入校友尚未注册" json:"password"`                   // bcrypt密码哈希，空值表示预导入校友尚未注册
 	Name       string    `gorm:"column:name;not null;comment:姓名" json:"name"`                                                 // 姓名
-	Gender     int8      `gorm:"column:gender;not null;default:0;comment:性别(0未知,1男,2女)" json:"gender"`                        // 性别(0未知,1男,2女)
+	Gender     int8      `gorm:"column:gender;not null;comment:性别(0未知,1男,2女)" json:"gender"`                                  // 性别(0未知,1男,2女)
 	StuID      string    `gorm:"column:stu_id;comment:学号" json:"stu_id"`                                                      // 学号
-	Identity   string    `gorm:"column:identity;not null;comment:身份证号AES密文" json:"-"`                                         // 身份证号密文
+	Identity   string    `gorm:"column:identity;not null;comment:身份证号AES密文" json:"identity"`                                  // 身份证号AES密文
 	Role       string    `gorm:"column:role;not null;default:unbind;comment:队伍中身份(unbind未绑定,menber成员,captain队长)" json:"role"` // 队伍中身份(unbind未绑定,menber成员,captain队长)
 	Qq         string    `gorm:"column:qq;comment:QQ号" json:"qq"`                                                             // QQ号
 	Wechat     string    `gorm:"column:wechat;comment:微信号" json:"wechat"`                                                     // 微信号
@@ -25,9 +25,9 @@ type People struct {
 	CreatedOp  uint8     `gorm:"column:created_op;not null;default:3;comment:剩余创建团队次数" json:"created_op"`                     // 剩余创建团队次数
 	JoinOp     uint8     `gorm:"column:join_op;not null;default:5;comment:剩余加入团队次数" json:"join_op"`                           // 剩余加入团队次数
 	TeamID     int64     `gorm:"column:team_id;default:-1;comment:所属团队ID" json:"team_id"`                                     // 所属团队ID
-	Type       string    `gorm:"column:type;not null;comment:人员类型(alumni校友，student学生，staff教职工)" json:"type"`                  // 人员类型(alumni校友，student学生，staff教职工)
+	Type       string    `gorm:"column:type;not null;comment:人员类型(alumni校友，student学生，teacher教职工)" json:"type"`                // 人员类型(alumni校友，student学生，teacher教职工)
 	WalkStatus string    `gorm:"column:walk_status;not null;comment:活动状态(未开始,待出发,已放弃,进行中,已下撤,已完成)" json:"walk_status"`        // 活动状态(未开始,待出发,已放弃,进行中,已下撤,已完成)
-	IsViolated bool      `gorm:"column:is_violated;not null;default:false;comment:是否违规" json:"is_violated"`                   // 是否违规
+	IsViolated bool      `gorm:"column:is_violated;not null;comment:是否违规" json:"is_violated"`                                 // 是否违规
 	UpdatedAt  time.Time `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP(3)" json:"updated_at"`
 	CreatedAt  time.Time `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP(3)" json:"created_at"`
 }

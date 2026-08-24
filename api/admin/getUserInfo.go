@@ -72,18 +72,13 @@ func (g *GetUserInfoByIDApi) Run(ctx *gin.Context) kit.Code {
 }
 
 // Run Api初始化 进行参数校验和绑定
-func (g *GetUserInfoByIDApi) Init(ctx *gin.Context) (err error) {
-	err = ctx.ShouldBindQuery(&g.Request.Query)
-	if err != nil {
-		return err
-	}
-	return err
+func (g *GetUserInfoByIDApi) Init(ctx *gin.Context) error {
+	return ctx.ShouldBindQuery(&g.Request.Query)
 }
 
 func getUserInfoByID(ctx *gin.Context) {
 	api := &GetUserInfoByIDApi{}
-	err := api.Init(ctx)
-	if err != nil {
+	if err := api.Init(ctx); err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("参数绑定校验错误")
 		reply.Fail(ctx, comm.CodeParameterInvalid)
 		return

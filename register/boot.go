@@ -37,7 +37,6 @@ func Boot() kernel.BootList {
 		// 业务引导器
 		BizConfBoot(),
 		TeamQuotaBoot(),
-		AppBoot(),
 	}
 }
 
@@ -59,13 +58,6 @@ func BizConfBoot() func() error {
 		if err := comm.ValidateBizConfig(); err != nil {
 			return fmt.Errorf("业务配置校验失败: %w", err)
 		}
-		return nil
-	}
-}
-
-// AppBoot 应用定制引导器
-func AppBoot() func() error {
-	return func() error {
 		return nil
 	}
 }

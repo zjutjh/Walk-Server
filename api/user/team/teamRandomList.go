@@ -77,8 +77,7 @@ func (h *TeamRandomListApi) Run(ctx *gin.Context) kit.Code {
 
 func hfTeamRandomList(ctx *gin.Context) {
 	api := &TeamRandomListApi{}
-	err := api.Init(ctx)
-	if err != nil {
+	if err := api.Init(ctx); err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("参数绑定校验错误")
 		reply.Fail(ctx, comm.CodeParameterInvalid)
 		return

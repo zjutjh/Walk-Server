@@ -57,11 +57,11 @@ type people struct {
 
 	ALL        field.Asterisk
 	ID         field.Int64
-	Password   field.String // bcrypt密码哈希
+	Password   field.String // bcrypt密码哈希，空值表示预导入校友尚未注册
 	Name       field.String // 姓名
 	Gender     field.Int8   // 性别(0未知,1男,2女)
 	StuID      field.String // 学号
-	Identity   field.String // 身份证号
+	Identity   field.String // 身份证号AES密文
 	Role       field.String // 队伍中身份(unbind未绑定,menber成员,captain队长)
 	Qq         field.String // QQ号
 	Wechat     field.String // 微信号
@@ -69,7 +69,7 @@ type people struct {
 	CreatedOp  field.Uint8  // 剩余创建团队次数
 	JoinOp     field.Uint8  // 剩余加入团队次数
 	TeamID     field.Int64  // 所属团队ID
-	Type       field.String // 人员类型(alumni校友，student学生，staff教职工)
+	Type       field.String // 人员类型(alumni校友，student学生，teacher教职工)
 	WalkStatus field.String // 活动状态(未开始,待出发,已放弃,进行中,已下撤,已完成)
 	IsViolated field.Bool   // 是否违规
 	UpdatedAt  field.Time
@@ -132,7 +132,7 @@ func (p *people) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (p *people) fillFieldMap() {
-	p.fieldMap = make(map[string]field.Expr, 19)
+	p.fieldMap = make(map[string]field.Expr, 18)
 	p.fieldMap["id"] = p.ID
 	p.fieldMap["password"] = p.Password
 	p.fieldMap["name"] = p.Name

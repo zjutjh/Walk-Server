@@ -11,7 +11,6 @@ import (
 	"github.com/zjutjh/mygo/swagger"
 
 	"app/comm"
-	peopleCache "app/dao/cache/people"
 	repo "app/dao/repo"
 )
 
@@ -52,7 +51,6 @@ func (m *MarkUserViolationApi) Run(ctx *gin.Context) kit.Code {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("标记成员违规失败")
 		return comm.CodeServerError
 	}
-	_ = peopleCache.DelPersonByID(ctx, person.ID)
 	return comm.CodeOK
 }
 
@@ -62,8 +60,7 @@ func (m *MarkUserViolationApi) Init(ctx *gin.Context) error {
 
 func markUserViolation(ctx *gin.Context) {
 	api := &MarkUserViolationApi{}
-	err := api.Init(ctx)
-	if err != nil {
+	if err := api.Init(ctx); err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("参数绑定校验错误")
 		reply.Fail(ctx, comm.CodeParameterInvalid)
 		return

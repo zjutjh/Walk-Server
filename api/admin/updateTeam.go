@@ -16,7 +16,6 @@ import (
 	"github.com/zjutjh/mygo/swagger"
 
 	"app/comm"
-	peopleCache "app/dao/cache/people"
 	teamCache "app/dao/cache/team"
 	"app/dao/model"
 	"app/dao/query"
@@ -165,7 +164,7 @@ func (u *UpdateTeamApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeOK
 	}
 
-	if !slices.Contains(pointRoutes, team.RouteName) && team.IsWrongRoute == false {
+	if !slices.Contains(pointRoutes, team.RouteName) && !team.IsWrongRoute {
 		if err := u.handleWrongRoutePointCheckin(ctx, team, admin.ID, admin.PointName, activeRouteName); err != nil {
 			nlog.Pick().WithContext(ctx).WithError(err).Error("错路点位打卡失败")
 			return comm.CodeServerError
@@ -270,7 +269,7 @@ func (u *UpdateTeamApi) resolveTeam(ctx *gin.Context, admin *model.Admin) (*mode
 }
 
 func (u *UpdateTeamApi) resolveActiveRouteForDirection(ctx *gin.Context, teamRepo *repo.TeamRepo, team *model.Team, pointName string, pointRoutes []string) (string, bool, *kit.Code) {
-	if team.IsWrongRoute != false {
+	if team.IsWrongRoute {
 		wrongRouteName, found, err := teamRepo.GetLatestWrongRouteName(ctx, team.ID)
 		if err != nil {
 			nlog.Pick().WithContext(ctx).WithError(err).Error("查询队伍错路路线失败")
@@ -327,13 +326,6 @@ func (u *UpdateTeamApi) handlePointCheckin(ctx *gin.Context, team *model.Team, a
 	}
 	_ = teamCache.DelTeamByID(ctx, team.ID)
 	_ = teamCache.DeleteTeamInfo(ctx, team.ID)
-	if members, err := repo.NewPeopleRepo().FindPeopleByTeamID(ctx, team.ID); err == nil {
-		for _, member := range members {
-			if member != nil {
-				_ = peopleCache.DelPersonByID(ctx, member.ID)
-			}
-		}
-	}
 	return nil
 }
 
@@ -357,13 +349,6 @@ func (u *UpdateTeamApi) handleStartPointCheckin(ctx *gin.Context, team *model.Te
 	}
 	_ = teamCache.DelTeamByID(ctx, team.ID)
 	_ = teamCache.DeleteTeamInfo(ctx, team.ID)
-	if members, err := repo.NewPeopleRepo().FindPeopleByTeamID(ctx, team.ID); err == nil {
-		for _, member := range members {
-			if member != nil {
-				_ = peopleCache.DelPersonByID(ctx, member.ID)
-			}
-		}
-	}
 	return nil
 }
 
@@ -394,13 +379,6 @@ func (u *UpdateTeamApi) handleWrongRoutePointCheckin(ctx *gin.Context, team *mod
 	}
 	_ = teamCache.DelTeamByID(ctx, team.ID)
 	_ = teamCache.DeleteTeamInfo(ctx, team.ID)
-	if members, err := repo.NewPeopleRepo().FindPeopleByTeamID(ctx, team.ID); err == nil {
-		for _, member := range members {
-			if member != nil {
-				_ = peopleCache.DelPersonByID(ctx, member.ID)
-			}
-		}
-	}
 	return nil
 }
 
@@ -421,13 +399,6 @@ func (u *UpdateTeamApi) handleDuplicateCheckin(ctx *gin.Context, team *model.Tea
 	}
 	_ = teamCache.DelTeamByID(ctx, team.ID)
 	_ = teamCache.DeleteTeamInfo(ctx, team.ID)
-	if members, err := repo.NewPeopleRepo().FindPeopleByTeamID(ctx, team.ID); err == nil {
-		for _, member := range members {
-			if member != nil {
-				_ = peopleCache.DelPersonByID(ctx, member.ID)
-			}
-		}
-	}
 	return nil
 }
 
@@ -448,19 +419,14 @@ func (u *UpdateTeamApi) isStartCheckinContext(ctx *gin.Context, teamRepo *repo.T
 }
 
 // Run Api初始化 进行参数校验和绑定
-func (u *UpdateTeamApi) Init(ctx *gin.Context) (err error) {
-	err = ctx.ShouldBindJSON(&u.Request.Body)
-	if err != nil {
-		return err
-	}
-	return err
+func (u *UpdateTeamApi) Init(ctx *gin.Context) error {
+	return ctx.ShouldBindJSON(&u.Request.Body)
 }
 
 // updateTeam Api执行入口
 func updateTeam(ctx *gin.Context) {
 	api := &UpdateTeamApi{}
-	err := api.Init(ctx)
-	if err != nil {
+	if err := api.Init(ctx); err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("参数绑定校验错误")
 		reply.Fail(ctx, comm.CodeParameterInvalid)
 		return

@@ -17,6 +17,5 @@ go.work.sum
 .vscode/
 /logs
 *.log
-/register/generate/status_codes_generated.go
 Dockerfile
 README.md

@@ -201,19 +201,14 @@ func buildFilterQueryHash(query repo.TeamFilterQuery) string {
 }
 
 // Init Api初始化 进行参数校验和绑定
-func (f *FilterApi) Init(ctx *gin.Context) (err error) {
-	err = ctx.ShouldBindQuery(&f.Request.Query)
-	if err != nil {
-		return err
-	}
-	return err
+func (f *FilterApi) Init(ctx *gin.Context) error {
+	return ctx.ShouldBindQuery(&f.Request.Query)
 }
 
 // hfFilter API执行入口
 func hfFilter(ctx *gin.Context) {
 	api := &FilterApi{}
-	err := api.Init(ctx)
-	if err != nil {
+	if err := api.Init(ctx); err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("参数绑定校验错误")
 		reply.Fail(ctx, comm.CodeParameterInvalid)
 		return

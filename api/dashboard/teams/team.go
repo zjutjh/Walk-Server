@@ -150,19 +150,14 @@ func normalizeMemberRole(role string, memberID, captainID int64) string {
 }
 
 // Init Api初始化 进行参数校验和绑定
-func (t *TeamApi) Init(ctx *gin.Context) (err error) {
-	err = ctx.ShouldBindQuery(&t.Request.Query)
-	if err != nil {
-		return err
-	}
-	return err
+func (t *TeamApi) Init(ctx *gin.Context) error {
+	return ctx.ShouldBindQuery(&t.Request.Query)
 }
 
 // hfTeam API执行入口
 func hfTeam(ctx *gin.Context) {
 	api := &TeamApi{}
-	err := api.Init(ctx)
-	if err != nil {
+	if err := api.Init(ctx); err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("参数绑定校验错误")
 		reply.Fail(ctx, comm.CodeParameterInvalid)
 		return

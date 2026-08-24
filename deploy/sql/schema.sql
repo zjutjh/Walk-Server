@@ -15,6 +15,7 @@ CREATE TABLE `admins` (
   `updated_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
   `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   PRIMARY KEY (`id`),
+  KEY `idx_admins_account` (`account`),
   KEY `idx_admins_point` (`point_name`)
 );
 
@@ -39,8 +40,7 @@ CREATE TABLE `points` (
   `updated_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
   `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uni_points_name` (`name`),
-  KEY `idx_points_cid` (`cp_id`)
+  UNIQUE KEY `uni_points_name` (`name`)
 );
 
 CREATE TABLE `route_edges` (
@@ -52,10 +52,10 @@ CREATE TABLE `route_edges` (
   `updated_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
   `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   PRIMARY KEY (`id`),
-  KEY `idx_route_edges_points` (`prev_point_name`, `point_name`),
   KEY `idx_route_edges_point_route` (`point_name`, `route_name`),
   KEY `idx_route_edges_route_prev_point` (`route_name`, `prev_point_name`, `point_name`),
-  KEY `idx_route_edges_route_point_seq` (`route_name`, `point_name`, `seq_order`)
+  KEY `idx_route_edges_route_point_seq` (`route_name`, `point_name`, `seq_order`),
+  KEY `idx_route_edges_route_seq` (`route_name`, `seq_order`)
 );
 
 CREATE TABLE `teams` (
@@ -82,7 +82,7 @@ CREATE TABLE `teams` (
   KEY `idx_teams_submit_route` (`submit`, `route_name`),
   KEY `idx_teams_submit_wrong_route_name` (`submit`, `is_wrong_route`, `route_name`),
   KEY `idx_teams_route_point` (`route_name`, `latest_point_name`),
-  KEY `idx_teams_captain` (`captain`)
+  KEY `idx_teams_route_match_num` (`route_name`, `allow_match`, `num`)
 );
 
 CREATE TABLE `peoples` (
@@ -108,9 +108,8 @@ CREATE TABLE `peoples` (
   UNIQUE KEY `uni_people_identity` (`identity`),
   UNIQUE KEY `uni_people_tel` (`tel`),
   UNIQUE KEY `uni_people_stu_id` (`stu_id`),
-  KEY `idx_people_team_id` (`team_id`),
   KEY `idx_people_team_walk_status` (`team_id`, `walk_status`),
-  KEY `idx_people_team_is_violated` (`team_id`, `is_violated`)
+  KEY `idx_people_walk_status` (`walk_status`)
 );
 
 CREATE TABLE `checkins` (
@@ -123,9 +122,8 @@ CREATE TABLE `checkins` (
   `updated_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
   `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   PRIMARY KEY (`id`),
-  KEY `idx_checkins_route_point` (`route_name`, `point_name`),
-  KEY `idx_checkins_route_team_id` (`route_name`, `team_id`, `id`),
-  KEY `idx_checkins_time` (`time`)
+  KEY `idx_checkins_team_point` (`team_id`, `point_name`),
+  KEY `idx_checkins_team_time` (`team_id`, `time`)
 );
 
 CREATE TABLE `wrong_route_records` (
@@ -137,7 +135,5 @@ CREATE TABLE `wrong_route_records` (
   `updated_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
   `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   PRIMARY KEY (`id`),
-  KEY `idx_wrong_route_team` (`team_id`),
-  KEY `idx_wrong_route_routes` (`route_name`, `wrong_route_name`),
-  KEY `idx_wrong_route_time` (`created_at`)
+  KEY `idx_wrong_route_team_time` (`team_id`, `created_at`)
 );

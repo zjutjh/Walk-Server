@@ -6,7 +6,6 @@ import (
 	"runtime"
 
 	"app/comm"
-	peopleCache "app/dao/cache/people"
 	"app/dao/repo"
 
 	"github.com/gin-gonic/gin"
@@ -71,7 +70,6 @@ func (h *RegisterAlumnusApi) Run(ctx *gin.Context) kit.Code {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("完成校友注册失败")
 		return comm.CodeServerError
 	}
-	_ = peopleCache.DelPersonByID(ctx, person.ID)
 	return comm.CodeOK
 }
 

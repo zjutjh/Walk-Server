@@ -31,30 +31,6 @@ func EncryptIdentity(identity string) (string, error) {
 	return base64.RawURLEncoding.EncodeToString(payload), nil
 }
 
-// DecryptIdentity 解密数据库中保存的身份证号密文。
-func DecryptIdentity(encrypted string) (string, error) {
-	if strings.TrimSpace(encrypted) == "" || BizConf.IdentitySecret == "" {
-		return "", fmt.Errorf("encrypted identity or identity secret is empty")
-	}
-	gcm, _, err := identityGCM()
-	if err != nil {
-		return "", err
-	}
-	payload, err := base64.RawURLEncoding.DecodeString(encrypted)
-	if err != nil {
-		return "", fmt.Errorf("decode encrypted identity: %w", err)
-	}
-	if len(payload) <= gcm.NonceSize() {
-		return "", fmt.Errorf("encrypted identity is invalid")
-	}
-	nonce, ciphertext := payload[:gcm.NonceSize()], payload[gcm.NonceSize():]
-	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
-	if err != nil {
-		return "", fmt.Errorf("decrypt identity: %w", err)
-	}
-	return string(plaintext), nil
-}
-
 func identityGCM() (cipher.AEAD, []byte, error) {
 	keySum := sha256.Sum256([]byte(BizConf.IdentitySecret))
 	key := keySum[:]

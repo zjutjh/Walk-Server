@@ -51,14 +51,13 @@ func (l *LostApi) Run(ctx *gin.Context) kit.Code {
 
 	var lockAcquired bool
 	var keepLock bool
-	// 仅当 is_lost=true 时需要加锁
 	if l.Request.Body.IsLost {
 		var lockErr error
 		lockAcquired, lockErr = teamCache.AcquireTeamInfoLock(ctx, teamID, lostUpdateLockTTL)
 		if lockErr != nil {
 			nlog.Pick().WithContext(ctx).WithError(lockErr).Warn("队伍失联状态加锁失败，降级走数据库校验")
 		}
-		if lockAcquired == false && lockErr == nil {
+		if !lockAcquired && lockErr == nil {
 			return comm.CodeTeamLostLocked
 		}
 	}
@@ -91,8 +90,7 @@ func (l *LostApi) Run(ctx *gin.Context) kit.Code {
 	if l.Request.Body.IsLost && !team.Time.IsZero() && now.Before(team.Time.Add(lostUpdateLockTTL)) {
 		remaining := time.Until(team.Time.Add(lostUpdateLockTTL))
 		if remaining > 0 {
-			setErr := teamCache.SetTeamInfoLockTTL(ctx, teamID, remaining)
-			if setErr != nil {
+			if setErr := teamCache.SetTeamInfoLockTTL(ctx, teamID, remaining); setErr != nil {
 				nlog.Pick().WithContext(ctx).WithError(setErr).Warn("回写队伍失联状态锁失败")
 			}
 		}
@@ -110,7 +108,6 @@ func (l *LostApi) Run(ctx *gin.Context) kit.Code {
 		keepLock = false
 		return comm.CodeDataNotFound
 	}
-
 	if lockAcquired {
 		keepLock = true
 	}
@@ -122,19 +119,14 @@ func (l *LostApi) Run(ctx *gin.Context) kit.Code {
 }
 
 // Init Api初始化 进行参数校验和绑定
-func (l *LostApi) Init(ctx *gin.Context) (err error) {
-	err = ctx.ShouldBindJSON(&l.Request.Body)
-	if err != nil {
-		return err
-	}
-	return err
+func (l *LostApi) Init(ctx *gin.Context) error {
+	return ctx.ShouldBindJSON(&l.Request.Body)
 }
 
 // hfLost API执行入口
 func hfLost(ctx *gin.Context) {
 	api := &LostApi{}
-	err := api.Init(ctx)
-	if err != nil {
+	if err := api.Init(ctx); err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("参数绑定校验错误")
 		reply.Fail(ctx, comm.CodeParameterInvalid)
 		return

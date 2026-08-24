@@ -50,8 +50,6 @@ type UserInfoApiResponse struct {
 	Type     string `json:"type" desc:"人员类型 枚举值：'alumnus''student''teacher'"`
 }
 
-func (h *UserInfoApi) Init(ctx *gin.Context) error { return nil }
-
 func (h *UserInfoApi) Run(ctx *gin.Context) kit.Code {
 	person, code := currentUserPerson(ctx)
 	if code != comm.CodeOK {
@@ -91,12 +89,6 @@ func currentUserPerson(ctx *gin.Context) (*model.People, kit.Code) {
 
 func hfUserInfo(ctx *gin.Context) {
 	api := &UserInfoApi{}
-	err := api.Init(ctx)
-	if err != nil {
-		nlog.Pick().WithContext(ctx).WithError(err).Warn("参数绑定校验错误")
-		reply.Fail(ctx, comm.CodeParameterInvalid)
-		return
-	}
 	code := api.Run(ctx)
 	if !ctx.IsAborted() {
 		if code == comm.CodeOK {

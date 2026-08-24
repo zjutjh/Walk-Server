@@ -5,7 +5,6 @@ import (
 	"runtime"
 
 	"app/comm"
-	teamCache "app/dao/cache/team"
 	"app/dao/repo"
 
 	"github.com/gin-gonic/gin"
@@ -34,16 +33,12 @@ type TeamMemberRequest struct {
 }
 
 type TeamMemberResponse struct {
-	ID                 int64  `json:"id"`
-	Name               string `json:"name"`
-	Type               string `json:"type"`
-	Role               string `json:"role"`
-	Tel                string `json:"tel"`
-	Wechat             string `json:"wechat"`
-	QQ                 string `json:"qq"`
-	WalkStatus         string `json:"walk_status"`
-	CanRemove          bool   `json:"can_remove"`
-	CanTransferCaptain bool   `json:"can_transfer_captain"`
+	ID         int64  `json:"id"`
+	Name       string `json:"name"`
+	Tel        string `json:"tel"`
+	Wechat     string `json:"wechat"`
+	QQ         string `json:"qq"`
+	WalkStatus string `json:"walk_status"`
 }
 
 func (h *TeamMemberApi) Init(ctx *gin.Context) error { return ctx.ShouldBindQuery(&h.Request.Query) }
@@ -64,21 +59,9 @@ func (h *TeamMemberApi) Run(ctx *gin.Context) kit.Code {
 	if member == nil || member.TeamID != team.ID {
 		return comm.CodePeopleNotFound
 	}
-	submitted, err := teamCache.IsTeamSubmitted(ctx, team.ID)
-	if err != nil {
-		return comm.CodeServerError
-	}
-	isCaptain := person.Role == comm.RoleCaptain && team.Captain == person.ID
-	isSelf := person.ID == member.ID
-	canOperate := isCaptain && !isSelf && !submitted && !team.Submit
-	role := member.Role
-	if member.ID == team.Captain {
-		role = comm.RoleCaptain
-	}
 	h.Response = TeamMemberResponse{
-		ID: member.ID, Name: member.Name, Type: member.Type, Role: role,
+		ID: member.ID, Name: member.Name,
 		Tel: member.Tel, Wechat: member.Wechat, QQ: member.Qq, WalkStatus: member.WalkStatus,
-		CanRemove: canOperate, CanTransferCaptain: canOperate,
 	}
 	return comm.CodeOK
 }

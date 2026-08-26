@@ -8,15 +8,15 @@
 
 ### 用户侧
 
-- 微信登录
+- 手机号与密码登录
 - 学生 / 教职工 / 校友注册
 - 用户信息查询与修改
-- 创建队伍、加入队伍、查看队伍信息
-- 修改队伍信息、退出队伍、解散队伍
+- 创建、加入、随机匹配和查看队伍
+- 调整、提交、撤销提交和解散队伍
 
 ### 管理员侧
 
-- 管理员注册与登录
+- 管理员登录
 - 绑定队伍签到码
 - 队伍点位打卡
 - 查询队伍当前状态
@@ -59,8 +59,9 @@
 ├── dao
 │   ├── cache          # Redis 缓存
 │   ├── model          # gorm/gen 生成的 model
+│   ├── query          # gorm/gen 生成的类型安全查询
 │   └── repo           # 数据访问层
-├── deploy/sql         # 建表与测试数据
+├── deploy/sql         # 数据库建表脚本
 ├── middleware         # 登录态、权限等中间件
 ├── register           # Boot、路由和命令注册
 └── cmd/gen            # GORM Gen 生成入口
@@ -114,7 +115,7 @@ session:
 - `redis` 用于缓存与分布式锁
 - `lock.redis` 指定锁依赖的 Redis 实例名
 - `session.driver` 可以用 `memory` 或 `redis`
-- `biz` 中还包含活动开放时间、截止时间、队伍人数上下限等业务配置
+- `biz` 中包含活动阶段、每日及总提交名额、队伍人数上限等业务配置
 
 ## 启动方式
 
@@ -140,7 +141,7 @@ GOCACHE=/tmp/gocache go build ./...
 
 ## 代码生成
 
-项目使用 `gorm.io/gen` 维护 `dao/model`。
+项目使用 `gorm.io/gen` 维护 `dao/model` 和 `dao/query`。
 
 生成入口：
 

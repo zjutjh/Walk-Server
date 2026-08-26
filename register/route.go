@@ -92,15 +92,15 @@ func Route(router *gin.Engine) {
 				auth.GET("/team/overview", teamapi.TeamOverviewHandler())
 				auth.GET("/team/detail", teamapi.TeamDetailHandler())
 				auth.GET("/team/member", teamapi.TeamMemberHandler())
-				auth.GET("/team/submit", teamapi.TeamSubmitHandler())
-				auth.GET("/team/rollback", teamapi.TeamRollbackHandler())
-				auth.POST("/team/random-list", teamapi.TeamRandomListHandler())
+				auth.POST("/team/submit", teamapi.TeamSubmitHandler())
+				auth.POST("/team/rollback", teamapi.TeamRollbackHandler())
+				auth.GET("/team/random-list", teamapi.TeamRandomListHandler())
 				auth.POST("/team/random-join", teamapi.TeamRandomJoinHandler())
 				auth.POST("/team/update", teamapi.TeamUpdateHandler())
-				auth.GET("/team/remove", teamapi.TeamRemoveMemberHandler())
+				auth.POST("/team/remove", teamapi.TeamRemoveMemberHandler())
 				auth.POST("/team/captain", teamapi.TeamChangeCaptainHandler())
-				auth.GET("/team/leave", teamapi.TeamLeaveHandler())
-				auth.GET("/team/disband", teamapi.TeamDisbandHandler())
+				auth.POST("/team/leave", teamapi.TeamLeaveHandler())
+				auth.POST("/team/disband", teamapi.TeamDisbandHandler())
 
 			}
 		}

@@ -15,7 +15,7 @@ CREATE TABLE `admins` (
   `updated_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
   `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   PRIMARY KEY (`id`),
-  KEY `idx_admins_account` (`account`),
+  UNIQUE KEY `uni_admins_account` (`account`),
   KEY `idx_admins_point` (`point_name`)
 );
 

@@ -28,8 +28,8 @@ type TeamRandomListApi struct {
 }
 
 type TeamRandomListApiRequest struct {
-	Body struct {
-		RouteName string `json:"route_name" desc:"团队所属路线" binding:"required"`
+	Query struct {
+		RouteName string `form:"route_name" desc:"团队所属路线" binding:"required"`
 	}
 }
 
@@ -45,17 +45,19 @@ type TeamRandomListItem struct {
 	RouteName string `json:"route_name" desc:"团队所属路线"`
 }
 
-func (h *TeamRandomListApi) Init(ctx *gin.Context) error { return ctx.ShouldBindJSON(&h.Request.Body) }
+func (h *TeamRandomListApi) Init(ctx *gin.Context) error {
+	return ctx.ShouldBindQuery(&h.Request.Query)
+}
 func (h *TeamRandomListApi) Run(ctx *gin.Context) kit.Code {
 	teamRepo := repo.NewTeamRepo()
-	route, err := teamRepo.FindRouteByName(ctx, h.Request.Body.RouteName)
+	route, err := teamRepo.FindRouteByName(ctx, h.Request.Query.RouteName)
 	if err != nil {
 		return comm.CodeServerError
 	}
 	if route == nil {
 		return comm.CodeParameterInvalid
 	}
-	teams, err := teamRepo.ListRandomMatchTeams(ctx, h.Request.Body.RouteName, comm.BizConf.MaxTeamSize)
+	teams, err := teamRepo.ListRandomMatchTeams(ctx, h.Request.Query.RouteName, comm.BizConf.MaxTeamSize)
 	if err != nil {
 		return comm.CodeServerError
 	}

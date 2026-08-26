@@ -29,13 +29,13 @@ type TeamRemoveMemberApi struct {
 }
 
 type TeamRemoveMemberApiRequest struct {
-	Query struct {
-		ID int `form:"id" desc:"成员ID" binding:"required"`
+	Body struct {
+		ID int64 `json:"id" desc:"成员ID" binding:"required"`
 	}
 }
 
 func (h *TeamRemoveMemberApi) Init(ctx *gin.Context) error {
-	return ctx.ShouldBindQuery(&h.Request.Query)
+	return ctx.ShouldBindJSON(&h.Request.Body)
 }
 func (h *TeamRemoveMemberApi) Run(ctx *gin.Context) kit.Code {
 	if code := comm.CheckBizPhase(comm.PhaseRegistration, comm.PhaseSubmission, comm.PhaseAdjustment); code != comm.CodeOK {
@@ -59,7 +59,7 @@ func (h *TeamRemoveMemberApi) Run(ctx *gin.Context) kit.Code {
 	if submitted && !comm.IsInBizPhase(comm.PhaseAdjustment) {
 		return comm.CodeTeamSubmitted
 	}
-	removed, err := repo.NewPeopleRepo().FindPeopleByID(ctx, int64(h.Request.Query.ID))
+	removed, err := repo.NewPeopleRepo().FindPeopleByID(ctx, h.Request.Body.ID)
 	if err != nil {
 		return comm.CodeServerError
 	}

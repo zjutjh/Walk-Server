@@ -8,7 +8,7 @@ require (
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/redis/go-redis/v9 v9.17.2
 	github.com/spf13/cobra v1.10.1
-	github.com/zjutjh/WeJH-SDK v0.2.4
+	github.com/zjutjh/WeJH-SDK v0.2.7-0.20260826104425-2f5c33ac96f6
 	github.com/zjutjh/mygo v1.6.11
 	golang.org/x/crypto v0.42.0
 	gorm.io/gen v0.3.27

@@ -69,10 +69,13 @@ func NewTeamRepoWithTx(tx *query.Query) *TeamRepo {
 }
 
 func (r *TeamRepo) Create(ctx context.Context, team *model.Team) error {
-	if err := r.query.Team.WithContext(ctx).Create(team); err != nil {
-		return err
+	teamQuery := r.query.Team.WithContext(ctx)
+	// code 尚未绑定时必须由数据库保存为 NULL。空字符串会与 code 的唯一索引冲突，
+	// 导致只能创建一支尚未绑定签到码的队伍。
+	if team.Code == "" {
+		teamQuery = teamQuery.Omit(r.query.Team.Code)
 	}
-	return nil
+	return teamQuery.Create(team)
 }
 
 // FindTeamByID 根据ID查询队伍

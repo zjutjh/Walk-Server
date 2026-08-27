@@ -29,6 +29,8 @@ const (
 	teamFilterCacheKeyPrefix   = "dashboard:teams:filter"
 	teamFilterCacheTTL         = 30 * time.Second
 	teamInfoLockCacheKeyPrefix = "dashboard:teams:info:lock"
+	teamChangeNoticeKeyPrefix  = "walk:team:change_notice"
+	teamChangeNoticeTTL        = 30 * 24 * time.Hour
 )
 
 var teamInfoLocks sync.Map
@@ -84,6 +86,60 @@ func BuildTeamFilterCacheKey(campus, queryHash string) string {
 
 func BuildTeamInfoLockCacheKey(teamID int64) string {
 	return fmt.Sprintf("%s:%d", teamInfoLockCacheKeyPrefix, teamID)
+}
+
+func buildTeamChangeNoticeKey(userID int64) string {
+	return fmt.Sprintf("%s:%d", teamChangeNoticeKeyPrefix, userID)
+}
+
+// SetTeamChangeNotice 为队员记录尚未查看的团队密码、路线变更通知。
+func SetTeamChangeNotice(ctx context.Context, userIDs []int64, passwordChanged, routeChanged bool) error {
+	if len(userIDs) == 0 || (!passwordChanged && !routeChanged) {
+		return nil
+	}
+
+	pipe := client().Pipeline()
+	for _, userID := range userIDs {
+		if userID <= 0 {
+			continue
+		}
+		key := buildTeamChangeNoticeKey(userID)
+		values := make(map[string]any, 2)
+		if passwordChanged {
+			values["password_changed"] = 1
+		}
+		if routeChanged {
+			values["route_changed"] = 1
+		}
+		pipe.HSet(ctx, key, values)
+		pipe.Expire(ctx, key, teamChangeNoticeTTL)
+	}
+	_, err := pipe.Exec(ctx)
+	return err
+}
+
+// GetTeamChangeNotice 读取用户尚未确认的团队变更通知，不改变已读状态。
+func GetTeamChangeNotice(ctx context.Context, userID int64) (bool, bool, error) {
+	result, err := client().HGetAll(ctx, buildTeamChangeNoticeKey(userID)).Result()
+	if err != nil {
+		return false, false, err
+	}
+	return result["password_changed"] == "1", result["route_changed"] == "1", nil
+}
+
+// AckTeamChangeNotice 清除用户明确确认过的团队变更通知类型。
+func AckTeamChangeNotice(ctx context.Context, userID int64, passwordChanged, routeChanged bool) error {
+	fields := make([]string, 0, 2)
+	if passwordChanged {
+		fields = append(fields, "password_changed")
+	}
+	if routeChanged {
+		fields = append(fields, "route_changed")
+	}
+	if len(fields) == 0 {
+		return nil
+	}
+	return client().HDel(ctx, buildTeamChangeNoticeKey(userID), fields...).Err()
 }
 
 func buildDailyTeamQuotaKey(day int) string {

@@ -77,6 +77,20 @@ func (h *TeamUpdateApi) Run(ctx *gin.Context) kit.Code {
 	if existing != nil {
 		return comm.CodeTeamNameDuplicated
 	}
+	passwordChanged := team.Password != h.Request.Body.Password
+	routeChanged := team.RouteName != h.Request.Body.RouteName
+	memberIDs := make([]int64, 0)
+	if passwordChanged || routeChanged {
+		members, err := repo.NewPeopleRepo().FindPeopleByTeamID(ctx, team.ID)
+		if err != nil {
+			return comm.CodeServerError
+		}
+		for _, member := range members {
+			if member != nil && member.ID != person.ID {
+				memberIDs = append(memberIDs, member.ID)
+			}
+		}
+	}
 	if err := teamRepo.UpdateByID(ctx, team.ID, map[string]any{
 		"name":        h.Request.Body.Name,
 		"route_name":  h.Request.Body.RouteName,
@@ -88,6 +102,9 @@ func (h *TeamUpdateApi) Run(ctx *gin.Context) kit.Code {
 	}
 	_ = teamCache.DelTeamByID(ctx, team.ID)
 	_ = teamCache.DeleteTeamInfo(ctx, team.ID)
+	if err := teamCache.SetTeamChangeNotice(ctx, memberIDs, passwordChanged, routeChanged); err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Warn("记录团队变更通知失败")
+	}
 	return comm.CodeOK
 }
 

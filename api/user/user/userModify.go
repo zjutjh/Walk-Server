@@ -43,9 +43,17 @@ func (h *UserModifyApi) Run(ctx *gin.Context) kit.Code {
 	if code != comm.CodeOK {
 		return code
 	}
+	tel := comm.NormalizePhone(h.Request.Body.Contact.Tel)
+	if !comm.IsValidPhone(tel) {
+		return comm.CodeParameterInvalid
+	}
+	identityValue := comm.NormalizeIdentity(h.Request.Body.Identity)
+	if identityValue != "" && !comm.IsValidIdentity(identityValue) {
+		return comm.CodeParameterInvalid
+	}
 
-	if h.Request.Body.Identity != "" {
-		identity, err := comm.EncryptIdentity(h.Request.Body.Identity)
+	if identityValue != "" {
+		identity, err := comm.EncryptIdentity(identityValue)
 		if err != nil {
 			nlog.Pick().WithContext(ctx).WithError(err).Warn("加密身份证号失败")
 			return comm.CodeServerError
@@ -61,14 +69,14 @@ func (h *UserModifyApi) Run(ctx *gin.Context) kit.Code {
 	}
 	person.Qq = h.Request.Body.Contact.QQ
 	person.Wechat = h.Request.Body.Contact.Wechat
-	person.Tel = h.Request.Body.Contact.Tel
+	person.Tel = tel
 
 	updates := map[string]any{
 		"qq":     person.Qq,
 		"wechat": person.Wechat,
 		"tel":    person.Tel,
 	}
-	if h.Request.Body.Identity != "" {
+	if identityValue != "" {
 		updates["identity"] = person.Identity
 	}
 

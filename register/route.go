@@ -97,6 +97,8 @@ func Route(router *gin.Engine) {
 				auth.GET("/team/random-list", teamapi.TeamRandomListHandler())
 				auth.POST("/team/random-join", teamapi.TeamRandomJoinHandler())
 				auth.POST("/team/update", teamapi.TeamUpdateHandler())
+				auth.GET("/team/change-notice", teamapi.TeamChangeNoticeHandler())
+				auth.POST("/team/change-notice/ack", teamapi.TeamChangeNoticeAckHandler())
 				auth.POST("/team/remove", teamapi.TeamRemoveMemberHandler())
 				auth.POST("/team/captain", teamapi.TeamChangeCaptainHandler())
 				auth.POST("/team/leave", teamapi.TeamLeaveHandler())

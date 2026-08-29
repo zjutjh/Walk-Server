@@ -69,10 +69,11 @@ func NewTeamRepoWithTx(tx *query.Query) *TeamRepo {
 }
 
 func (r *TeamRepo) Create(ctx context.Context, team *model.Team) error {
-	if err := r.query.Team.WithContext(ctx).Create(team); err != nil {
-		return err
+	teamQuery := r.query.Team.WithContext(ctx)
+	if team.Code == "" {
+		teamQuery = teamQuery.Omit(r.query.Team.Code)
 	}
-	return nil
+	return teamQuery.Create(team)
 }
 
 // FindTeamByID 根据ID查询队伍

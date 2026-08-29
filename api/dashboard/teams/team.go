@@ -66,7 +66,7 @@ type TeamApiResponse struct {
 // Run Api业务逻辑执行点
 func (t *TeamApi) Run(ctx *gin.Context) kit.Code {
 	// Redis缓存规划:
-	// Key: walk:dashboard:teams:info:{teamId}
+	// Key: walk:dashboard:team:by-id:{teamId}
 	// Type: String(JSON)
 	// TTL: 60s
 	teamID := int64(t.Request.Query.TeamId)

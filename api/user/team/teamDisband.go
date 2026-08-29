@@ -42,11 +42,7 @@ func (h *TeamDisbandApi) Run(ctx *gin.Context) kit.Code {
 	if !(person != nil && team != nil && person.Role == comm.RoleCaptain && team.Captain == person.ID) {
 		return comm.CodeNotCaptain
 	}
-	submitted, err := teamCache.IsTeamSubmitted(ctx, team.ID)
-	if err != nil {
-		return comm.CodeServerError
-	}
-	if submitted {
+	if team.Submit {
 		return comm.CodeTeamSubmitted
 	}
 	if err := repo.NewTeamRepo().DisbandTeam(ctx, team.ID); err != nil {

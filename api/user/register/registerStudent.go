@@ -53,6 +53,11 @@ func (h *RegisterStudentApi) Run(ctx *gin.Context) kit.Code {
 	if code := comm.CheckBizPhase(comm.PhaseRegistration, comm.PhaseSubmission); code != comm.CodeOK {
 		return code
 	}
+	identity := comm.NormalizeIdentity(h.Request.Body.Identity)
+	tel := comm.NormalizePhone(h.Request.Body.Tel)
+	if !comm.IsValidIdentity(identity) || !comm.IsValidPhone(tel) {
+		return comm.CodeParameterInvalid
+	}
 	info, code := fetchRegisterOAuthInfo(ctx, h.Request.Body.StuID, h.Request.Body.Password)
 	if code != comm.CodeOK {
 		return code
@@ -67,7 +72,7 @@ func (h *RegisterStudentApi) Run(ctx *gin.Context) kit.Code {
 	if err != nil {
 		return comm.CodeServerError
 	}
-	identity, err := comm.EncryptIdentity(h.Request.Body.Identity)
+	identity, err = comm.EncryptIdentity(identity)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("加密身份证号失败")
 		return comm.CodeServerError
@@ -82,7 +87,7 @@ func (h *RegisterStudentApi) Run(ctx *gin.Context) kit.Code {
 		Role:       comm.RoleUnbind,
 		Qq:         h.Request.Body.QQ,
 		Wechat:     h.Request.Body.Wechat,
-		Tel:        h.Request.Body.Tel,
+		Tel:        tel,
 		IsViolated: false,
 		CreatedOp:  3,
 		JoinOp:     5,

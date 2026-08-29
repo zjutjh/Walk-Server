@@ -40,21 +40,27 @@ func (h *TeamRollbackApi) Run(ctx *gin.Context) kit.Code {
 	if !(person != nil && team != nil && person.Role == comm.RoleCaptain && team.Captain == person.ID) {
 		return comm.CodeNotCaptain
 	}
-	day, code := teamQuotaDay(ctx)
-	if code != comm.CodeOK {
-		return code
+	if !team.Submit {
+		return comm.CodeTeamNotSubmitted
+	}
+	day, ok := comm.CurrentSubmissionDay()
+	if !ok {
+		nlog.Pick().WithContext(ctx).Warn("当前阶段不可提交队伍")
+		return comm.CodeCannotSubmit
 	}
 	submitted, submittedDay, err := teamCache.RollbackTeamSubmit(ctx, team.ID, day)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("撤销团队提交归还名额失败")
 		return comm.CodeServerError
 	}
-	if !submitted {
-		return comm.CodeTeamNotSubmitted
-	}
 	if err := repo.NewTeamRepo().UpdateByID(ctx, team.ID, map[string]any{"submit": false}); err != nil {
-		_ = teamCache.RestoreSubmittedTeam(ctx, team.ID, submittedDay)
+		if submitted {
+			_ = teamCache.RestoreSubmittedTeam(ctx, team.ID, submittedDay)
+		}
 		return comm.CodeServerError
+	}
+	if !submitted {
+		nlog.Pick().WithContext(ctx).Warn("MySQL 中队伍已提交，但 Redis 中缺少提交名额记录")
 	}
 	_ = teamCache.DelTeamByID(ctx, team.ID)
 	_ = teamCache.DeleteTeamInfo(ctx, team.ID)

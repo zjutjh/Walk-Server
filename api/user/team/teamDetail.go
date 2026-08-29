@@ -5,7 +5,6 @@ import (
 	"runtime"
 
 	"app/comm"
-	teamCache "app/dao/cache/team"
 
 	"github.com/gin-gonic/gin"
 	"github.com/zjutjh/mygo/foundation/reply"
@@ -47,17 +46,13 @@ func (h *TeamDetailApi) Run(ctx *gin.Context) kit.Code {
 	if code != comm.CodeOK {
 		return code
 	}
-	submitted, err := teamCache.IsTeamSubmitted(ctx, team.ID)
-	if err != nil {
-		return comm.CodeServerError
-	}
 	password := ""
 	if person.Role == comm.RoleCaptain && team.Captain == person.ID {
 		password = team.Password
 	}
 	h.Response = TeamDetailResponse{
 		ID: team.ID, Name: team.Name, Slogan: team.Slogan, Code: team.Code, Password: password,
-		RouteName: team.RouteName, Submitted: submitted || team.Submit, AllowMatch: team.AllowMatch,
+		RouteName: team.RouteName, Submitted: team.Submit, AllowMatch: team.AllowMatch,
 		Status: team.Status, LatestPointName: team.LatestPointName,
 	}
 	return comm.CodeOK

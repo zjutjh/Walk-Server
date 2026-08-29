@@ -14,21 +14,21 @@ import (
 )
 
 const (
-	routeCacheKeyPrefix            = "walk:route"
+	routeCacheKeyPrefix            = "walk:route:by-name"
 	routeCacheTTL                  = time.Hour
-	routeEdgeCacheKeyPrefix        = "walk:route_edge"
+	routeEdgeCacheKeyPrefix        = "walk:route:edge"
 	routeEdgeCacheTTL              = time.Hour
 	pointRoutesCacheKeyPrefix      = "walk:point:routes"
 	pointRoutesCacheTTL            = time.Hour
-	allRouteStatsCacheKey          = "dashboard:stats:route:all"
+	allRouteStatsCacheKey          = "walk:dashboard:stats:route:all"
 	allRouteStatsCacheTTL          = 15 * time.Second
-	overviewCacheKeyPrefix         = "dashboard:overview"
+	overviewCacheKeyPrefix         = "walk:dashboard:overview"
 	overviewCacheTTL               = 15 * time.Second
-	segmentCacheKeyPrefix          = "dashboard:segment"
+	segmentCacheKeyPrefix          = "walk:dashboard:segment"
 	segmentCacheTTL                = 15 * time.Second
-	checkpointCacheKeyPrefix       = "dashboard:checkpoint"
+	checkpointCacheKeyPrefix       = "walk:dashboard:checkpoint"
 	checkpointCacheTTL             = 15 * time.Second
-	routeDetailStatsCacheKeyPrefix = "dashboard:stats:route:detail"
+	routeDetailStatsCacheKeyPrefix = "walk:dashboard:stats:route:detail"
 	routeDetailStatsCacheTTL       = 15 * time.Second
 )
 

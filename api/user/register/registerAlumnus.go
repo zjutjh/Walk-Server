@@ -43,8 +43,13 @@ func (h *RegisterAlumnusApi) Run(ctx *gin.Context) kit.Code {
 	if code := comm.CheckBizPhase(comm.PhaseRegistration, comm.PhaseSubmission); code != comm.CodeOK {
 		return code
 	}
+	identity := comm.NormalizeIdentity(h.Request.Body.Identity)
+	tel := comm.NormalizePhone(h.Request.Body.Tel)
+	if !comm.IsValidIdentity(identity) || !comm.IsValidPhone(tel) {
+		return comm.CodeParameterInvalid
+	}
 	peopleRepo := repo.NewPeopleRepo()
-	person, err := peopleRepo.FindPeopleByIdentity(ctx, h.Request.Body.Identity)
+	person, err := peopleRepo.FindPeopleByIdentity(ctx, identity)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("查询校友身份信息失败")
 		return comm.CodeServerError
@@ -53,7 +58,7 @@ func (h *RegisterAlumnusApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodePeopleNotFound
 	}
 	// 预导入校友只按姓名、身份证号和电话号码核验。
-	if person.Name != h.Request.Body.Name || person.Tel != h.Request.Body.Tel {
+	if person.Name != h.Request.Body.Name || person.Tel != tel {
 		return comm.CodePeopleInfoWrong
 	}
 	if person.Password != "" {

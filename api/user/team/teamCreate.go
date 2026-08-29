@@ -32,10 +32,10 @@ type TeamCreateApi struct {
 
 type TeamCreateApiRequest struct {
 	Body struct {
-		Name       string `json:"name" desc:"队伍名称" binding:"required"`
+		Name       string `json:"name" desc:"队伍名称，最多20个字符" binding:"required,max=20"`
 		RouteName  string `json:"route_name" desc:"团队所属路线" binding:"required"`
 		Password   string `json:"password" desc:"团队加入密码" binding:"required"`
-		Slogan     string `json:"slogan" desc:"团队标语" binding:"required"`
+		Slogan     string `json:"slogan" desc:"团队标语，最多20个字符" binding:"required,max=20"`
 		AllowMatch *bool  `json:"allow_match" desc:"是否允许随机匹配" binding:"required"`
 	}
 }

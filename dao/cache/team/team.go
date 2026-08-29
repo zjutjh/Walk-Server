@@ -18,29 +18,33 @@ import (
 )
 
 const (
-	teamIDByCodeCacheKeyPrefix = "walk:team_id_by_code"
-	teamByIDCacheKeyPrefix     = "walk:user:team:info"
+	teamIDByCodeCacheKeyPrefix = "walk:team:by-code"
+	teamByIDCacheKeyPrefix     = "walk:team:by-id"
 	teamCacheTTL               = time.Hour
-	submittedTeamsKey          = "teams"
-	submittedTeamDaysKey       = "walk:team:submitted_days"
+	submittedTeamsKey          = "walk:team:submitted"
+	submittedTeamDaysKey       = "walk:team:submitted-day"
 	totalTeamQuotaKey          = "walk:team:quota:total"
-	teamInfoCacheKeyPrefix     = "dashboard:teams:info"
+	dailyTeamQuotaKeyPrefix    = "walk:team:quota:day:"
+	teamInfoCacheKeyPrefix     = "walk:dashboard:team:by-id"
 	teamInfoCacheTTL           = 60 * time.Second
-	teamFilterCacheKeyPrefix   = "dashboard:teams:filter"
+	teamFilterCacheKeyPrefix   = "walk:dashboard:team:filter"
 	teamFilterCacheTTL         = 30 * time.Second
-	teamInfoLockCacheKeyPrefix = "dashboard:teams:info:lock"
+	teamInfoLockCacheKeyPrefix = "walk:lock:dashboard:team"
+	teamChangeNoticeKeyPrefix  = "walk:team:change-notice"
+	teamChangeNoticeTTL        = 30 * 24 * time.Hour
 )
 
 var teamInfoLocks sync.Map
 
 var submitTeamScript = redis.NewScript(`
-local teamID = KEYS[1]
+local submittedTeamsKey = KEYS[1]
 local dailyQuotaKey = KEYS[2]
 local totalQuotaKey = KEYS[3]
 local submittedDaysKey = KEYS[4]
-local day = ARGV[1]
+local teamID = ARGV[1]
+local day = ARGV[2]
 
-local submitted = redis.call("SISMEMBER", "teams", teamID)
+local submitted = redis.call("SISMEMBER", submittedTeamsKey, teamID)
 if submitted == 1 then
 	return 1
 end
@@ -55,11 +59,54 @@ if not daily or tonumber(daily) <= 0 then
 	return 2
 end
 
-redis.call("SADD", "teams", teamID)
+redis.call("SADD", submittedTeamsKey, teamID)
 redis.call("HSET", submittedDaysKey, teamID, day)
 redis.call("DECR", dailyQuotaKey)
 redis.call("DECR", totalQuotaKey)
 return 0
+`)
+
+var rollbackTeamSubmitScript = redis.NewScript(`
+local submittedTeamsKey = KEYS[1]
+local submittedDaysKey = KEYS[2]
+local totalQuotaKey = KEYS[3]
+local teamID = ARGV[1]
+local fallbackDay = ARGV[2]
+local dailyQuotaKeyPrefix = ARGV[3]
+
+if redis.call("SISMEMBER", submittedTeamsKey, teamID) == 0 then
+	return {0, 0}
+end
+
+local day = redis.call("HGET", submittedDaysKey, teamID)
+if not day then
+	day = fallbackDay
+end
+
+redis.call("SREM", submittedTeamsKey, teamID)
+redis.call("HDEL", submittedDaysKey, teamID)
+redis.call("INCR", dailyQuotaKeyPrefix .. day)
+redis.call("INCR", totalQuotaKey)
+return {1, tonumber(day)}
+`)
+
+var restoreSubmittedTeamScript = redis.NewScript(`
+local submittedTeamsKey = KEYS[1]
+local submittedDaysKey = KEYS[2]
+local dailyQuotaKey = KEYS[3]
+local totalQuotaKey = KEYS[4]
+local teamID = ARGV[1]
+local day = ARGV[2]
+
+if redis.call("SISMEMBER", submittedTeamsKey, teamID) == 1 then
+	return 0
+end
+
+redis.call("SADD", submittedTeamsKey, teamID)
+redis.call("HSET", submittedDaysKey, teamID, day)
+redis.call("DECR", dailyQuotaKey)
+redis.call("DECR", totalQuotaKey)
+return 1
 `)
 
 func client() redis.UniversalClient {
@@ -86,8 +133,62 @@ func BuildTeamInfoLockCacheKey(teamID int64) string {
 	return fmt.Sprintf("%s:%d", teamInfoLockCacheKeyPrefix, teamID)
 }
 
+func buildTeamChangeNoticeKey(userID int64) string {
+	return fmt.Sprintf("%s:%d", teamChangeNoticeKeyPrefix, userID)
+}
+
+// SetTeamChangeNotice 为队员记录尚未查看的团队密码、路线变更通知。
+func SetTeamChangeNotice(ctx context.Context, userIDs []int64, passwordChanged, routeChanged bool) error {
+	if len(userIDs) == 0 || (!passwordChanged && !routeChanged) {
+		return nil
+	}
+
+	pipe := client().Pipeline()
+	for _, userID := range userIDs {
+		if userID <= 0 {
+			continue
+		}
+		key := buildTeamChangeNoticeKey(userID)
+		values := make(map[string]any, 2)
+		if passwordChanged {
+			values["password_changed"] = 1
+		}
+		if routeChanged {
+			values["route_changed"] = 1
+		}
+		pipe.HSet(ctx, key, values)
+		pipe.Expire(ctx, key, teamChangeNoticeTTL)
+	}
+	_, err := pipe.Exec(ctx)
+	return err
+}
+
+// GetTeamChangeNotice 读取用户尚未确认的团队变更通知，不改变已读状态。
+func GetTeamChangeNotice(ctx context.Context, userID int64) (bool, bool, error) {
+	result, err := client().HGetAll(ctx, buildTeamChangeNoticeKey(userID)).Result()
+	if err != nil {
+		return false, false, err
+	}
+	return result["password_changed"] == "1", result["route_changed"] == "1", nil
+}
+
+// AckTeamChangeNotice 清除用户明确确认过的团队变更通知类型。
+func AckTeamChangeNotice(ctx context.Context, userID int64, passwordChanged, routeChanged bool) error {
+	fields := make([]string, 0, 2)
+	if passwordChanged {
+		fields = append(fields, "password_changed")
+	}
+	if routeChanged {
+		fields = append(fields, "route_changed")
+	}
+	if len(fields) == 0 {
+		return nil
+	}
+	return client().HDel(ctx, buildTeamChangeNoticeKey(userID), fields...).Err()
+}
+
 func buildDailyTeamQuotaKey(day int) string {
-	return "walk:team:quota:day:" + strconv.Itoa(day)
+	return dailyTeamQuotaKeyPrefix + strconv.Itoa(day)
 }
 
 func GetTeamIDByCode(ctx context.Context, code string) (int64, bool, error) {
@@ -152,64 +253,54 @@ func DelTeamByID(ctx context.Context, teamID int64) error {
 	return client().Del(ctx, BuildTeamByIDCacheKey(teamID)).Err()
 }
 
-func IsTeamSubmitted(ctx context.Context, teamID int64) (bool, error) {
-	return client().SIsMember(ctx, submittedTeamsKey, strconv.FormatInt(teamID, 10)).Result()
-}
-
 func SubmitTeam(ctx context.Context, teamID int64, day int) (int64, error) {
 	return submitTeamScript.Run(
 		ctx,
 		client(),
 		[]string{
-			strconv.FormatInt(teamID, 10),
+			submittedTeamsKey,
 			buildDailyTeamQuotaKey(day),
 			totalTeamQuotaKey,
 			submittedTeamDaysKey,
 		},
+		teamID,
 		day,
 	).Int64()
 }
 
 func RollbackTeamSubmit(ctx context.Context, teamID int64, fallbackDay int) (bool, int, error) {
 	teamIDValue := strconv.FormatInt(teamID, 10)
-	submitted, err := client().SIsMember(ctx, submittedTeamsKey, teamIDValue).Result()
+	result, err := rollbackTeamSubmitScript.Run(
+		ctx,
+		client(),
+		[]string{submittedTeamsKey, submittedTeamDaysKey, totalTeamQuotaKey},
+		teamIDValue,
+		fallbackDay,
+		dailyTeamQuotaKeyPrefix,
+	).Int64Slice()
 	if err != nil {
 		return false, 0, err
 	}
-	if !submitted {
-		return false, 0, nil
+	if len(result) != 2 {
+		return false, 0, fmt.Errorf("unexpected rollback team submit result: %v", result)
 	}
-	day := fallbackDay
-	if value, err := client().HGet(ctx, submittedTeamDaysKey, teamIDValue).Int(); err == nil {
-		day = value
-	} else if err != redis.Nil {
-		return false, 0, err
-	}
-	if err := client().SRem(ctx, submittedTeamsKey, teamIDValue).Err(); err != nil {
-		return false, 0, err
-	}
-	_ = client().HDel(ctx, submittedTeamDaysKey, teamIDValue).Err()
-	if err := client().Incr(ctx, buildDailyTeamQuotaKey(day)).Err(); err != nil {
-		return false, 0, err
-	}
-	if err := client().Incr(ctx, totalTeamQuotaKey).Err(); err != nil {
-		return false, 0, err
-	}
-	return true, day, nil
+	return result[0] == 1, int(result[1]), nil
 }
 
 func RestoreSubmittedTeam(ctx context.Context, teamID int64, day int) error {
 	teamIDValue := strconv.FormatInt(teamID, 10)
-	if err := client().SAdd(ctx, submittedTeamsKey, teamIDValue).Err(); err != nil {
-		return err
-	}
-	if err := client().HSet(ctx, submittedTeamDaysKey, teamIDValue, day).Err(); err != nil {
-		return err
-	}
-	if err := client().Decr(ctx, buildDailyTeamQuotaKey(day)).Err(); err != nil {
-		return err
-	}
-	return client().Decr(ctx, totalTeamQuotaKey).Err()
+	return restoreSubmittedTeamScript.Run(
+		ctx,
+		client(),
+		[]string{
+			submittedTeamsKey,
+			submittedTeamDaysKey,
+			buildDailyTeamQuotaKey(day),
+			totalTeamQuotaKey,
+		},
+		teamIDValue,
+		day,
+	).Err()
 }
 
 func InitDailyTeamQuota(ctx context.Context, day int, limit int) error {

@@ -24,6 +24,7 @@ const (
 	submittedTeamsKey          = "teams"
 	submittedTeamDaysKey       = "walk:team:submitted_days"
 	totalTeamQuotaKey          = "walk:team:quota:total"
+	dailyTeamQuotaKeyPrefix    = "walk:team:quota:day:"
 	teamInfoCacheKeyPrefix     = "dashboard:teams:info"
 	teamInfoCacheTTL           = 60 * time.Second
 	teamFilterCacheKeyPrefix   = "dashboard:teams:filter"
@@ -62,6 +63,49 @@ redis.call("HSET", submittedDaysKey, teamID, day)
 redis.call("DECR", dailyQuotaKey)
 redis.call("DECR", totalQuotaKey)
 return 0
+`)
+
+var rollbackTeamSubmitScript = redis.NewScript(`
+local submittedTeamsKey = KEYS[1]
+local submittedDaysKey = KEYS[2]
+local totalQuotaKey = KEYS[3]
+local teamID = ARGV[1]
+local fallbackDay = ARGV[2]
+local dailyQuotaKeyPrefix = ARGV[3]
+
+if redis.call("SISMEMBER", submittedTeamsKey, teamID) == 0 then
+	return {0, 0}
+end
+
+local day = redis.call("HGET", submittedDaysKey, teamID)
+if not day then
+	day = fallbackDay
+end
+
+redis.call("SREM", submittedTeamsKey, teamID)
+redis.call("HDEL", submittedDaysKey, teamID)
+redis.call("INCR", dailyQuotaKeyPrefix .. day)
+redis.call("INCR", totalQuotaKey)
+return {1, tonumber(day)}
+`)
+
+var restoreSubmittedTeamScript = redis.NewScript(`
+local submittedTeamsKey = KEYS[1]
+local submittedDaysKey = KEYS[2]
+local dailyQuotaKey = KEYS[3]
+local totalQuotaKey = KEYS[4]
+local teamID = ARGV[1]
+local day = ARGV[2]
+
+if redis.call("SISMEMBER", submittedTeamsKey, teamID) == 1 then
+	return 0
+end
+
+redis.call("SADD", submittedTeamsKey, teamID)
+redis.call("HSET", submittedDaysKey, teamID, day)
+redis.call("DECR", dailyQuotaKey)
+redis.call("DECR", totalQuotaKey)
+return 1
 `)
 
 func client() redis.UniversalClient {
@@ -143,7 +187,7 @@ func AckTeamChangeNotice(ctx context.Context, userID int64, passwordChanged, rou
 }
 
 func buildDailyTeamQuotaKey(day int) string {
-	return "walk:team:quota:day:" + strconv.Itoa(day)
+	return dailyTeamQuotaKeyPrefix + strconv.Itoa(day)
 }
 
 func GetTeamIDByCode(ctx context.Context, code string) (int64, bool, error) {
@@ -224,44 +268,37 @@ func SubmitTeam(ctx context.Context, teamID int64, day int) (int64, error) {
 
 func RollbackTeamSubmit(ctx context.Context, teamID int64, fallbackDay int) (bool, int, error) {
 	teamIDValue := strconv.FormatInt(teamID, 10)
-	submitted, err := client().SIsMember(ctx, submittedTeamsKey, teamIDValue).Result()
+	result, err := rollbackTeamSubmitScript.Run(
+		ctx,
+		client(),
+		[]string{submittedTeamsKey, submittedTeamDaysKey, totalTeamQuotaKey},
+		teamIDValue,
+		fallbackDay,
+		dailyTeamQuotaKeyPrefix,
+	).Int64Slice()
 	if err != nil {
 		return false, 0, err
 	}
-	if !submitted {
-		return false, 0, nil
+	if len(result) != 2 {
+		return false, 0, fmt.Errorf("unexpected rollback team submit result: %v", result)
 	}
-	day := fallbackDay
-	if value, err := client().HGet(ctx, submittedTeamDaysKey, teamIDValue).Int(); err == nil {
-		day = value
-	} else if err != redis.Nil {
-		return false, 0, err
-	}
-	if err := client().SRem(ctx, submittedTeamsKey, teamIDValue).Err(); err != nil {
-		return false, 0, err
-	}
-	_ = client().HDel(ctx, submittedTeamDaysKey, teamIDValue).Err()
-	if err := client().Incr(ctx, buildDailyTeamQuotaKey(day)).Err(); err != nil {
-		return false, 0, err
-	}
-	if err := client().Incr(ctx, totalTeamQuotaKey).Err(); err != nil {
-		return false, 0, err
-	}
-	return true, day, nil
+	return result[0] == 1, int(result[1]), nil
 }
 
 func RestoreSubmittedTeam(ctx context.Context, teamID int64, day int) error {
 	teamIDValue := strconv.FormatInt(teamID, 10)
-	if err := client().SAdd(ctx, submittedTeamsKey, teamIDValue).Err(); err != nil {
-		return err
-	}
-	if err := client().HSet(ctx, submittedTeamDaysKey, teamIDValue, day).Err(); err != nil {
-		return err
-	}
-	if err := client().Decr(ctx, buildDailyTeamQuotaKey(day)).Err(); err != nil {
-		return err
-	}
-	return client().Decr(ctx, totalTeamQuotaKey).Err()
+	return restoreSubmittedTeamScript.Run(
+		ctx,
+		client(),
+		[]string{
+			submittedTeamsKey,
+			submittedTeamDaysKey,
+			buildDailyTeamQuotaKey(day),
+			totalTeamQuotaKey,
+		},
+		teamIDValue,
+		day,
+	).Err()
 }
 
 func InitDailyTeamQuota(ctx context.Context, day int, limit int) error {

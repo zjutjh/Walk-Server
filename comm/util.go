@@ -12,9 +12,9 @@ func GenerateToken(userID int64) (string, error) {
 }
 
 func GetUserIDFromCtx(ctx *gin.Context) (int64, error) {
-	identity, err := myjwt.GetIdentity[string](ctx)
+	id, err := myjwt.GetIdentity[string](ctx)
 	if err != nil {
 		return 0, err
 	}
-	return strconv.ParseInt(identity, 10, 64)
+	return strconv.ParseInt(id 10, 64)
 }

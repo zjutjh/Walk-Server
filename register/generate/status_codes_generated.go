@@ -515,10 +515,7 @@ func init() {
 			comm.CodeTeamNotFound,
 			comm.CodePeopleNotFound,
 			comm.CodeTeamNotSubmitted,
-			comm.CodeNotInRegisterTime,
-			comm.CodePreparationForbidden,
-			comm.CodeActivityForbidden,
-			comm.CodeAdjustmentCannotSubmit,
+			comm.CodeCannotSubmit,
 		}
 		swagger.MustRegisterBusinessStatusCodes("app/api/user/team.hfTeamRollback", statusCodes)
 	}
@@ -535,12 +532,9 @@ func init() {
 			comm.CodeTeamNotEnough,
 			comm.CodeTeamNotFound,
 			comm.CodePeopleNotFound,
-			comm.CodeNotInRegisterTime,
 			comm.CodeDailyQuotaFull,
 			comm.CodeActivityQuotaFull,
-			comm.CodePreparationForbidden,
-			comm.CodeActivityForbidden,
-			comm.CodeAdjustmentCannotSubmit,
+			comm.CodeCannotSubmit,
 		}
 		swagger.MustRegisterBusinessStatusCodes("app/api/user/team.hfTeamSubmit", statusCodes)
 	}

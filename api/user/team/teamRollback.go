@@ -43,9 +43,10 @@ func (h *TeamRollbackApi) Run(ctx *gin.Context) kit.Code {
 	if !team.Submit {
 		return comm.CodeTeamNotSubmitted
 	}
-	day, code := teamQuotaDay(ctx)
-	if code != comm.CodeOK {
-		return code
+	day, ok := comm.CurrentSubmissionDay()
+	if !ok {
+		nlog.Pick().WithContext(ctx).Warn("当前阶段不可提交队伍")
+		return comm.CodeCannotSubmit
 	}
 	submitted, submittedDay, err := teamCache.RollbackTeamSubmit(ctx, team.ID, day)
 	if err != nil {

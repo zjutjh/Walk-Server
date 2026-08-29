@@ -46,9 +46,10 @@ func (h *TeamSubmitApi) Run(ctx *gin.Context) kit.Code {
 	if team.Num < 4 {
 		return comm.CodeTeamNotEnough
 	}
-	day, code := teamQuotaDay(ctx)
-	if code != comm.CodeOK {
-		return code
+	day, ok := comm.CurrentSubmissionDay()
+	if !ok {
+		nlog.Pick().WithContext(ctx).Warn("当前阶段不可提交队伍")
+		return comm.CodeCannotSubmit
 	}
 	result, err := teamCache.SubmitTeam(ctx, team.ID, day)
 	if err != nil {
@@ -87,23 +88,6 @@ func (h *TeamSubmitApi) Run(ctx *gin.Context) kit.Code {
 	return comm.CodeOK
 }
 
-func teamQuotaDay(ctx *gin.Context) (int, kit.Code) {
-	day, ok := comm.CurrentSubmissionDay()
-	if !ok {
-		if comm.IsInBizPhase(comm.PhaseAdjustment) {
-			return 0, comm.CodeAdjustmentCannotSubmit
-		}
-		if comm.IsInBizPhase(comm.PhasePreparation) {
-			return 0, comm.CodePreparationForbidden
-		}
-		if comm.IsInBizPhase(comm.PhaseActivity) {
-			return 0, comm.CodeActivityForbidden
-		}
-		nlog.Pick().WithContext(ctx).Warn("当前不在每日抢票开放时间")
-		return 0, comm.CodeNotInRegisterTime
-	}
-	return day, comm.CodeOK
-}
 
 func hfTeamSubmit(ctx *gin.Context) {
 	api := &TeamSubmitApi{}

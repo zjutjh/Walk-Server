@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	adminCacheKeyPrefix          = "walk:admin"
-	adminLoginFailCacheKeyPrefix = "walk:admin:login_fail"
+	adminCacheKeyPrefix          = "walk:admin:by-id"
+	adminLoginFailCacheKeyPrefix = "walk:admin:login-fail"
 	adminCacheTTL                = time.Hour
 	adminLoginFailTTL            = 10 * time.Minute
 	adminLoginFailMaxCount       = 5

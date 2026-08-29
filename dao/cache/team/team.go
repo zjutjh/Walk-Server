@@ -18,32 +18,33 @@ import (
 )
 
 const (
-	teamIDByCodeCacheKeyPrefix = "walk:team_id_by_code"
-	teamByIDCacheKeyPrefix     = "walk:user:team:info"
+	teamIDByCodeCacheKeyPrefix = "walk:team:by-code"
+	teamByIDCacheKeyPrefix     = "walk:team:by-id"
 	teamCacheTTL               = time.Hour
-	submittedTeamsKey          = "teams"
-	submittedTeamDaysKey       = "walk:team:submitted_days"
+	submittedTeamsKey          = "walk:team:submitted"
+	submittedTeamDaysKey       = "walk:team:submitted-day"
 	totalTeamQuotaKey          = "walk:team:quota:total"
 	dailyTeamQuotaKeyPrefix    = "walk:team:quota:day:"
-	teamInfoCacheKeyPrefix     = "dashboard:teams:info"
+	teamInfoCacheKeyPrefix     = "walk:dashboard:team:by-id"
 	teamInfoCacheTTL           = 60 * time.Second
-	teamFilterCacheKeyPrefix   = "dashboard:teams:filter"
+	teamFilterCacheKeyPrefix   = "walk:dashboard:team:filter"
 	teamFilterCacheTTL         = 30 * time.Second
-	teamInfoLockCacheKeyPrefix = "dashboard:teams:info:lock"
-	teamChangeNoticeKeyPrefix  = "walk:team:change_notice"
+	teamInfoLockCacheKeyPrefix = "walk:lock:dashboard:team"
+	teamChangeNoticeKeyPrefix  = "walk:team:change-notice"
 	teamChangeNoticeTTL        = 30 * 24 * time.Hour
 )
 
 var teamInfoLocks sync.Map
 
 var submitTeamScript = redis.NewScript(`
-local teamID = KEYS[1]
+local submittedTeamsKey = KEYS[1]
 local dailyQuotaKey = KEYS[2]
 local totalQuotaKey = KEYS[3]
 local submittedDaysKey = KEYS[4]
-local day = ARGV[1]
+local teamID = ARGV[1]
+local day = ARGV[2]
 
-local submitted = redis.call("SISMEMBER", "teams", teamID)
+local submitted = redis.call("SISMEMBER", submittedTeamsKey, teamID)
 if submitted == 1 then
 	return 1
 end
@@ -58,7 +59,7 @@ if not daily or tonumber(daily) <= 0 then
 	return 2
 end
 
-redis.call("SADD", "teams", teamID)
+redis.call("SADD", submittedTeamsKey, teamID)
 redis.call("HSET", submittedDaysKey, teamID, day)
 redis.call("DECR", dailyQuotaKey)
 redis.call("DECR", totalQuotaKey)
@@ -257,11 +258,12 @@ func SubmitTeam(ctx context.Context, teamID int64, day int) (int64, error) {
 		ctx,
 		client(),
 		[]string{
-			strconv.FormatInt(teamID, 10),
+			submittedTeamsKey,
 			buildDailyTeamQuotaKey(day),
 			totalTeamQuotaKey,
 			submittedTeamDaysKey,
 		},
+		teamID,
 		day,
 	).Int64()
 }

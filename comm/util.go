@@ -20,10 +20,12 @@ func GetUserIDFromCtx(ctx *gin.Context) (int64, error) {
 	return strconv.ParseInt(id, 10, 64)
 }
 
-
+func NormalizePhone(phone string) string {
+	return strings.TrimSpace(phone)
+}
 
 func IsValidPhone(phone string) bool {
-	phone = strings.TrimSpace(phone)
+	phone = NormalizePhone(phone)
 	return len(phone) == 11 && allASCIIDigits(phone)
 }
 

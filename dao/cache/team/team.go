@@ -208,10 +208,6 @@ func DelTeamByID(ctx context.Context, teamID int64) error {
 	return client().Del(ctx, BuildTeamByIDCacheKey(teamID)).Err()
 }
 
-func IsTeamSubmitted(ctx context.Context, teamID int64) (bool, error) {
-	return client().SIsMember(ctx, submittedTeamsKey, strconv.FormatInt(teamID, 10)).Result()
-}
-
 func SubmitTeam(ctx context.Context, teamID int64, day int) (int64, error) {
 	return submitTeamScript.Run(
 		ctx,

@@ -57,11 +57,7 @@ func (h *TeamRandomJoinApi) Run(ctx *gin.Context) kit.Code {
 	if team == nil {
 		return comm.CodeTeamNotFound
 	}
-	submitted, err := teamCache.IsTeamSubmitted(ctx, team.ID)
-	if err != nil {
-		return comm.CodeServerError
-	}
-	if submitted && !comm.IsInBizPhase(comm.PhaseAdjustment) {
+	if team.Submit && !comm.IsInBizPhase(comm.PhaseAdjustment) {
 		return comm.CodeTeamSubmitted
 	}
 	if !team.AllowMatch {

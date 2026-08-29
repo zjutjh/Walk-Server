@@ -55,11 +55,7 @@ func (h *TeamUpdateApi) Run(ctx *gin.Context) kit.Code {
 	if !(person != nil && team != nil && person.Role == comm.RoleCaptain && team.Captain == person.ID) {
 		return comm.CodeNotCaptain
 	}
-	submitted, err := teamCache.IsTeamSubmitted(ctx, team.ID)
-	if err != nil {
-		return comm.CodeServerError
-	}
-	if submitted && !comm.IsInBizPhase(comm.PhaseAdjustment) {
+	if team.Submit && !comm.IsInBizPhase(comm.PhaseAdjustment) {
 		return comm.CodeTeamSubmitted
 	}
 	teamRepo := repo.NewTeamRepo()

@@ -42,11 +42,7 @@ func (h *TeamLeaveApi) Run(ctx *gin.Context) kit.Code {
 	if person.Role == comm.RoleCaptain || team.Captain == person.ID {
 		return comm.CodeCannotLeaveTeam
 	}
-	submitted, err := teamCache.IsTeamSubmitted(ctx, team.ID)
-	if err != nil {
-		return comm.CodeServerError
-	}
-	if submitted && !comm.IsInBizPhase(comm.PhaseAdjustment) {
+	if team.Submit && !comm.IsInBizPhase(comm.PhaseAdjustment) {
 		return comm.CodeTeamSubmitted
 	}
 	ok, err := repo.NewTeamRepo().RemoveMember(ctx, team.ID, person)

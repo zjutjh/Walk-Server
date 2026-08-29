@@ -40,6 +40,9 @@ func (h *TeamSubmitApi) Run(ctx *gin.Context) kit.Code {
 	if !(person != nil && team != nil && person.Role == comm.RoleCaptain && team.Captain == person.ID) {
 		return comm.CodeNotCaptain
 	}
+	if team.Submit {
+		return comm.CodeTeamSubmitted
+	}
 	if team.Num < 4 {
 		return comm.CodeTeamNotEnough
 	}
@@ -52,9 +55,24 @@ func (h *TeamSubmitApi) Run(ctx *gin.Context) kit.Code {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("提交团队扣减名额失败")
 		return comm.CodeServerError
 	}
+	// MySQL is the source of truth for submission state. If Redis still has a
+	// stale submission ledger for this unsubmitted team, remove it and retry.
+	if result == 1 {
+		removed, _, rollbackErr := teamCache.RollbackTeamSubmit(ctx, team.ID, day)
+		if rollbackErr != nil || !removed {
+			nlog.Pick().WithContext(ctx).WithError(rollbackErr).Warn("清理 Redis 过期提交记录失败")
+			return comm.CodeServerError
+		}
+		result, err = teamCache.SubmitTeam(ctx, team.ID, day)
+		if err != nil {
+			nlog.Pick().WithContext(ctx).WithError(err).Warn("清理 Redis 过期提交记录后重新扣减名额失败")
+			return comm.CodeServerError
+		}
+	}
 	switch result {
 	case 1:
-		return comm.CodeTeamSubmitted
+		nlog.Pick().WithContext(ctx).Warn("清理后 Redis 仍显示队伍已提交")
+		return comm.CodeServerError
 	case 2:
 		return comm.CodeDailyQuotaFull
 	case 3:

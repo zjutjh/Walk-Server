@@ -12,6 +12,7 @@ import (
 	"github.com/zjutjh/mygo/ndb"
 	"github.com/zjutjh/mygo/nlog"
 	"github.com/zjutjh/mygo/swagger"
+	"gorm.io/gorm"
 
 	"app/comm"
 	teamCache "app/dao/cache/team"
@@ -85,8 +86,10 @@ func (b *BindCodeApi) Run(ctx *gin.Context) kit.Code {
 			return nil
 		}
 
-		codeOwner, err := txTeamRepo.FindByCode(ctx, newCode)
-		if err != nil {
+		codeOwner, err := tx.Team.WithContext(ctx).Where(tx.Team.Code.Eq(newCode)).First()
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			codeOwner = nil
+		} else if err != nil {
 			return err
 		}
 		if codeOwner != nil && codeOwner.ID != team.ID {

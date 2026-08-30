@@ -77,9 +77,7 @@ func (u *UpdateTeamApi) Run(ctx *gin.Context) kit.Code {
 		}
 	}()
 
-	if err := query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
-		return repo.NewTeamRepoWithTx(tx).ClearLostStatus(ctx, team.ID)
-	}); err != nil {
+	if err := teamRepo.ClearLostStatus(ctx, team.ID); err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("清除队伍失联状态失败")
 		return comm.CodeServerError
 	}

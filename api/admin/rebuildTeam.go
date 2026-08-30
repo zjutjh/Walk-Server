@@ -143,7 +143,7 @@ func (r *RebuildApi) Run(ctx *gin.Context) kit.Code {
 				continue
 			}
 
-			oldTeam, err := txTeamRepo.FindTeamByID(ctx, oldTeamID)
+			oldTeam, err := txTeamRepo.GetTeamByID(ctx, oldTeamID)
 			if err != nil {
 				return err
 			}

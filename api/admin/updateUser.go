@@ -78,7 +78,7 @@ func (u *UpdateUserApi) Run(ctx *gin.Context) kit.Code {
 			return err
 		}
 
-		team, err := txTeamRepo.FindTeamByID(ctx, user.TeamID)
+		team, err := txTeamRepo.GetTeamByID(ctx, user.TeamID)
 		if err != nil {
 			return err
 		}

@@ -1,15 +1,14 @@
 package repo
 
 import (
+	"app/comm"
+	"app/dao/model"
+	"app/dao/query"
 	"context"
 	"errors"
 
-	"app/comm"
 	"github.com/zjutjh/mygo/ndb"
 	"gorm.io/gorm"
-
-	"app/dao/model"
-	"app/dao/query"
 )
 
 type PeopleRepo struct {
@@ -101,27 +100,8 @@ func (r *PeopleRepo) FindPeopleByTeamID(ctx context.Context, teamID int64) ([]*m
 	return records, err
 }
 
-func (r *PeopleRepo) ListByTeamID(ctx context.Context, teamID int64) ([]model.People, error) {
-	records, err := r.FindPeopleByTeamID(ctx, teamID)
-	if err != nil {
-		return nil, err
-	}
-
-	people := make([]model.People, 0, len(records))
-	for _, record := range records {
-		if record == nil {
-			continue
-		}
-		people = append(people, *record)
-	}
-	return people, nil
-}
-
 func (r *PeopleRepo) Create(ctx context.Context, person *model.People) error {
-	if err := r.query.People.WithContext(ctx).Create(person); err != nil {
-		return err
-	}
-	return nil
+	return r.query.People.WithContext(ctx).Create(person)
 }
 
 func (r *PeopleRepo) CompleteAlumnusRegistration(ctx context.Context, id int64, password string) error {
@@ -142,9 +122,6 @@ func (r *PeopleRepo) UpdateByID(ctx context.Context, id int64, updates map[strin
 	_, err := r.query.People.WithContext(ctx).
 		Where(r.query.People.ID.Eq(id)).
 		Updates(updates)
-	if err != nil {
-		return err
-	}
 	return err
 }
 
@@ -152,10 +129,7 @@ func (r *PeopleRepo) UpdateByTeamID(ctx context.Context, teamID int64, updates m
 	_, err := r.query.People.WithContext(ctx).
 		Where(r.query.People.TeamID.Eq(teamID)).
 		Updates(updates)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func (r *PeopleRepo) FindPeopleByIDs(ctx context.Context, ids []int64) ([]*model.People, error) {
@@ -259,9 +233,6 @@ func (r *PeopleRepo) UpdateWalkStatus(ctx context.Context, userID int64, status 
 	_, err := p.WithContext(ctx).
 		Where(p.ID.Eq(userID)).
 		Update(p.WalkStatus, status)
-	if err != nil {
-		return err
-	}
 	return err
 }
 
@@ -270,10 +241,7 @@ func (r *PeopleRepo) UpdateViolationByUserID(ctx context.Context, userID int64, 
 	_, err := p.WithContext(ctx).
 		Where(p.ID.Eq(userID)).
 		Update(p.IsViolated, isViolated)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func (r *PeopleRepo) UpdateMembersViolationExceptStatuses(ctx context.Context, teamID int64, excludedStatuses []string, isViolated bool) error {
@@ -284,23 +252,6 @@ func (r *PeopleRepo) UpdateMembersViolationExceptStatuses(ctx context.Context, t
 			p.WalkStatus.NotIn(excludedStatuses...),
 		).
 		Update(p.IsViolated, isViolated)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (r *PeopleRepo) UpdateWalkStatusByUserIDs(ctx context.Context, userIDs []int64, status string) error {
-	if len(userIDs) == 0 {
-		return nil
-	}
-	p := r.query.People
-	_, err := p.WithContext(ctx).
-		Where(p.ID.In(userIDs...)).
-		Update(p.WalkStatus, status)
-	if err != nil {
-		return err
-	}
 	return err
 }
 
@@ -309,9 +260,6 @@ func (r *PeopleRepo) UpdateTeamIDByUserIDs(ctx context.Context, userIDs []int64,
 	_, err := p.WithContext(ctx).
 		Where(p.ID.In(userIDs...)).
 		Update(p.TeamID, teamID)
-	if err != nil {
-		return err
-	}
 	return err
 }
 
@@ -320,9 +268,6 @@ func (r *PeopleRepo) UpdateRoleByUserID(ctx context.Context, userID int64, role 
 	_, err := p.WithContext(ctx).
 		Where(p.ID.Eq(userID)).
 		Update(p.Role, role)
-	if err != nil {
-		return err
-	}
 	return err
 }
 
@@ -334,9 +279,6 @@ func (r *PeopleRepo) UpdateRoleByUserIDs(ctx context.Context, userIDs []int64, r
 	_, err := p.WithContext(ctx).
 		Where(p.ID.In(userIDs...)).
 		Update(p.Role, role)
-	if err != nil {
-		return err
-	}
 	return err
 }
 
@@ -348,9 +290,6 @@ func (r *PeopleRepo) UpdateMembersWalkStatusByCurrent(ctx context.Context, teamI
 			p.WalkStatus.Eq(fromStatus),
 		).
 		Update(p.WalkStatus, toStatus)
-	if err != nil {
-		return err
-	}
 	return err
 }
 

@@ -324,11 +324,12 @@ func (r *TeamRepo) DisbandTeam(ctx context.Context, teamID int64) error {
 }
 
 func (r *TeamRepo) ListRandomMatchTeams(ctx context.Context, routeName string, maxTeamSize int) ([]model.Team, error) {
+	t := r.query.Team
 	var countRows []teamMatchCountRow
-	if err := r.query.Team.WithContext(ctx).
-		Select(r.query.Team.Num, r.query.Team.ID.Count().As("count")).
-		Where(r.query.Team.RouteName.Eq(routeName), r.query.Team.AllowMatch.Is(true), r.query.Team.Num.Lt(uint8(maxTeamSize))).
-		Group(r.query.Team.Num).
+	if err := t.WithContext(ctx).
+		Select(t.Num, t.ID.Count().As("count")).
+		Where(t.RouteName.Eq(routeName), t.AllowMatch.Is(true), t.Num.Lt(uint8(maxTeamSize))).
+		Group(t.Num).
 		Scan(&countRows); err != nil {
 		return nil, err
 	}
@@ -360,18 +361,18 @@ func (r *TeamRepo) ListRandomMatchTeams(ctx context.Context, routeName string, m
 			continue
 		}
 		offset := randomOffset(tier.count, take)
-		teamQuery := r.query.Team.WithContext(ctx).Where(
-			r.query.Team.RouteName.Eq(routeName),
-			r.query.Team.AllowMatch.Is(true),
-			r.query.Team.Num.Lt(uint8(maxTeamSize)),
+		teamQuery := t.WithContext(ctx).Where(
+			t.RouteName.Eq(routeName),
+			t.AllowMatch.Is(true),
+			t.Num.Lt(uint8(maxTeamSize)),
 		)
 		if tier.num == 3 {
-			teamQuery = teamQuery.Where(r.query.Team.Num.Lte(3))
+			teamQuery = teamQuery.Where(t.Num.Lte(3))
 		} else {
-			teamQuery = teamQuery.Where(r.query.Team.Num.Eq(tier.num))
+			teamQuery = teamQuery.Where(t.Num.Eq(tier.num))
 		}
 		rows, err := teamQuery.
-			Order(r.query.Team.ID).
+			Order(t.ID).
 			Offset(offset).
 			Limit(take).
 			Find()

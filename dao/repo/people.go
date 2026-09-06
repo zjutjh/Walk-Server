@@ -104,7 +104,7 @@ func (r *PeopleRepo) Create(ctx context.Context, person *model.People) error {
 	return r.query.People.WithContext(ctx).Create(person)
 }
 
-func (r *PeopleRepo) CompleteAlumnusRegistration(ctx context.Context, id int64, password string) error {
+func (r *PeopleRepo) CompleteAlumniRegistration(ctx context.Context, id int64, password string) error {
 	p := r.query.People
 	result, err := p.WithContext(ctx).Where(p.ID.Eq(id), p.Password.Eq("")).Updates(map[string]any{
 		"password": password,

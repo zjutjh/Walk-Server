@@ -79,7 +79,7 @@ func Route(router *gin.Engine) {
 			user.POST("/login", basicapi.LoginHandler())
 			user.POST("/register/student", registerapi.RegisterStudentHandler())
 			user.POST("/register/teacher", registerapi.RegisterTeacherHandler())
-			user.POST("/register/alumnus", registerapi.RegisterAlumnusHandler())
+			user.POST("/register/alumni", registerapi.RegisterAlumniHandler())
 
 			auth := user.Group("")
 			auth.Use(jwtmiddleware.Auth[string](true))

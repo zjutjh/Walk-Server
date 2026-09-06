@@ -40,7 +40,7 @@ const (
 const (
 	MemberTypeStudent = "student"
 	MemberTypeTeacher = "teacher"
-	MemberTypeAlumnus = "alumnus"
+	MemberTypeAlumni  = "alumni"
 )
 
 // NoticeType 通知类型枚举。

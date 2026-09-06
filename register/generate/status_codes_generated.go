@@ -262,7 +262,7 @@ func init() {
 		swagger.MustRegisterBusinessStatusCodes("app/api/user/basic.hfLogin", statusCodes)
 	}
 
-	// api/user/register/registerAlumnus.go:76
+	// api/user/register/registerAlumni.go:76
 	{
 		statusCodes := []kit.Code{
 			comm.CodeOK,
@@ -275,7 +275,7 @@ func init() {
 			comm.CodePreparationForbidden,
 			comm.CodeActivityForbidden,
 		}
-		swagger.MustRegisterBusinessStatusCodes("app/api/user/register.hfRegisterAlumnus", statusCodes)
+		swagger.MustRegisterBusinessStatusCodes("app/api/user/register.hfRegisterAlumni", statusCodes)
 	}
 
 	// api/user/register/registerStudent.go:170

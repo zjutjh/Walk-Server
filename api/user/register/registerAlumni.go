@@ -16,19 +16,19 @@ import (
 	"gorm.io/gorm"
 )
 
-func RegisterAlumnusHandler() gin.HandlerFunc {
-	api := RegisterAlumnusApi{}
-	swagger.CM[runtime.FuncForPC(reflect.ValueOf(hfRegisterAlumnus).Pointer()).Name()] = api
-	return hfRegisterAlumnus
+func RegisterAlumniHandler() gin.HandlerFunc {
+	api := RegisterAlumniApi{}
+	swagger.CM[runtime.FuncForPC(reflect.ValueOf(hfRegisterAlumni).Pointer()).Name()] = api
+	return hfRegisterAlumni
 }
 
-type RegisterAlumnusApi struct {
+type RegisterAlumniApi struct {
 	Info     struct{} `name:"校友注册"`
-	Request  RegisterAlumnusApiRequest
+	Request  RegisterAlumniApiRequest
 	Response struct{}
 }
 
-type RegisterAlumnusApiRequest struct {
+type RegisterAlumniApiRequest struct {
 	Body struct {
 		Name     string `json:"name" desc:"姓名" binding:"required"`
 		Identity string `json:"identity" desc:"身份证号" binding:"required"`
@@ -37,9 +37,9 @@ type RegisterAlumnusApiRequest struct {
 	}
 }
 
-func (h *RegisterAlumnusApi) Init(ctx *gin.Context) error { return ctx.ShouldBindJSON(&h.Request.Body) }
+func (h *RegisterAlumniApi) Init(ctx *gin.Context) error { return ctx.ShouldBindJSON(&h.Request.Body) }
 
-func (h *RegisterAlumnusApi) Run(ctx *gin.Context) kit.Code {
+func (h *RegisterAlumniApi) Run(ctx *gin.Context) kit.Code {
 	if code := comm.CheckBizPhase(comm.PhaseRegistration, comm.PhaseSubmission, comm.PhaseAdjustment); code != comm.CodeOK {
 		return code
 	}
@@ -54,7 +54,7 @@ func (h *RegisterAlumnusApi) Run(ctx *gin.Context) kit.Code {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("查询校友身份信息失败")
 		return comm.CodeServerError
 	}
-	if person == nil || person.Type != comm.MemberTypeAlumnus {
+	if person == nil || person.Type != comm.MemberTypeAlumni {
 		return comm.CodePeopleNotFound
 	}
 	// 预导入校友只按姓名、身份证号和电话号码核验。
@@ -68,7 +68,7 @@ func (h *RegisterAlumnusApi) Run(ctx *gin.Context) kit.Code {
 	if err != nil {
 		return comm.CodeServerError
 	}
-	if err := peopleRepo.CompleteAlumnusRegistration(ctx, person.ID, hashed); err != nil {
+	if err := peopleRepo.CompleteAlumniRegistration(ctx, person.ID, hashed); err != nil {
 		if errors.Is(err, gorm.ErrDuplicatedKey) || isRegisterDuplicateError(err) {
 			return comm.CodeAlreadyRegistered
 		}
@@ -78,8 +78,8 @@ func (h *RegisterAlumnusApi) Run(ctx *gin.Context) kit.Code {
 	return comm.CodeOK
 }
 
-func hfRegisterAlumnus(ctx *gin.Context) {
-	api := &RegisterAlumnusApi{}
+func hfRegisterAlumni(ctx *gin.Context) {
+	api := &RegisterAlumniApi{}
 	if err := api.Init(ctx); err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("参数绑定校验错误")
 		reply.Fail(ctx, comm.CodeParameterInvalid)

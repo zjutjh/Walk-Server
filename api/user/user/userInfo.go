@@ -47,7 +47,7 @@ type UserInfoApiResponse struct {
 	CreateOp uint8  `json:"create_op" desc:"剩余创建团队次数"`
 	JoinOp   uint8  `json:"join_op" desc:"剩余加入团队次数"`
 	TeamID   int64  `json:"team_id" desc:"团队ID"`
-	Type     string `json:"type" desc:"人员类型 枚举值：'alumnus''student''teacher'"`
+	Type     string `json:"type" desc:"人员类型 枚举值：'alumni''student''teacher'"`
 }
 
 func (h *UserInfoApi) Run(ctx *gin.Context) kit.Code {

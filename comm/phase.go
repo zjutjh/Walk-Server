@@ -6,16 +6,6 @@ import (
 	"github.com/zjutjh/mygo/kit"
 )
 
-type BizPhase string
-
-const (
-	PhaseRegistration BizPhase = "registration"
-	PhaseSubmission   BizPhase = "submission"
-	PhaseAdjustment   BizPhase = "adjustment"
-	PhasePreparation  BizPhase = "preparation"
-	PhaseActivity     BizPhase = "activity"
-)
-
 func IsInBizPhase(allowed ...BizPhase) bool {
 	now := time.Now()
 	for _, phase := range allowed {
@@ -24,6 +14,26 @@ func IsInBizPhase(allowed ...BizPhase) bool {
 		}
 	}
 	return false
+}
+
+// CurrentBizPhase 返回当前业务时期；不在任何已配置时期内时返回空字符串。
+func CurrentBizPhase() BizPhase {
+	return CurrentBizPhaseAt(time.Now())
+}
+
+func CurrentBizPhaseAt(now time.Time) BizPhase {
+	for _, phase := range []BizPhase{
+		PhaseRegistration,
+		PhaseSubmission,
+		PhaseAdjustment,
+		PhasePreparation,
+		PhaseActivity,
+	} {
+		if period, ok := phaseTimeRange(phase); ok && inTimeRange(now, period) {
+			return phase
+		}
+	}
+	return ""
 }
 
 func CheckBizPhase(allowed ...BizPhase) kit.Code {

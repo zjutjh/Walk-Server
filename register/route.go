@@ -76,6 +76,7 @@ func Route(router *gin.Engine) {
 		}
 		user := r.Group("/user")
 		{
+			user.GET("/phase", basicapi.PhaseHandler())
 			user.POST("/login", basicapi.LoginHandler())
 			user.POST("/register/student", registerapi.RegisterStudentHandler())
 			user.POST("/register/teacher", registerapi.RegisterTeacherHandler())

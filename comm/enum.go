@@ -1,5 +1,16 @@
 package comm
 
+// BizPhase 业务时期字符串枚举。
+type BizPhase string
+
+const (
+	PhaseRegistration BizPhase = "registration"
+	PhaseSubmission   BizPhase = "submission"
+	PhaseAdjustment   BizPhase = "adjustment"
+	PhasePreparation  BizPhase = "preparation"
+	PhaseActivity     BizPhase = "activity"
+)
+
 // 人员活动状态枚举
 const (
 	WalkStatusNotStart   = "not_start"

@@ -251,6 +251,14 @@ func init() {
 		swagger.MustRegisterBusinessStatusCodes("app/api/dashboard/teams.hfTeam", statusCodes)
 	}
 
+	// api/user/basic/phase.go
+	{
+		statusCodes := []kit.Code{
+			comm.CodeOK,
+		}
+		swagger.MustRegisterBusinessStatusCodes("app/api/user/basic.hfPhase", statusCodes)
+	}
+
 	// api/user/basic/login.go:84
 	{
 		statusCodes := []kit.Code{

@@ -37,7 +37,7 @@ type RegisterStudentApiRequest struct {
 	Body struct {
 		Name     string `json:"name" desc:"姓名" binding:"required"`
 		StuID    string `json:"stu_id" desc:"学号" binding:"required"`
-		Password string `json:"password" desc:"密码" binding:"required"`
+		Password string `json:"password" desc:"统一认证密码" binding:"required"`
 		Identity string `json:"identity" desc:"身份证号" binding:"required"`
 		Tel      string `json:"tel" desc:"电话" binding:"required"`
 		Wechat   string `json:"wechat" desc:"微信号"`
@@ -50,7 +50,7 @@ func (h *RegisterStudentApi) Init(ctx *gin.Context) error {
 }
 
 func (h *RegisterStudentApi) Run(ctx *gin.Context) kit.Code {
-	if code := comm.CheckBizPhase(comm.PhaseRegistration, comm.PhaseSubmission); code != comm.CodeOK {
+	if code := comm.CheckBizPhase(comm.PhaseRegistration, comm.PhaseSubmission, comm.PhaseAdjustment); code != comm.CodeOK {
 		return code
 	}
 	identity := comm.NormalizeIdentity(h.Request.Body.Identity)
@@ -149,8 +149,11 @@ func fetchRegisterOAuthInfo(ctx *gin.Context, account, password string) (*regist
 	cookie, info, err := oauth.GetUserInfo(account, password)
 	var oauthErr *oauthException.Error
 	if errors.As(err, &oauthErr) {
-		if errors.Is(oauthErr, oauthException.WrongAccount) || errors.Is(oauthErr, oauthException.WrongPassword) {
-			return nil, comm.CodeAccountOrPasswordError
+		if errors.Is(oauthErr, oauthException.WrongPassword) {
+			return nil, comm.CodeOAuthPasswordWrong
+		}
+		if errors.Is(oauthErr, oauthException.WrongAccount) {
+			return nil, comm.CodeOAuthAccountWrong
 		}
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("统一身份认证失败")
 		return nil, comm.CodeOAuthFailed

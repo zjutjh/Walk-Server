@@ -2,6 +2,7 @@ package comm
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -57,16 +58,21 @@ func validateSubmissionConfig() error {
 	if len(BizConf.DailyTeamLimits) == 0 {
 		return fmt.Errorf("biz.daily_team_limits must not be empty")
 	}
-	for day, limit := range BizConf.DailyTeamLimits {
-		if limit < 0 {
-			return fmt.Errorf("biz.daily_team_limits[%d] must not be negative", day)
-		}
-	}
 	start, _ := parseBizTime(phase.Start)
 	end, _ := parseBizTime(phase.End)
 	wantDays := daysBetween(start, end) + 1
-	if len(BizConf.DailyTeamLimits) != wantDays {
-		return fmt.Errorf("biz.daily_team_limits length must equal submission phase days: want %d", wantDays)
+	for routeName, limits := range BizConf.DailyTeamLimits {
+		if strings.TrimSpace(routeName) == "" {
+			return fmt.Errorf("biz.daily_team_limits route name must not be empty")
+		}
+		if len(limits) != wantDays {
+			return fmt.Errorf("biz.daily_team_limits[%s] length must equal submission phase days: want %d", routeName, wantDays)
+		}
+		for day, limit := range limits {
+			if limit < 0 {
+				return fmt.Errorf("biz.daily_team_limits[%s][%d] must not be negative", routeName, day)
+			}
+		}
 	}
 	return nil
 }

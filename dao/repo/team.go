@@ -189,6 +189,22 @@ func (r *TeamRepo) UpdateByID(ctx context.Context, id int64, updates map[string]
 	return err
 }
 
+func (r *TeamRepo) UpdateWithNotices(ctx context.Context, id int64, updates map[string]any, userIDs []int64, noticeTypes []comm.NoticeType) error {
+	return r.query.Transaction(func(tx *query.Query) error {
+		if err := NewTeamRepoWithTx(tx).UpdateByID(ctx, id, updates); err != nil {
+			return err
+		}
+		notices := make([]*model.Notice, 0, len(userIDs)*len(noticeTypes))
+		for _, userID := range userIDs {
+			for _, noticeType := range noticeTypes {
+				teamID := id
+				notices = append(notices, &model.Notice{UserID: userID, Type: noticeType, TeamID: &teamID})
+			}
+		}
+		return NewNoticeRepoWithTx(tx).UpsertUnread(ctx, notices)
+	})
+}
+
 func (r *TeamRepo) UpdateStatusByIDs(ctx context.Context, ids []int64, status string) error {
 	if len(ids) == 0 {
 		return nil
@@ -291,13 +307,24 @@ func (r *TeamRepo) RemoveMember(ctx context.Context, teamID int64, person *model
 		}); err != nil {
 			return err
 		}
+		noticeRepo := NewNoticeRepoWithTx(tx)
+		if err := noticeRepo.DeleteUnreadTypes(ctx, person.ID,
+			comm.NoticeTeamPasswordChanged, comm.NoticeTeamRouteChanged); err != nil {
+			return err
+		}
+		teamIDValue := teamID
+		if err := noticeRepo.UpsertUnread(ctx, []*model.Notice{{
+			UserID: person.ID, Type: comm.NoticeRemovedFromTeam, TeamID: &teamIDValue,
+		}}); err != nil {
+			return err
+		}
 		removed = true
 		return nil
 	})
 	return removed, err
 }
 
-func (r *TeamRepo) ChangeCaptain(ctx context.Context, teamID, oldCaptainID, newCaptainID int64) error {
+func (r *TeamRepo) ChangeCaptain(ctx context.Context, teamID, oldCaptainID, newCaptainID int64, oldCaptainName string) error {
 	return r.query.Transaction(func(tx *query.Query) error {
 		teamRepo := NewTeamRepoWithTx(tx)
 		peopleRepo := NewPeopleRepoWithTx(tx)
@@ -307,7 +334,14 @@ func (r *TeamRepo) ChangeCaptain(ctx context.Context, teamID, oldCaptainID, newC
 		if err := peopleRepo.UpdateByID(ctx, oldCaptainID, map[string]any{"role": comm.RoleMember}); err != nil {
 			return err
 		}
-		return peopleRepo.UpdateByID(ctx, newCaptainID, map[string]any{"role": comm.RoleCaptain})
+		if err := peopleRepo.UpdateByID(ctx, newCaptainID, map[string]any{"role": comm.RoleCaptain}); err != nil {
+			return err
+		}
+		teamIDValue, actorID := teamID, oldCaptainID
+		return NewNoticeRepoWithTx(tx).UpsertUnread(ctx, []*model.Notice{{
+			UserID: newCaptainID, Type: comm.NoticeCaptainTransferred,
+			ActorID: &actorID, ActorName: oldCaptainName, TeamID: &teamIDValue,
+		}})
 	})
 }
 

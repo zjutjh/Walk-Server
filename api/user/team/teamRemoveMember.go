@@ -52,9 +52,6 @@ func (h *TeamRemoveMemberApi) Run(ctx *gin.Context) kit.Code {
 	if !(person != nil && team != nil && person.Role == comm.RoleCaptain && team.Captain == person.ID) {
 		return comm.CodeNotCaptain
 	}
-	if team.Submit && !comm.IsInBizPhase(comm.PhaseAdjustment) {
-		return comm.CodeTeamSubmitted
-	}
 	removed, err := repo.NewPeopleRepo().FindPeopleByID(ctx, h.Request.Body.ID)
 	if err != nil {
 		return comm.CodeServerError

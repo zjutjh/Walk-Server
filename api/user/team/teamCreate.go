@@ -46,7 +46,7 @@ type TeamCreateApiResponse struct {
 
 func (h *TeamCreateApi) Init(ctx *gin.Context) error { return ctx.ShouldBindJSON(&h.Request.Body) }
 func (h *TeamCreateApi) Run(ctx *gin.Context) kit.Code {
-	if code := comm.CheckBizPhase(comm.PhaseRegistration, comm.PhaseSubmission); code != comm.CodeOK {
+	if code := comm.CheckBizPhase(comm.PhaseRegistration, comm.PhaseSubmission, comm.PhaseAdjustment); code != comm.CodeOK {
 		return code
 	}
 	person, code := currentTeamUser(ctx)

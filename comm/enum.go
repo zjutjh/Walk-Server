@@ -1,5 +1,16 @@
 package comm
 
+// BizPhase 业务时期字符串枚举。
+type BizPhase string
+
+const (
+	PhaseRegistration BizPhase = "registration"
+	PhaseSubmission   BizPhase = "submission"
+	PhaseAdjustment   BizPhase = "adjustment"
+	PhasePreparation  BizPhase = "preparation"
+	PhaseActivity     BizPhase = "activity"
+)
+
 // 人员活动状态枚举
 const (
 	WalkStatusNotStart   = "not_start"
@@ -40,7 +51,35 @@ const (
 const (
 	MemberTypeStudent = "student"
 	MemberTypeTeacher = "teacher"
-	MemberTypeAlumnus = "alumnus"
+	MemberTypeAlumni  = "alumni"
+)
+
+// HouseholdType 户籍类型枚举，仅用于证件号码校验。
+type HouseholdType string
+
+const (
+	HouseholdMainland      HouseholdType = "mainland"
+	HouseholdHongKongMacao HouseholdType = "hong_kong_macao"
+	HouseholdTaiwan        HouseholdType = "taiwan"
+	HouseholdInternational HouseholdType = "international"
+)
+
+// LoginAccountType 登录账号类型枚举。
+type LoginAccountType string
+
+const (
+	LoginAccountTel   LoginAccountType = "tel"
+	LoginAccountStuID LoginAccountType = "stu_id"
+)
+
+// NoticeType 通知类型枚举。
+type NoticeType string
+
+const (
+	NoticeTeamPasswordChanged NoticeType = "team_password_changed"
+	NoticeTeamRouteChanged    NoticeType = "team_route_changed"
+	NoticeRemovedFromTeam     NoticeType = "removed_from_team"
+	NoticeCaptainTransferred  NoticeType = "captain_transferred"
 )
 
 func IsValidWalkStatus(status string) bool {

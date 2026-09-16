@@ -51,7 +51,11 @@ func (h *TeamSubmitApi) Run(ctx *gin.Context) kit.Code {
 		nlog.Pick().WithContext(ctx).Warn("当前阶段不可提交队伍")
 		return comm.CodeCannotSubmit
 	}
-	result, err := teamCache.SubmitTeam(ctx, team.ID, day)
+	if _, ok := comm.DailyTeamLimit(team.RouteName, day); !ok {
+		nlog.Pick().WithContext(ctx).Error("当前路线未配置当天提交名额")
+		return comm.CodeServerError
+	}
+	result, err := teamCache.SubmitTeam(ctx, team.ID, team.RouteName, day)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("提交团队扣减名额失败")
 		return comm.CodeServerError
@@ -59,12 +63,12 @@ func (h *TeamSubmitApi) Run(ctx *gin.Context) kit.Code {
 	// MySQL is the source of truth for submission state. If Redis still has a
 	// stale submission ledger for this unsubmitted team, remove it and retry.
 	if result == 1 {
-		removed, _, rollbackErr := teamCache.RollbackTeamSubmit(ctx, team.ID, day)
+		removed, _, _, rollbackErr := teamCache.RollbackTeamSubmit(ctx, team.ID, team.RouteName, day)
 		if rollbackErr != nil || !removed {
 			nlog.Pick().WithContext(ctx).WithError(rollbackErr).Warn("清理 Redis 过期提交记录失败")
 			return comm.CodeServerError
 		}
-		result, err = teamCache.SubmitTeam(ctx, team.ID, day)
+		result, err = teamCache.SubmitTeam(ctx, team.ID, team.RouteName, day)
 		if err != nil {
 			nlog.Pick().WithContext(ctx).WithError(err).Warn("清理 Redis 过期提交记录后重新扣减名额失败")
 			return comm.CodeServerError
@@ -80,14 +84,13 @@ func (h *TeamSubmitApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeActivityQuotaFull
 	}
 	if err := repo.NewTeamRepo().UpdateByID(ctx, team.ID, map[string]any{"submit": true}); err != nil {
-		_, _, _ = teamCache.RollbackTeamSubmit(ctx, team.ID, day)
+		_, _, _, _ = teamCache.RollbackTeamSubmit(ctx, team.ID, team.RouteName, day)
 		return comm.CodeServerError
 	}
 	_ = teamCache.DelTeamByID(ctx, team.ID)
 	_ = teamCache.DeleteTeamInfo(ctx, team.ID)
 	return comm.CodeOK
 }
-
 
 func hfTeamSubmit(ctx *gin.Context) {
 	api := &TeamSubmitApi{}

@@ -19,6 +19,7 @@ var (
 	Q                = new(Query)
 	Admin            *admin
 	Checkin          *checkin
+	Notice           *notice
 	People           *people
 	Point            *point
 	Route            *route
@@ -31,6 +32,7 @@ func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 	*Q = *Use(db, opts...)
 	Admin = &Q.Admin
 	Checkin = &Q.Checkin
+	Notice = &Q.Notice
 	People = &Q.People
 	Point = &Q.Point
 	Route = &Q.Route
@@ -44,6 +46,7 @@ func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 		db:               db,
 		Admin:            newAdmin(db, opts...),
 		Checkin:          newCheckin(db, opts...),
+		Notice:           newNotice(db, opts...),
 		People:           newPeople(db, opts...),
 		Point:            newPoint(db, opts...),
 		Route:            newRoute(db, opts...),
@@ -58,6 +61,7 @@ type Query struct {
 
 	Admin            admin
 	Checkin          checkin
+	Notice           notice
 	People           people
 	Point            point
 	Route            route
@@ -73,6 +77,7 @@ func (q *Query) clone(db *gorm.DB) *Query {
 		db:               db,
 		Admin:            q.Admin.clone(db),
 		Checkin:          q.Checkin.clone(db),
+		Notice:           q.Notice.clone(db),
 		People:           q.People.clone(db),
 		Point:            q.Point.clone(db),
 		Route:            q.Route.clone(db),
@@ -95,6 +100,7 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 		db:               db,
 		Admin:            q.Admin.replaceDB(db),
 		Checkin:          q.Checkin.replaceDB(db),
+		Notice:           q.Notice.replaceDB(db),
 		People:           q.People.replaceDB(db),
 		Point:            q.Point.replaceDB(db),
 		Route:            q.Route.replaceDB(db),
@@ -107,6 +113,7 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 type queryCtx struct {
 	Admin            IAdminDo
 	Checkin          ICheckinDo
+	Notice           INoticeDo
 	People           IPeopleDo
 	Point            IPointDo
 	Route            IRouteDo
@@ -119,6 +126,7 @@ func (q *Query) WithContext(ctx context.Context) *queryCtx {
 	return &queryCtx{
 		Admin:            q.Admin.WithContext(ctx),
 		Checkin:          q.Checkin.WithContext(ctx),
+		Notice:           q.Notice.WithContext(ctx),
 		People:           q.People.WithContext(ctx),
 		Point:            q.Point.WithContext(ctx),
 		Route:            q.Route.WithContext(ctx),

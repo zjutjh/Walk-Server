@@ -55,9 +55,6 @@ func (h *TeamUpdateApi) Run(ctx *gin.Context) kit.Code {
 	if !(person != nil && team != nil && person.Role == comm.RoleCaptain && team.Captain == person.ID) {
 		return comm.CodeNotCaptain
 	}
-	if team.Submit && !comm.IsInBizPhase(comm.PhaseAdjustment) {
-		return comm.CodeTeamSubmitted
-	}
 	teamRepo := repo.NewTeamRepo()
 	route, err := teamRepo.FindRouteByName(ctx, h.Request.Body.RouteName)
 	if err != nil {
@@ -75,7 +72,17 @@ func (h *TeamUpdateApi) Run(ctx *gin.Context) kit.Code {
 	}
 	passwordChanged := team.Password != h.Request.Body.Password
 	routeChanged := team.RouteName != h.Request.Body.RouteName
+	if team.Submit && routeChanged {
+		return comm.CodeSubmittedRouteLocked
+	}
 	memberIDs := make([]int64, 0)
+	noticeTypes := make([]comm.NoticeType, 0, 2)
+	if passwordChanged {
+		noticeTypes = append(noticeTypes, comm.NoticeTeamPasswordChanged)
+	}
+	if routeChanged {
+		noticeTypes = append(noticeTypes, comm.NoticeTeamRouteChanged)
+	}
 	if passwordChanged || routeChanged {
 		members, err := repo.NewPeopleRepo().FindPeopleByTeamID(ctx, team.ID)
 		if err != nil {
@@ -87,20 +94,17 @@ func (h *TeamUpdateApi) Run(ctx *gin.Context) kit.Code {
 			}
 		}
 	}
-	if err := teamRepo.UpdateByID(ctx, team.ID, map[string]any{
+	if err := teamRepo.UpdateWithNotices(ctx, team.ID, map[string]any{
 		"name":        h.Request.Body.Name,
 		"route_name":  h.Request.Body.RouteName,
 		"password":    h.Request.Body.Password,
 		"slogan":      h.Request.Body.Slogan,
 		"allow_match": *h.Request.Body.AllowMatch,
-	}); err != nil {
+	}, memberIDs, noticeTypes); err != nil {
 		return comm.CodeServerError
 	}
 	_ = teamCache.DelTeamByID(ctx, team.ID)
 	_ = teamCache.DeleteTeamInfo(ctx, team.ID)
-	if err := teamCache.SetTeamChangeNotice(ctx, memberIDs, passwordChanged, routeChanged); err != nil {
-		nlog.Pick().WithContext(ctx).WithError(err).Warn("记录团队变更通知失败")
-	}
 	return comm.CodeOK
 }
 

@@ -52,9 +52,6 @@ func (h *TeamChangeCaptainApi) Run(ctx *gin.Context) kit.Code {
 	if !(person != nil && team != nil && person.Role == comm.RoleCaptain && team.Captain == person.ID) {
 		return comm.CodeNotCaptain
 	}
-	if team.Submit && !comm.IsInBizPhase(comm.PhaseAdjustment) {
-		return comm.CodeTeamSubmitted
-	}
 	newCaptain, err := repo.NewPeopleRepo().FindPeopleByID(ctx, h.Request.Body.ID)
 	if err != nil {
 		return comm.CodeServerError
@@ -62,7 +59,7 @@ func (h *TeamChangeCaptainApi) Run(ctx *gin.Context) kit.Code {
 	if newCaptain == nil || newCaptain.TeamID != team.ID {
 		return comm.CodePeopleNotFound
 	}
-	if err := repo.NewTeamRepo().ChangeCaptain(ctx, team.ID, person.ID, newCaptain.ID); err != nil {
+	if err := repo.NewTeamRepo().ChangeCaptain(ctx, team.ID, person.ID, newCaptain.ID, person.Name); err != nil {
 		return comm.CodeServerError
 	}
 	_ = teamCache.DelTeamByID(ctx, team.ID)

@@ -251,6 +251,14 @@ func init() {
 		swagger.MustRegisterBusinessStatusCodes("app/api/dashboard/teams.hfTeam", statusCodes)
 	}
 
+	// api/user/basic/phase.go
+	{
+		statusCodes := []kit.Code{
+			comm.CodeOK,
+		}
+		swagger.MustRegisterBusinessStatusCodes("app/api/user/basic.hfPhase", statusCodes)
+	}
+
 	// api/user/basic/login.go:84
 	{
 		statusCodes := []kit.Code{
@@ -262,7 +270,7 @@ func init() {
 		swagger.MustRegisterBusinessStatusCodes("app/api/user/basic.hfLogin", statusCodes)
 	}
 
-	// api/user/register/registerAlumnus.go:76
+	// api/user/register/registerAlumni.go:76
 	{
 		statusCodes := []kit.Code{
 			comm.CodeOK,
@@ -275,7 +283,7 @@ func init() {
 			comm.CodePreparationForbidden,
 			comm.CodeActivityForbidden,
 		}
-		swagger.MustRegisterBusinessStatusCodes("app/api/user/register.hfRegisterAlumnus", statusCodes)
+		swagger.MustRegisterBusinessStatusCodes("app/api/user/register.hfRegisterAlumni", statusCodes)
 	}
 
 	// api/user/register/registerStudent.go:170
@@ -287,8 +295,9 @@ func init() {
 			comm.CodeParameterInvalid,
 			comm.CodeAlreadyRegistered,
 			comm.CodeOAuthFailed,
-			comm.CodeAccountOrPasswordError,
 			comm.CodeNonStudentRegister,
+			comm.CodeOAuthPasswordWrong,
+			comm.CodeOAuthAccountWrong,
 			comm.CodePeopleInfoWrong,
 			comm.CodePreparationForbidden,
 			comm.CodeActivityForbidden,
@@ -305,8 +314,9 @@ func init() {
 			comm.CodeParameterInvalid,
 			comm.CodeAlreadyRegistered,
 			comm.CodeOAuthFailed,
-			comm.CodeAccountOrPasswordError,
 			comm.CodeNonTeacherRegister,
+			comm.CodeOAuthPasswordWrong,
+			comm.CodeOAuthAccountWrong,
 			comm.CodePeopleInfoWrong,
 			comm.CodePreparationForbidden,
 			comm.CodeActivityForbidden,
@@ -324,7 +334,6 @@ func init() {
 			comm.CodeParameterInvalid,
 			comm.CodeNotInTeam,
 			comm.CodeNotCaptain,
-			comm.CodeTeamSubmitted,
 			comm.CodeTeamNotFound,
 			comm.CodePeopleNotFound,
 			comm.CodePreparationForbidden,
@@ -393,7 +402,6 @@ func init() {
 			comm.CodeAlreadyInTeam,
 			comm.CodeTeamFull,
 			comm.CodeNoJoinChance,
-			comm.CodeTeamSubmitted,
 			comm.CodePasswordWrong,
 			comm.CodeTeamNotFound,
 			comm.CodePeopleNotFound,
@@ -412,7 +420,6 @@ func init() {
 			comm.CodeNotLoggedIn,
 			comm.CodePermissionDenied,
 			comm.CodeNotInTeam,
-			comm.CodeTeamSubmitted,
 			comm.CodeTeamNotFound,
 			comm.CodePeopleNotFound,
 			comm.CodeCannotLeaveTeam,
@@ -450,6 +457,15 @@ func init() {
 		swagger.MustRegisterBusinessStatusCodes("app/api/user/team.hfTeamOverview", statusCodes)
 	}
 
+	// api/user/team/teamQuota.go
+	{
+		statusCodes := []kit.Code{
+			comm.CodeOK,
+			comm.CodeServerError,
+		}
+		swagger.MustRegisterBusinessStatusCodes("app/api/user/team.hfTeamQuota", statusCodes)
+	}
+
 	// api/user/team/teamRandomJoin.go:86
 	{
 		statusCodes := []kit.Code{
@@ -461,7 +477,6 @@ func init() {
 			comm.CodeAlreadyInTeam,
 			comm.CodeTeamFull,
 			comm.CodeNoJoinChance,
-			comm.CodeTeamSubmitted,
 			comm.CodeTeamNotFound,
 			comm.CodePeopleNotFound,
 			comm.CodeJoinTeamFailed,
@@ -493,7 +508,6 @@ func init() {
 			comm.CodeParameterInvalid,
 			comm.CodeNotInTeam,
 			comm.CodeNotCaptain,
-			comm.CodeTeamSubmitted,
 			comm.CodeTeamNotFound,
 			comm.CodePeopleNotFound,
 			comm.CodeCannotRemoveSelf,
@@ -549,14 +563,35 @@ func init() {
 			comm.CodeParameterInvalid,
 			comm.CodeNotInTeam,
 			comm.CodeNotCaptain,
-			comm.CodeTeamSubmitted,
 			comm.CodeTeamNameDuplicated,
+			comm.CodeSubmittedRouteLocked,
 			comm.CodeTeamNotFound,
 			comm.CodePeopleNotFound,
 			comm.CodePreparationForbidden,
 			comm.CodeActivityForbidden,
 		}
 		swagger.MustRegisterBusinessStatusCodes("app/api/user/team.hfTeamUpdate", statusCodes)
+	}
+
+	// api/user/user/userNotice.go
+	{
+		statusCodes := []kit.Code{
+			comm.CodeOK,
+			comm.CodeServerError,
+			comm.CodeNotLoggedIn,
+		}
+		swagger.MustRegisterBusinessStatusCodes("app/api/user/user.hfNoticeList", statusCodes)
+	}
+
+	// api/user/user/userNotice.go
+	{
+		statusCodes := []kit.Code{
+			comm.CodeOK,
+			comm.CodeServerError,
+			comm.CodeNotLoggedIn,
+			comm.CodeParameterInvalid,
+		}
+		swagger.MustRegisterBusinessStatusCodes("app/api/user/user.hfNoticeAck", statusCodes)
 	}
 
 	// api/user/user/userInfo.go:90

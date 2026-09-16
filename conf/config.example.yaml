@@ -36,8 +36,11 @@ biz:
   max_team_size: 6
   # 整个活动最多允许提交的队伍数
   team_total_limit: 500
-  # 抢票期每天最多允许提交的队伍数；数组长度必须等于抢票期天数
-  daily_team_limits: [180, 180, 140]
+  # 每条路线每天最多允许提交的队伍数；每个数组长度必须等于抢票期天数
+  daily_team_limits:
+    pf-half: [80, 80, 60]
+    pf-full: [60, 60, 40]
+    mgs: [40, 40, 40]
 jwt:
   secret: "secret" # 密钥
   expiration: "24h" # 过期时间（默认30天）

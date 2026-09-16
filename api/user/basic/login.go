@@ -3,6 +3,7 @@ package basic
 import (
 	"reflect"
 	"runtime"
+	"strings"
 
 	"app/comm"
 	"app/dao/model"
@@ -22,15 +23,16 @@ func LoginHandler() gin.HandlerFunc {
 }
 
 type LoginApi struct {
-	Info     struct{} `name:"用户登录" desc:"使用手机号和报名密码登录"`
+	Info     struct{} `name:"用户登录" desc:"使用手机号或学工号和报名密码登录"`
 	Request  LoginApiRequest
 	Response LoginApiResponse
 }
 
 type LoginApiRequest struct {
 	Body struct {
-		Tel      string `json:"tel" desc:"手机号码" binding:"required"`
-		Password string `json:"password" desc:"密码" binding:"required"`
+		AccountType comm.LoginAccountType `json:"account_type" desc:"账号类型：tel、stu_id" binding:"required,oneof=tel stu_id"`
+		Account     string                `json:"account" desc:"手机号或学工号" binding:"required"`
+		Password    string                `json:"password" desc:"密码" binding:"required"`
 	}
 }
 
@@ -57,7 +59,22 @@ type LoginUser struct {
 func (h *LoginApi) Init(ctx *gin.Context) error { return ctx.ShouldBindJSON(&h.Request.Body) }
 
 func (h *LoginApi) Run(ctx *gin.Context) kit.Code {
-	person, err := repo.NewPeopleRepo().FindPeopleByTel(ctx, h.Request.Body.Tel)
+	account := strings.TrimSpace(h.Request.Body.Account)
+	peopleRepo := repo.NewPeopleRepo()
+	var person *model.People
+	var err error
+	switch h.Request.Body.AccountType {
+	case comm.LoginAccountTel:
+		account = comm.NormalizePhone(account)
+		if !comm.IsValidPhone(account) {
+			return comm.CodeParameterInvalid
+		}
+		person, err = peopleRepo.FindPeopleByTel(ctx, account)
+	case comm.LoginAccountStuID:
+		person, err = peopleRepo.FindPeopleByStuID(ctx, account)
+	default:
+		return comm.CodeParameterInvalid
+	}
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("查询登录用户失败")
 		return comm.CodeServerError

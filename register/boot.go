@@ -67,9 +67,11 @@ func TeamQuotaBoot() func() error {
 		if err := teamCache.InitTotalTeamQuota(context.Background(), comm.BizConf.TeamTotalLimit); err != nil {
 			return err
 		}
-		for day, limit := range comm.BizConf.DailyTeamLimits {
-			if err := teamCache.InitDailyTeamQuota(context.Background(), day, limit); err != nil {
-				return err
+		for routeName, limits := range comm.BizConf.DailyTeamLimits {
+			for day, limit := range limits {
+				if err := teamCache.InitDailyTeamQuota(context.Background(), routeName, day, limit); err != nil {
+					return err
+				}
 			}
 		}
 		return nil

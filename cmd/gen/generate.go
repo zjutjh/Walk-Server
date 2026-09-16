@@ -22,6 +22,7 @@ var tables = []string{
 	"admins",
 	"checkins",
 	"wrong_route_records",
+	"notices",
 }
 
 func main() {
@@ -58,6 +59,15 @@ func main() {
 				return tag.Set("softDelete", "milli")
 			}),
 			gen.FieldJSONTag("deleted_at", "-"),
+		}
+		if table == "notices" {
+			opts = append(opts,
+				gen.FieldType("type", "NoticeType"),
+				gen.FieldGenType("type", "String"),
+				gen.FieldType("actor_id", "*int64"),
+				gen.FieldType("team_id", "*int64"),
+				gen.FieldType("read_at", "*time.Time"),
+			)
 		}
 		tableName := g.GenerateModel(table, opts...)
 		g.ApplyBasic(tableName)

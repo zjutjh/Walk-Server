@@ -112,6 +112,19 @@ CREATE TABLE `peoples` (
   KEY `idx_people_walk_status` (`walk_status`)
 );
 
+CREATE TABLE `notices` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` bigint NOT NULL COMMENT '接收通知的用户ID',
+  `type` varchar(32) NOT NULL COMMENT '通知类型',
+  `actor_id` bigint DEFAULT NULL COMMENT '发起操作的用户ID',
+  `actor_name` varchar(128) DEFAULT NULL COMMENT '发起人姓名快照',
+  `team_id` bigint DEFAULT NULL COMMENT '相关队伍ID',
+  `read_at` DATETIME(3) DEFAULT NULL COMMENT '确认时间，NULL表示未读',
+  `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (`id`),
+  KEY `idx_notices_user_read_time` (`user_id`, `read_at`, `created_at`)
+);
+
 CREATE TABLE `checkins` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `admin_id` bigint DEFAULT NULL COMMENT '签到管理员ID',

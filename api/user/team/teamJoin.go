@@ -63,9 +63,6 @@ func (h *TeamJoinApi) Run(ctx *gin.Context) kit.Code {
 	if team.Password != h.Request.Body.Password {
 		return comm.CodePasswordWrong
 	}
-	if team.Submit && !comm.IsInBizPhase(comm.PhaseAdjustment) {
-		return comm.CodeTeamSubmitted
-	}
 	if int(team.Num) >= comm.BizConf.MaxTeamSize {
 		return comm.CodeTeamFull
 	}

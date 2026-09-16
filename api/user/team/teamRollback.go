@@ -48,14 +48,14 @@ func (h *TeamRollbackApi) Run(ctx *gin.Context) kit.Code {
 		nlog.Pick().WithContext(ctx).Warn("当前阶段不可提交队伍")
 		return comm.CodeCannotSubmit
 	}
-	submitted, submittedDay, err := teamCache.RollbackTeamSubmit(ctx, team.ID, day)
+	submitted, submittedRoute, submittedDay, err := teamCache.RollbackTeamSubmit(ctx, team.ID, team.RouteName, day)
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Warn("撤销团队提交归还名额失败")
 		return comm.CodeServerError
 	}
 	if err := repo.NewTeamRepo().UpdateByID(ctx, team.ID, map[string]any{"submit": false}); err != nil {
 		if submitted {
-			_ = teamCache.RestoreSubmittedTeam(ctx, team.ID, submittedDay)
+			_ = teamCache.RestoreSubmittedTeam(ctx, team.ID, submittedRoute, submittedDay)
 		}
 		return comm.CodeServerError
 	}

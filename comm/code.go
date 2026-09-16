@@ -56,4 +56,7 @@ var (
 	CodePreparationForbidden    = kit.NewCode(200342, "毅行筹备期间不可进行该操作")
 	CodeActivityForbidden       = kit.NewCode(200343, "毅行期间不可进行该操作")
 	CodeCannotSubmit            = kit.NewCode(200345, "当前阶段不可提交队伍")
+	CodeOAuthPasswordWrong      = kit.NewCode(200346, "统一认证密码错误")
+	CodeOAuthAccountWrong       = kit.NewCode(200347, "统一认证账号错误")
+	CodeSubmittedRouteLocked    = kit.NewCode(200348, "队伍已提交，不可修改路线")
 )

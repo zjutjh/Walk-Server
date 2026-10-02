@@ -63,7 +63,7 @@ func (h *TeamRemoveMemberApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeCannotRemoveSelf
 	}
 
-	ok, err := repo.NewTeamRepo().RemoveMember(ctx, team.ID, removed)
+	ok, err := repo.NewTeamRepo().RemoveMember(ctx, team.ID, removed, true)
 	if err != nil {
 		return comm.CodeServerError
 	}

@@ -31,7 +31,7 @@ type RegisterTeacherApiRequest struct {
 	Body struct {
 		Name     string        `json:"name" desc:"姓名" binding:"required"`
 		Identity string        `json:"identity" desc:"身份证号" binding:"required"`
-		Home     comm.HomeType `json:"home" desc:"户籍：mainland/hong_kong/macao/taiwan/international" binding:"required"`
+		Home     comm.HomeType `json:"home" desc:"户籍：mainland/hong_kong_macao/taiwan/international" binding:"required"`
 		StuID    string        `json:"stu_id" desc:"工号" binding:"required"`
 		Password string        `json:"password" desc:"统一认证密码" binding:"required"`
 		Tel      string        `json:"tel" desc:"电话" binding:"required"`

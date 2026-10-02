@@ -63,10 +63,8 @@ func IsValidIdentityForHome(identity string, home HomeType) bool {
 	switch home {
 	case HomeMainland:
 		return isValidMainlandIdentity(identity)
-	case HomeHongKong:
-		return hongKongPermitPattern.MatchString(identity)
-	case HomeMacao:
-		return macaoPermitPattern.MatchString(identity)
+	case HomeHongKongMacao:
+		return hongKongPermitPattern.MatchString(identity) || macaoPermitPattern.MatchString(identity)
 	case HomeTaiwan:
 		return taiwanPermitPattern.MatchString(identity)
 	case HomeInternational:

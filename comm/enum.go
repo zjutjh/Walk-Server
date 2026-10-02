@@ -59,8 +59,7 @@ type HomeType string
 
 const (
 	HomeMainland      HomeType = "mainland"
-	HomeHongKong      HomeType = "hong_kong"
-	HomeMacao         HomeType = "macao"
+	HomeHongKongMacao HomeType = "hong_kong_macao"
 	HomeTaiwan        HomeType = "taiwan"
 	HomeInternational HomeType = "international"
 )

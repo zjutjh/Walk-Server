@@ -89,3 +89,22 @@ func (r *NoticeRepo) DeleteUnreadTypes(ctx context.Context, userID int64, types 
 		Delete()
 	return err
 }
+
+// DeleteUnreadTeamNotices 清理用户在成员关系变化前遗留的队伍通知。
+func (r *NoticeRepo) DeleteUnreadTeamNotices(ctx context.Context, userID int64) error {
+	return r.DeleteUnreadTypes(ctx, userID,
+		comm.NoticeTeamPasswordChanged,
+		comm.NoticeTeamRouteChanged,
+		comm.NoticeRemovedFromTeam,
+		comm.NoticeCaptainTransferred,
+	)
+}
+
+// DeleteUnreadByTeamID 清理队伍解散后已经失效的未读通知。
+func (r *NoticeRepo) DeleteUnreadByTeamID(ctx context.Context, teamID int64) error {
+	n := r.query.Notice
+	_, err := n.WithContext(ctx).
+		Where(n.TeamID.Eq(teamID), n.ReadAt.IsNull()).
+		Delete()
+	return err
+}

@@ -254,11 +254,14 @@ func (r *TeamRepo) CreateWithCaptain(ctx context.Context, team *model.Team, capt
 		if err := teamRepo.Create(ctx, team); err != nil {
 			return err
 		}
-		return peopleRepo.UpdateByID(ctx, captain.ID, map[string]any{
+		if err := peopleRepo.UpdateByID(ctx, captain.ID, map[string]any{
 			"created_op": captain.CreatedOp - 1,
 			"role":       comm.RoleCaptain,
 			"team_id":    team.ID,
-		})
+		}); err != nil {
+			return err
+		}
+		return NewNoticeRepoWithTx(tx).DeleteUnreadTeamNotices(ctx, captain.ID)
 	})
 }
 
@@ -284,13 +287,16 @@ func (r *TeamRepo) JoinTeam(ctx context.Context, teamID int64, person *model.Peo
 		if err := NewPeopleRepoWithTx(tx).UpdateByID(ctx, person.ID, updates); err != nil {
 			return err
 		}
+		if err := NewNoticeRepoWithTx(tx).DeleteUnreadTeamNotices(ctx, person.ID); err != nil {
+			return err
+		}
 		joined = true
 		return nil
 	})
 	return joined, err
 }
 
-func (r *TeamRepo) RemoveMember(ctx context.Context, teamID int64, person *model.People) (bool, error) {
+func (r *TeamRepo) RemoveMember(ctx context.Context, teamID int64, person *model.People, notifyRemoved bool) (bool, error) {
 	removed := false
 	err := r.query.Transaction(func(tx *query.Query) error {
 		teamRepo := NewTeamRepoWithTx(tx)
@@ -308,9 +314,12 @@ func (r *TeamRepo) RemoveMember(ctx context.Context, teamID int64, person *model
 			return err
 		}
 		noticeRepo := NewNoticeRepoWithTx(tx)
-		if err := noticeRepo.DeleteUnreadTypes(ctx, person.ID,
-			comm.NoticeTeamPasswordChanged, comm.NoticeTeamRouteChanged); err != nil {
+		if err := noticeRepo.DeleteUnreadTeamNotices(ctx, person.ID); err != nil {
 			return err
+		}
+		if !notifyRemoved {
+			removed = true
+			return nil
 		}
 		teamIDValue := teamID
 		if err := noticeRepo.UpsertUnread(ctx, []*model.Notice{{
@@ -351,6 +360,9 @@ func (r *TeamRepo) DisbandTeam(ctx context.Context, teamID int64) error {
 			"role":    comm.RoleUnbind,
 			"team_id": int64(-1),
 		}); err != nil {
+			return err
+		}
+		if err := NewNoticeRepoWithTx(tx).DeleteUnreadByTeamID(ctx, teamID); err != nil {
 			return err
 		}
 		return NewTeamRepoWithTx(tx).DeleteByID(ctx, teamID)

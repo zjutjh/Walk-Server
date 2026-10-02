@@ -30,10 +30,11 @@ type RegisterAlumniApi struct {
 
 type RegisterAlumniApiRequest struct {
 	Body struct {
-		Name     string `json:"name" desc:"姓名" binding:"required"`
-		Identity string `json:"identity" desc:"身份证号" binding:"required"`
-		Tel      string `json:"tel" desc:"电话" binding:"required"`
-		Password string `json:"password" desc:"登录密码" binding:"required"`
+		Name     string        `json:"name" desc:"姓名" binding:"required"`
+		Identity string        `json:"identity" desc:"身份证号" binding:"required"`
+		Home     comm.HomeType `json:"home" desc:"户籍：mainland/hong_kong_macao/taiwan/international" binding:"required"`
+		Tel      string        `json:"tel" desc:"电话" binding:"required"`
+		Password string        `json:"password" desc:"登录密码" binding:"required"`
 	}
 }
 
@@ -45,7 +46,7 @@ func (h *RegisterAlumniApi) Run(ctx *gin.Context) kit.Code {
 	}
 	identity := comm.NormalizeIdentity(h.Request.Body.Identity)
 	tel := comm.NormalizePhone(h.Request.Body.Tel)
-	if !comm.IsValidIdentity(identity) || !comm.IsValidPhone(tel) {
+	if !comm.IsValidIdentityForHome(identity, h.Request.Body.Home) || !comm.IsValidPhone(tel) {
 		return comm.CodeParameterInvalid
 	}
 	peopleRepo := repo.NewPeopleRepo()

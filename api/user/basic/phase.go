@@ -19,7 +19,7 @@ func PhaseHandler() gin.HandlerFunc {
 }
 
 type PhaseApi struct {
-	Info     struct{} `name:"当前业务时期" desc:"返回当前业务时期的字符串枚举值；不在任何时期内时返回空字符串"`
+	Info     struct{} `name:"获取当前阶段" `
 	Request  struct{}
 	Response PhaseApiResponse
 }

@@ -54,14 +54,15 @@ const (
 	MemberTypeAlumni  = "alumni"
 )
 
-// HouseholdType 户籍类型枚举，仅用于证件号码校验。
-type HouseholdType string
+// HomeType 户籍类型枚举，仅用于注册时选择身份证件校验规则。
+type HomeType string
 
 const (
-	HouseholdMainland      HouseholdType = "mainland"
-	HouseholdHongKongMacao HouseholdType = "hong_kong_macao"
-	HouseholdTaiwan        HouseholdType = "taiwan"
-	HouseholdInternational HouseholdType = "international"
+	HomeMainland      HomeType = "mainland"
+	HomeHongKong      HomeType = "hong_kong"
+	HomeMacao         HomeType = "macao"
+	HomeTaiwan        HomeType = "taiwan"
+	HomeInternational HomeType = "international"
 )
 
 // LoginAccountType 登录账号类型枚举。

@@ -29,13 +29,14 @@ type RegisterTeacherApi struct {
 
 type RegisterTeacherApiRequest struct {
 	Body struct {
-		Name     string `json:"name" desc:"姓名" binding:"required"`
-		Identity string `json:"identity" desc:"身份证号" binding:"required"`
-		StuID    string `json:"stu_id" desc:"工号" binding:"required"`
-		Password string `json:"password" desc:"统一认证密码" binding:"required"`
-		Tel      string `json:"tel" desc:"电话" binding:"required"`
-		Wechat   string `json:"wechat" desc:"微信号"`
-		QQ       string `json:"qq" desc:"QQ号"`
+		Name     string        `json:"name" desc:"姓名" binding:"required"`
+		Identity string        `json:"identity" desc:"身份证号" binding:"required"`
+		Home     comm.HomeType `json:"home" desc:"户籍：mainland/hong_kong/macao/taiwan/international" binding:"required"`
+		StuID    string        `json:"stu_id" desc:"工号" binding:"required"`
+		Password string        `json:"password" desc:"统一认证密码" binding:"required"`
+		Tel      string        `json:"tel" desc:"电话" binding:"required"`
+		Wechat   string        `json:"wechat" desc:"微信号"`
+		QQ       string        `json:"qq" desc:"QQ号"`
 	}
 }
 
@@ -49,7 +50,7 @@ func (h *RegisterTeacherApi) Run(ctx *gin.Context) kit.Code {
 	}
 	identity := comm.NormalizeIdentity(h.Request.Body.Identity)
 	tel := comm.NormalizePhone(h.Request.Body.Tel)
-	if !comm.IsValidIdentity(identity) || !comm.IsValidPhone(tel) {
+	if !comm.IsValidIdentityForHome(identity, h.Request.Body.Home) || !comm.IsValidPhone(tel) {
 		return comm.CodeParameterInvalid
 	}
 	info, code := fetchRegisterOAuthInfo(ctx, h.Request.Body.StuID, h.Request.Body.Password)

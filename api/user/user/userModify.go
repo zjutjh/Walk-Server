@@ -79,6 +79,7 @@ func (h *UserModifyApi) Run(ctx *gin.Context) kit.Code {
 	}
 	if identityValue != "" {
 		updates["identity"] = person.Identity
+		updates["home"] = string(h.Request.Body.Home)
 	}
 
 	if err := repo.NewPeopleRepo().UpdateByID(ctx, person.ID, updates); err != nil {

@@ -79,6 +79,7 @@ func (h *RegisterTeacherApi) Run(ctx *gin.Context) kit.Code {
 		Gender:     comm.ParseGender(info.Gender),
 		StuID:      h.Request.Body.StuID,
 		Identity:   identity,
+		Home:       string(h.Request.Body.Home),
 		Role:       comm.RoleUnbind,
 		Qq:         h.Request.Body.QQ,
 		Wechat:     h.Request.Body.Wechat,

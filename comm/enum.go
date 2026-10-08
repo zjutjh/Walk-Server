@@ -54,7 +54,7 @@ const (
 	MemberTypeAlumni  = "alumni"
 )
 
-// HomeType 户籍类型枚举，仅用于注册时选择身份证件校验规则。
+// HomeType 户籍类型枚举
 type HomeType string
 
 const (

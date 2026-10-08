@@ -36,18 +36,19 @@ type UserContact struct {
 }
 
 type UserInfoApiResponse struct {
-	ID       int    `json:"id"`
-	Name     string `json:"name" desc:"姓名"`
-	Gender   int8   `json:"gender" desc:"性别 0未知1男2女"`
-	StuID    string `json:"stu_id" desc:"学号或工号"`
-	Tel      string `json:"tel" desc:"电话"`
-	Wechat   string `json:"wechat" desc:"微信号"`
-	QQ       string `json:"qq" desc:"QQ号"`
-	Role     string `json:"role" desc:"队伍中身份 枚举值'unbind''captain''member'"`
-	CreateOp uint8  `json:"create_op" desc:"剩余创建团队次数"`
-	JoinOp   uint8  `json:"join_op" desc:"剩余加入团队次数"`
-	TeamID   int64  `json:"team_id" desc:"团队ID"`
-	Type     string `json:"type" desc:"人员类型 枚举值：'alumni''student''teacher'"`
+	ID       int           `json:"id"`
+	Name     string        `json:"name" desc:"姓名"`
+	Gender   int8          `json:"gender" desc:"性别 0未知1男2女"`
+	StuID    string        `json:"stu_id" desc:"学号或工号"`
+	Home     comm.HomeType `json:"home" desc:"户籍：mainland/hong_kong_macao/taiwan/international"`
+	Tel      string        `json:"tel" desc:"电话"`
+	Wechat   string        `json:"wechat" desc:"微信号"`
+	QQ       string        `json:"qq" desc:"QQ号"`
+	Role     string        `json:"role" desc:"队伍中身份 枚举值'unbind''captain''member'"`
+	CreateOp uint8         `json:"create_op" desc:"剩余创建团队次数"`
+	JoinOp   uint8         `json:"join_op" desc:"剩余加入团队次数"`
+	TeamID   int64         `json:"team_id" desc:"团队ID"`
+	Type     string        `json:"type" desc:"人员类型 枚举值：'alumni''student''teacher'"`
 }
 
 func (h *UserInfoApi) Run(ctx *gin.Context) kit.Code {
@@ -60,6 +61,7 @@ func (h *UserInfoApi) Run(ctx *gin.Context) kit.Code {
 	h.Response.Name = person.Name
 	h.Response.Gender = person.Gender
 	h.Response.StuID = person.StuID
+	h.Response.Home = comm.HomeType(person.Home)
 	h.Response.Tel = person.Tel
 	h.Response.Wechat = person.Wechat
 	h.Response.QQ = person.Qq

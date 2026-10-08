@@ -29,8 +29,9 @@ type UserModifyApi struct {
 
 type UserModifyApiRequest struct {
 	Body struct {
-		Identity string      `json:"identity" `
-		Contact  UserContact `json:"contact" binding:"required"`
+		Identity string        `json:"identity" desc:"证件号码；传入时必须同时传home"`
+		Home     comm.HomeType `json:"home" desc:"户籍：mainland/hong_kong_macao/taiwan/international；仅用于校验证件号码"`
+		Contact  UserContact   `json:"contact" binding:"required"`
 	}
 }
 
@@ -48,7 +49,7 @@ func (h *UserModifyApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeParameterInvalid
 	}
 	identityValue := comm.NormalizeIdentity(h.Request.Body.Identity)
-	if identityValue != "" && !comm.IsValidIdentity(identityValue) {
+	if identityValue != "" && !comm.IsValidIdentityForHome(identityValue, h.Request.Body.Home) {
 		return comm.CodeParameterInvalid
 	}
 
@@ -78,6 +79,7 @@ func (h *UserModifyApi) Run(ctx *gin.Context) kit.Code {
 	}
 	if identityValue != "" {
 		updates["identity"] = person.Identity
+		updates["home"] = string(h.Request.Body.Home)
 	}
 
 	if err := repo.NewPeopleRepo().UpdateByID(ctx, person.ID, updates); err != nil {

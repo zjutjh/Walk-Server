@@ -34,6 +34,7 @@ func newPeople(db *gorm.DB, opts ...gen.DOOption) people {
 	_people.Gender = field.NewInt8(tableName, "gender")
 	_people.StuID = field.NewString(tableName, "stu_id")
 	_people.Identity = field.NewString(tableName, "identity")
+	_people.Home = field.NewString(tableName, "home")
 	_people.Role = field.NewString(tableName, "role")
 	_people.Qq = field.NewString(tableName, "qq")
 	_people.Wechat = field.NewString(tableName, "wechat")
@@ -62,6 +63,7 @@ type people struct {
 	Gender     field.Int8   // 性别(0未知,1男,2女)
 	StuID      field.String // 学号
 	Identity   field.String // 身份证号AES密文
+	Home       field.String // 户籍类型
 	Role       field.String // 队伍中身份(unbind未绑定,menber成员,captain队长)
 	Qq         field.String // QQ号
 	Wechat     field.String // 微信号
@@ -96,6 +98,7 @@ func (p *people) updateTableName(table string) *people {
 	p.Gender = field.NewInt8(table, "gender")
 	p.StuID = field.NewString(table, "stu_id")
 	p.Identity = field.NewString(table, "identity")
+	p.Home = field.NewString(table, "home")
 	p.Role = field.NewString(table, "role")
 	p.Qq = field.NewString(table, "qq")
 	p.Wechat = field.NewString(table, "wechat")
@@ -132,13 +135,14 @@ func (p *people) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (p *people) fillFieldMap() {
-	p.fieldMap = make(map[string]field.Expr, 18)
+	p.fieldMap = make(map[string]field.Expr, 19)
 	p.fieldMap["id"] = p.ID
 	p.fieldMap["password"] = p.Password
 	p.fieldMap["name"] = p.Name
 	p.fieldMap["gender"] = p.Gender
 	p.fieldMap["stu_id"] = p.StuID
 	p.fieldMap["identity"] = p.Identity
+	p.fieldMap["home"] = p.Home
 	p.fieldMap["role"] = p.Role
 	p.fieldMap["qq"] = p.Qq
 	p.fieldMap["wechat"] = p.Wechat

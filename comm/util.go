@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/gin-gonic/gin"
 	playgroundValidator "github.com/go-playground/validator/v10"
@@ -31,6 +32,12 @@ var mainlandProvinceCodes = map[string]struct{}{
 	"71": {}, "81": {}, "82": {},
 }
 
+var compoundSurnames = map[string]struct{}{
+	"欧阳": {}, "司马": {}, "上官": {}, "诸葛": {}, "东方": {},
+	"皇甫": {}, "尉迟": {}, "公孙": {}, "慕容": {}, "宇文": {},
+	"长孙": {}, "司徒": {}, "司空": {},
+}
+
 func GenerateToken(userID int64) (string, error) {
 	return myjwt.Pick[string]().GenerateToken(strconv.FormatInt(userID, 10))
 }
@@ -45,6 +52,53 @@ func GetUserIDFromCtx(ctx *gin.Context) (int64, error) {
 
 func NormalizePhone(phone string) string {
 	return strings.TrimSpace(phone)
+}
+
+// MaskPersonName 将姓名转换为适合公开展示的脱敏名称。
+func MaskPersonName(name string) string {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return "队长"
+	}
+
+	if isLatinName(name) {
+		words := strings.Fields(name)
+		masked := make([]string, 0, len(words))
+		for _, word := range words {
+			runes := []rune(word)
+			if len(runes) > 0 {
+				masked = append(masked, string(runes[0])+"**")
+			}
+		}
+		return strings.Join(masked, " ")
+	}
+
+	runes := []rune(name)
+	if len(runes) == 1 {
+		return "某同学"
+	}
+	if len(runes) >= 2 {
+		surname := string(runes[:2])
+		if _, ok := compoundSurnames[surname]; ok {
+			return surname + "同学"
+		}
+	}
+	return string(runes[0]) + "同学"
+}
+
+func isLatinName(name string) bool {
+	hasLetter := false
+	for _, r := range name {
+		switch {
+		case unicode.IsSpace(r):
+			continue
+		case unicode.Is(unicode.Latin, r):
+			hasLetter = true
+		default:
+			return false
+		}
+	}
+	return hasLetter
 }
 
 func IsValidPhone(phone string) bool {

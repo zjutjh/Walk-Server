@@ -81,6 +81,7 @@ func Route(router *gin.Engine) {
 			user.POST("/register/student", registerapi.RegisterStudentHandler())
 			user.POST("/register/teacher", registerapi.RegisterTeacherHandler())
 			user.POST("/register/alumni", registerapi.RegisterAlumniHandler())
+			user.POST("/team/info", jwtmiddleware.Auth[string](false), teamapi.TeamBasicHandler())
 
 			auth := user.Group("")
 			auth.Use(jwtmiddleware.Auth[string](true))
@@ -92,7 +93,6 @@ func Route(router *gin.Engine) {
 				auth.POST("/team/join", teamapi.TeamJoinHandler())
 				auth.GET("/team/overview", teamapi.TeamOverviewHandler())
 				auth.GET("/team/detail", teamapi.TeamDetailHandler())
-				auth.GET("/team/info", teamapi.TeamBasicHandler())
 				auth.GET("/team/member", teamapi.TeamMemberHandler())
 				auth.GET("/team/quota", teamapi.TeamQuotaHandler())
 				auth.POST("/team/submit", teamapi.TeamSubmitHandler())

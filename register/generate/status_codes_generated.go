@@ -276,6 +276,7 @@ func init() {
 			comm.CodeOK,
 			comm.CodeServerError,
 			comm.CodePermissionDenied,
+			comm.CodePhaseForbidden,
 			comm.CodeParameterInvalid,
 			comm.CodeAlreadyRegistered,
 			comm.CodePeopleNotFound,
@@ -292,6 +293,7 @@ func init() {
 			comm.CodeOK,
 			comm.CodeServerError,
 			comm.CodePermissionDenied,
+			comm.CodePhaseForbidden,
 			comm.CodeParameterInvalid,
 			comm.CodeAlreadyRegistered,
 			comm.CodeOAuthFailed,
@@ -311,6 +313,7 @@ func init() {
 			comm.CodeOK,
 			comm.CodeServerError,
 			comm.CodePermissionDenied,
+			comm.CodePhaseForbidden,
 			comm.CodeParameterInvalid,
 			comm.CodeAlreadyRegistered,
 			comm.CodeOAuthFailed,
@@ -331,6 +334,7 @@ func init() {
 			comm.CodeServerError,
 			comm.CodeNotLoggedIn,
 			comm.CodePermissionDenied,
+			comm.CodePhaseForbidden,
 			comm.CodeParameterInvalid,
 			comm.CodeNotInTeam,
 			comm.CodeNotCaptain,
@@ -349,6 +353,7 @@ func init() {
 			comm.CodeServerError,
 			comm.CodeNotLoggedIn,
 			comm.CodePermissionDenied,
+			comm.CodePhaseForbidden,
 			comm.CodeParameterInvalid,
 			comm.CodeAlreadyInTeam,
 			comm.CodeNoCreateChance,
@@ -380,6 +385,7 @@ func init() {
 			comm.CodeServerError,
 			comm.CodeNotLoggedIn,
 			comm.CodePermissionDenied,
+			comm.CodePhaseForbidden,
 			comm.CodeNotInTeam,
 			comm.CodeNotCaptain,
 			comm.CodeTeamSubmitted,
@@ -398,6 +404,7 @@ func init() {
 			comm.CodeServerError,
 			comm.CodeNotLoggedIn,
 			comm.CodePermissionDenied,
+			comm.CodePhaseForbidden,
 			comm.CodeParameterInvalid,
 			comm.CodeAlreadyInTeam,
 			comm.CodeTeamFull,
@@ -419,6 +426,7 @@ func init() {
 			comm.CodeServerError,
 			comm.CodeNotLoggedIn,
 			comm.CodePermissionDenied,
+			comm.CodePhaseForbidden,
 			comm.CodeNotInTeam,
 			comm.CodeTeamNotFound,
 			comm.CodePeopleNotFound,
@@ -473,6 +481,7 @@ func init() {
 			comm.CodeServerError,
 			comm.CodeNotLoggedIn,
 			comm.CodePermissionDenied,
+			comm.CodePhaseForbidden,
 			comm.CodeParameterInvalid,
 			comm.CodeAlreadyInTeam,
 			comm.CodeTeamFull,
@@ -505,6 +514,7 @@ func init() {
 			comm.CodeServerError,
 			comm.CodeNotLoggedIn,
 			comm.CodePermissionDenied,
+			comm.CodePhaseForbidden,
 			comm.CodeParameterInvalid,
 			comm.CodeNotInTeam,
 			comm.CodeNotCaptain,
@@ -518,28 +528,35 @@ func init() {
 		swagger.MustRegisterBusinessStatusCodes("app/api/user/team.hfTeamRemoveMember", statusCodes)
 	}
 
-	// api/user/team/teamRollback.go:64
+	// api/user/team/teamRollback.go:67
 	{
 		statusCodes := []kit.Code{
 			comm.CodeOK,
 			comm.CodeServerError,
 			comm.CodeNotLoggedIn,
+			comm.CodePermissionDenied,
+			comm.CodePhaseForbidden,
 			comm.CodeNotInTeam,
 			comm.CodeNotCaptain,
 			comm.CodeTeamNotFound,
 			comm.CodePeopleNotFound,
 			comm.CodeTeamNotSubmitted,
 			comm.CodeCannotSubmit,
+			comm.CodeCannotRollback,
+			comm.CodePreparationForbidden,
+			comm.CodeActivityForbidden,
 		}
 		swagger.MustRegisterBusinessStatusCodes("app/api/user/team.hfTeamRollback", statusCodes)
 	}
 
-	// api/user/team/teamSubmit.go:90
+	// api/user/team/teamSubmit.go:93
 	{
 		statusCodes := []kit.Code{
 			comm.CodeOK,
 			comm.CodeServerError,
 			comm.CodeNotLoggedIn,
+			comm.CodePermissionDenied,
+			comm.CodePhaseForbidden,
 			comm.CodeNotInTeam,
 			comm.CodeNotCaptain,
 			comm.CodeTeamSubmitted,
@@ -549,6 +566,8 @@ func init() {
 			comm.CodeDailyQuotaFull,
 			comm.CodeActivityQuotaFull,
 			comm.CodeCannotSubmit,
+			comm.CodePreparationForbidden,
+			comm.CodeActivityForbidden,
 		}
 		swagger.MustRegisterBusinessStatusCodes("app/api/user/team.hfTeamSubmit", statusCodes)
 	}
@@ -560,6 +579,7 @@ func init() {
 			comm.CodeServerError,
 			comm.CodeNotLoggedIn,
 			comm.CodePermissionDenied,
+			comm.CodePhaseForbidden,
 			comm.CodeParameterInvalid,
 			comm.CodeNotInTeam,
 			comm.CodeNotCaptain,
@@ -612,6 +632,7 @@ func init() {
 			comm.CodeServerError,
 			comm.CodeNotLoggedIn,
 			comm.CodePermissionDenied,
+			comm.CodePhaseForbidden,
 			comm.CodeParameterInvalid,
 			comm.CodeAlreadyRegistered,
 			comm.CodePeopleNotFound,

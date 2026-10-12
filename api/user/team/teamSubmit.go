@@ -29,6 +29,9 @@ type TeamSubmitApi struct {
 }
 
 func (h *TeamSubmitApi) Run(ctx *gin.Context) kit.Code {
+	if !comm.IsInBizPhase(comm.PhaseSubmission) {
+		return comm.CodeCannotSubmit
+	}
 	person, code := currentTeamUser(ctx)
 	if code != comm.CodeOK {
 		return code

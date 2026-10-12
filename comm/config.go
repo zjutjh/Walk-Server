@@ -3,11 +3,10 @@ package comm
 // BizConf 业务配置
 var BizConf BizConfig
 
-const MinTeamSize = 4
-
 type BizConfig struct {
 	IdentitySecret  string           `mapstructure:"identity_secret"`
 	Phases          PhaseConfig      `mapstructure:"phases"`
+	MinTeamSize     int              `mapstructure:"min_team_size"`
 	MaxTeamSize     int              `mapstructure:"max_team_size"`
 	TeamTotalLimit  int              `mapstructure:"team_total_limit"`
 	DailyTeamLimits map[string][]int `mapstructure:"daily_team_limits"`

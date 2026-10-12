@@ -33,6 +33,7 @@ biz:
     activity:
       start: "2026-10-19 00:00:00"
       end: "2026-10-20 23:59:59"
+  min_team_size: 4
   max_team_size: 6
   # 整个活动最多允许提交的队伍数
   team_total_limit: 500

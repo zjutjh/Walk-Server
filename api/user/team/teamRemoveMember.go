@@ -63,7 +63,12 @@ func (h *TeamRemoveMemberApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeCannotRemoveSelf
 	}
 
-	ok, err := repo.NewTeamRepo().RemoveMember(ctx, team.ID, removed, true)
+	teamRepo := repo.NewTeamRepo()
+	isAdjustment := comm.IsInBizPhase(comm.PhaseAdjustment)
+	if isAdjustment && int(team.Num) <= comm.MinTeamSize {
+		return comm.CodeTeamNotEnough
+	}
+	ok, err := teamRepo.RemoveMember(ctx, team.ID, removed, true)
 	if err != nil {
 		return comm.CodeServerError
 	}

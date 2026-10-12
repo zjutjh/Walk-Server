@@ -66,6 +66,9 @@ func (h *TeamJoinApi) Run(ctx *gin.Context) kit.Code {
 	if int(team.Num) >= comm.BizConf.MaxTeamSize {
 		return comm.CodeTeamFull
 	}
+	if comm.IsInBizPhase(comm.PhaseAdjustment) && int(team.Num)+1 < comm.MinTeamSize {
+		return comm.CodeTeamNotEnough
+	}
 
 	joined, err := teamRepo.JoinTeam(ctx, team.ID, person, true, comm.BizConf.MaxTeamSize)
 	if err != nil {

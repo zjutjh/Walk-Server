@@ -3,6 +3,8 @@ package comm
 // BizConf 业务配置
 var BizConf BizConfig
 
+const MinTeamSize = 4
+
 type BizConfig struct {
 	IdentitySecret  string           `mapstructure:"identity_secret"`
 	Phases          PhaseConfig      `mapstructure:"phases"`

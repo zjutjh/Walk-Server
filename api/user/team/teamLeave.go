@@ -42,7 +42,12 @@ func (h *TeamLeaveApi) Run(ctx *gin.Context) kit.Code {
 	if person.Role == comm.RoleCaptain || team.Captain == person.ID {
 		return comm.CodeCannotLeaveTeam
 	}
-	ok, err := repo.NewTeamRepo().RemoveMember(ctx, team.ID, person, false)
+	teamRepo := repo.NewTeamRepo()
+	isAdjustment := comm.IsInBizPhase(comm.PhaseAdjustment)
+	if isAdjustment && int(team.Num) <= comm.BizConf.MinTeamSize {
+		return comm.CodeTeamNotEnough
+	}
+	ok, err := teamRepo.RemoveMember(ctx, team.ID, person, false)
 	if err != nil {
 		return comm.CodeServerError
 	}

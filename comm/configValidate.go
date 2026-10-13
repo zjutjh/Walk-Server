@@ -39,6 +39,12 @@ func ValidateBizConfig() error {
 	if BizConf.TeamTotalLimit <= 0 {
 		return fmt.Errorf("biz.team_total_limit must be greater than 0")
 	}
+	if BizConf.MinTeamSize <= 0 {
+		return fmt.Errorf("biz.min_team_size must be greater than 0")
+	}
+	if BizConf.MaxTeamSize < BizConf.MinTeamSize {
+		return fmt.Errorf("biz.max_team_size must be greater than or equal to biz.min_team_size")
+	}
 	return nil
 }
 

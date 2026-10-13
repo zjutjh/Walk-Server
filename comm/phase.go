@@ -46,7 +46,16 @@ func CheckBizPhase(allowed ...BizPhase) kit.Code {
 	if IsInBizPhase(PhaseActivity) {
 		return CodeActivityForbidden
 	}
-	return CodePermissionDenied
+	if IsInBizPhase(PhaseRegistration) {
+		return CodeRegistrationForbidden
+	}
+	if IsInBizPhase(PhaseSubmission) {
+		return CodeSubmissionForbidden
+	}
+	if IsInBizPhase(PhaseAdjustment) {
+		return CodeAdjustmentForbidden
+	}
+	return CodePhaseForbidden
 }
 
 func CurrentSubmissionDay() (int, bool) {

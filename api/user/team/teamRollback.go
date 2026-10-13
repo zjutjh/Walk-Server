@@ -29,6 +29,9 @@ type TeamRollbackApi struct {
 }
 
 func (h *TeamRollbackApi) Run(ctx *gin.Context) kit.Code {
+	if !comm.IsInBizPhase(comm.PhaseSubmission) {
+		return comm.CodeCannotRollback
+	}
 	person, code := currentTeamUser(ctx)
 	if code != comm.CodeOK {
 		return code
@@ -45,7 +48,7 @@ func (h *TeamRollbackApi) Run(ctx *gin.Context) kit.Code {
 	}
 	day, ok := comm.CurrentSubmissionDay()
 	if !ok {
-		nlog.Pick().WithContext(ctx).Warn("当前阶段不可提交队伍")
+		nlog.Pick().WithContext(ctx).Warn("当前阶段不可取消提交队伍")
 		return comm.CodeCannotSubmit
 	}
 	submitted, submittedRoute, submittedDay, err := teamCache.RollbackTeamSubmit(ctx, team.ID, team.RouteName, day)

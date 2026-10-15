@@ -374,7 +374,7 @@ func (r *TeamRepo) ListRandomMatchTeams(ctx context.Context, routeName string, m
 	var countRows []teamMatchCountRow
 	if err := t.WithContext(ctx).
 		Select(t.Num, t.ID.Count().As("count")).
-		Where(t.RouteName.Eq(routeName), t.AllowMatch.Is(true), t.Num.Lt(uint8(maxTeamSize))).
+		Where(t.RouteName.Eq(routeName), t.AllowMatch.Is(true), t.Num.Lt(uint8(maxTeamSize)), t.Submit.Is(false)).
 		Group(t.Num).
 		Scan(&countRows); err != nil {
 		return nil, err
@@ -411,6 +411,7 @@ func (r *TeamRepo) ListRandomMatchTeams(ctx context.Context, routeName string, m
 			t.RouteName.Eq(routeName),
 			t.AllowMatch.Is(true),
 			t.Num.Lt(uint8(maxTeamSize)),
+			t.Submit.Is(false),
 		)
 		if tier.num == 3 {
 			teamQuery = teamQuery.Where(t.Num.Lte(3))

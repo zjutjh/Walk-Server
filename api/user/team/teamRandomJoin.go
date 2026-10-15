@@ -63,8 +63,8 @@ func (h *TeamRandomJoinApi) Run(ctx *gin.Context) kit.Code {
 	if int(team.Num) >= comm.BizConf.MaxTeamSize || !team.AllowMatch {
 		return comm.CodeTeamFull
 	}
-	if comm.IsInBizPhase(comm.PhaseAdjustment) && int(team.Num)+1 < comm.BizConf.MinTeamSize {
-		return comm.CodeTeamNotEnough
+	if team.Submit && int(team.Num)+1 < comm.BizConf.MinTeamSize {
+		return comm.CodeSubmittedTeamSizeInvalid
 	}
 
 	joined, err := teamRepo.JoinTeam(ctx, team.ID, person, true, comm.BizConf.MaxTeamSize)

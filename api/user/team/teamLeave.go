@@ -43,9 +43,8 @@ func (h *TeamLeaveApi) Run(ctx *gin.Context) kit.Code {
 		return comm.CodeCannotLeaveTeam
 	}
 	teamRepo := repo.NewTeamRepo()
-	isAdjustment := comm.IsInBizPhase(comm.PhaseAdjustment)
-	if isAdjustment && int(team.Num) <= comm.BizConf.MinTeamSize {
-		return comm.CodeTeamNotEnough
+	if team.Submit && int(team.Num) <= comm.BizConf.MinTeamSize {
+		return comm.CodeSubmittedTeamSizeInvalid
 	}
 	ok, err := teamRepo.RemoveMember(ctx, team.ID, person, false)
 	if err != nil {

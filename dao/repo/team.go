@@ -758,7 +758,7 @@ func (r *TeamRepo) buildTeamFilterBaseQuery(ctx context.Context, query TeamFilte
 	db := ndb.Pick().WithContext(ctx).
 		Table("teams AS t").
 		Joins("JOIN routes AS r ON r.name = t.route_name AND r.is_active = ? AND r.campus = ?", 1, query.Campus).
-		Joins("LEFT JOIN peoples AS p ON p.team_id = t.id AND CAST(p.id AS CHAR) = t.captain").
+		Joins("LEFT JOIN peoples AS p ON p.team_id = t.id AND p.id = t.captain").
 		Where("t.submit = ?", 1)
 
 	effRoute := "(CASE WHEN t.is_wrong_route = 1 THEN COALESCE((SELECT w.wrong_route_name FROM wrong_route_records AS w WHERE w.team_id = t.id ORDER BY w.created_at DESC, w.id DESC LIMIT 1), t.route_name) ELSE t.route_name END)"

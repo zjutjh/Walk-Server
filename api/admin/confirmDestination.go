@@ -13,6 +13,7 @@ import (
 
 	"app/comm"
 	teamCache "app/dao/cache/team"
+	"app/dao/model"
 	"app/dao/query"
 	repo "app/dao/repo"
 )
@@ -38,8 +39,39 @@ type ConfirmDestinationApiRequest struct {
 type ConfirmDestinationApiResponse struct {
 }
 
+func checkAdminTeamCampus(ctx *gin.Context, teamID int64) (*model.Team, kit.Code) {
+	admin, ok := repo.GetAdminInfo(ctx)
+	if !ok {
+		return nil, comm.CodeNotLoggedIn
+	}
+
+	teamRepo := repo.NewTeamRepo()
+	team, err := teamRepo.FindTeamByID(ctx, teamID)
+	if err != nil {
+		return nil, comm.CodeServerError
+	}
+	if team == nil {
+		return nil, comm.CodeTeamNotFound
+	}
+
+	route, err := teamRepo.FindRouteByName(ctx, team.RouteName)
+	if err != nil {
+		return nil, comm.CodeServerError
+	}
+	if route == nil {
+		return nil, comm.CodeDataNotFound
+	}
+	if route.Campus != admin.Campus {
+		return nil, comm.CodeCampusMismatch
+	}
+	return team, comm.CodeOK
+}
+
 func (c *ConfirmDestinationApi) Run(ctx *gin.Context) kit.Code {
 	teamID := int64(c.Request.Body.TeamID)
+	if _, code := checkAdminTeamCampus(ctx, teamID); code != comm.CodeOK {
+		return code
+	}
 	err := query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
 		txTeamRepo := repo.NewTeamRepoWithTx(tx)
 		txPeopleRepo := repo.NewPeopleRepoWithTx(tx)

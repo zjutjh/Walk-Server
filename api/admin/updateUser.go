@@ -56,6 +56,11 @@ func (u *UpdateUserApi) Run(ctx *gin.Context) kit.Code {
 	if user == nil {
 		return comm.CodePeopleNotFound
 	}
+	if user.TeamID > 0 {
+		if _, code := checkAdminTeamCampus(ctx, user.TeamID); code != comm.CodeOK {
+			return code
+		}
+	}
 
 	if user.TeamID > 0 {
 		mutex := comm.NewTeamMutex(user.TeamID)

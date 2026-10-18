@@ -43,11 +43,6 @@ type BindCodeApiRequest struct {
 type BindCodeApiResponse struct {
 }
 
-const (
-	minTeamMemberCount = 3
-	maxTeamMemberCount = 6
-)
-
 var (
 	errBindTeamNotEnough = errors.New("bind code team not enough")
 	errBindTeamFull      = errors.New("bind code team full")
@@ -72,9 +67,20 @@ func (b *BindCodeApi) Run(ctx *gin.Context) kit.Code {
 			nlog.Pick().WithContext(ctx).WithError(err).Warn("释放队伍绑定签到码锁失败")
 		}
 	}()
+	team, err := repo.NewTeamRepo().GetTeamByID(ctx, team.ID)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return comm.CodeTeamNotFound
+	}
+	if err != nil {
+		nlog.Pick().WithContext(ctx).WithError(err).Error("加锁后重新查询队伍失败")
+		return comm.CodeServerError
+	}
+	if !team.Submit {
+		return comm.CodeTeamNotSubmitted
+	}
 
 	newCode := strings.TrimSpace(b.Request.Body.Content)
-	err := query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
+	err = query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
 		txTeamRepo := repo.NewTeamRepoWithTx(tx)
 		txPeopleRepo := repo.NewPeopleRepoWithTx(tx)
 		txAdminRepo := repo.NewAdminRepoWithTx(tx)
@@ -132,10 +138,10 @@ func (b *BindCodeApi) Run(ctx *gin.Context) kit.Code {
 		if err != nil {
 			return err
 		}
-		if pendingCount < minTeamMemberCount {
+		if pendingCount < int64(comm.BizConf.MinTeamSize) {
 			return errBindTeamNotEnough
 		}
-		if pendingCount > maxTeamMemberCount {
+		if pendingCount > int64(comm.BizConf.MaxTeamSize) {
 			return errBindTeamFull
 		}
 

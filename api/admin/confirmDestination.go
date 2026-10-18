@@ -69,8 +69,12 @@ func checkAdminTeamCampus(ctx *gin.Context, teamID int64) (*model.Team, kit.Code
 
 func (c *ConfirmDestinationApi) Run(ctx *gin.Context) kit.Code {
 	teamID := int64(c.Request.Body.TeamID)
-	if _, code := checkAdminTeamCampus(ctx, teamID); code != comm.CodeOK {
+	team, code := checkAdminTeamCampus(ctx, teamID)
+	if code != comm.CodeOK {
 		return code
+	}
+	if !team.Submit {
+		return comm.CodeTeamNotSubmitted
 	}
 	err := query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
 		txTeamRepo := repo.NewTeamRepoWithTx(tx)

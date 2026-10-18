@@ -49,7 +49,7 @@ func (h *TeamRollbackApi) Run(ctx *gin.Context) kit.Code {
 	day, ok := comm.CurrentSubmissionDay()
 	if !ok {
 		nlog.Pick().WithContext(ctx).Warn("当前阶段不可取消提交队伍")
-		return comm.CodeCannotSubmit
+		return comm.CodeCannotRollback
 	}
 	submitted, submittedRoute, submittedDay, err := teamCache.RollbackTeamSubmit(ctx, team.ID, team.RouteName, day)
 	if err != nil {

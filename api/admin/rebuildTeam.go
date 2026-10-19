@@ -47,6 +47,10 @@ type RebuildApiResponse struct {
 
 // Run Api业务逻辑执行点
 func (r *RebuildApi) Run(ctx *gin.Context) kit.Code {
+	if code := comm.CheckBizPhase(comm.PhaseActivity); code != comm.CodeOK {
+		return code
+	}
+
 	if len(r.Request.Body.Members) < 3 {
 		return comm.CodeTeamNotEnough
 	} else if len(r.Request.Body.Members) > 6 {

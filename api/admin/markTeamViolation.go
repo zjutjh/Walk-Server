@@ -37,6 +37,9 @@ type MarkTeamViolationApiResponse struct {
 
 func (m *MarkTeamViolationApi) Run(ctx *gin.Context) kit.Code {
 	teamID := int64(m.Request.Body.TeamID)
+	if _, code := checkAdminTeamCampus(ctx, teamID); code != comm.CodeOK {
+		return code
+	}
 	if err := repo.NewPeopleRepo().UpdateMembersViolationExceptStatuses(ctx, teamID, []string{
 		comm.WalkStatusAbandoned,
 		comm.WalkStatusWithdrawn,

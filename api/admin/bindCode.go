@@ -126,7 +126,7 @@ func (b *BindCodeApi) Run(ctx *gin.Context) kit.Code {
 			if err := txTeamRepo.UpdateLatestPointName(ctx, team.ID, startEdge.PointName); err != nil {
 				return err
 			}
-			if err := txTeamRepo.CreateCheckin(ctx, admin.ID, team.ID, startEdge.PointName, team.RouteName); err != nil {
+			if err := txTeamRepo.CreateCheckin(ctx, admin.ID, team.ID, "", startEdge.PointName, team.RouteName, checkinEventNormal); err != nil {
 				return err
 			}
 			if err := txPeopleRepo.UpdateMembersWalkStatusByCurrent(ctx, team.ID, comm.WalkStatusNotStart, comm.WalkStatusPending); err != nil {

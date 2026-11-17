@@ -121,7 +121,7 @@ func (g *GetTeamStatusApi) resolveRouteStatus(ctx *gin.Context, teamRepo *repo.T
 		isWrongRoute: team.IsWrongRoute,
 	}
 
-	checkins, err := teamRepo.ListLatestCheckins(ctx, team.ID, 2)
+	checkins, err := teamRepo.ListLatestNonDuplicateCheckins(ctx, team.ID, 1)
 	if err != nil {
 		return status, err
 	}
@@ -129,41 +129,22 @@ func (g *GetTeamStatusApi) resolveRouteStatus(ctx *gin.Context, teamRepo *repo.T
 		return status, nil
 	}
 
-	activeRouteName := team.RouteName
-	if status.isWrongRoute {
-		wrongRouteName, found, err := teamRepo.GetLatestWrongRouteName(ctx, team.ID)
-		if err != nil {
-			return status, err
-		}
-		if found {
-			activeRouteName = wrongRouteName
-		}
-	}
-
 	latestCheckin := checkins[0]
-	if len(checkins) >= 2 {
-		prevCheckin := checkins[1]
-		status.prevPointName = prevCheckin.PointName
-		isValid, err := teamRepo.IsRouteTransitionValid(ctx, activeRouteName, prevCheckin.PointName, latestCheckin.PointName)
-		if err != nil {
-			return status, err
-		}
-		status.isPrevPointInvalid = !isValid
+	fromPointName := latestCheckin.FromPointName
+	status.prevPointName = fromPointName
+	status.isPrevPointInvalid = latestCheckin.EventType == checkinEventSkippedPoint
+	if !status.isWrongRoute || (latestCheckin.EventType != checkinEventNormal && latestCheckin.EventType != checkinEventSkippedPoint) {
+		return status, nil
 	}
 
-	latestOnOriginalRoute, err := teamRepo.IsPointOnRoute(ctx, team.RouteName, latestCheckin.PointName)
+	latestOnOriginalRoute, err := teamRepo.IsPointOnRoute(ctx, team.RouteName, team.LatestPointName)
 	if err != nil {
 		return status, err
 	}
 	if latestOnOriginalRoute {
 		return status, nil
 	}
-	if len(checkins) == 1 {
-		status.isJustEnterWrongRoute = true
-		return status, nil
-	}
-
-	prevOnOriginalRoute, err := teamRepo.IsPointOnRoute(ctx, team.RouteName, checkins[1].PointName)
+	prevOnOriginalRoute, err := teamRepo.IsPointOnRoute(ctx, team.RouteName, fromPointName)
 	if err != nil {
 		return status, err
 	}

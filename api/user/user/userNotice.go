@@ -61,8 +61,6 @@ func (h *NoticeListApi) Run(ctx *gin.Context) kit.Code {
 
 func noticeContent(notice *model.Notice) (string, bool) {
 	switch notice.Type {
-	case comm.NoticeTeamPasswordChanged:
-		return "队长已修改队伍密码", true
 	case comm.NoticeTeamRouteChanged:
 		return "队长已修改队伍路线", true
 	case comm.NoticeRemovedFromTeam:
@@ -72,6 +70,8 @@ func noticeContent(notice *model.Notice) (string, bool) {
 			return "你已成为新队长", true
 		}
 		return fmt.Sprintf("%s已将队长移交给你！", notice.ActorName), true
+	case comm.NoticeTeamDisbanded:
+		return "队伍已解散", true
 	default:
 		return "", false
 	}

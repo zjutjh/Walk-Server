@@ -12,14 +12,16 @@ const TableNameCheckin = "checkins"
 
 // Checkin mapped from table <checkins>
 type Checkin struct {
-	ID        int64     `gorm:"column:id;primaryKey;autoIncrement:true" json:"id"`
-	AdminID   int64     `gorm:"column:admin_id;comment:签到管理员ID" json:"admin_id"`                   // 签到管理员ID
-	TeamID    int64     `gorm:"column:team_id;not null;comment:队伍ID" json:"team_id"`               // 队伍ID
-	PointName string    `gorm:"column:point_name;not null;comment:签到点位ID" json:"point_name"`       // 签到点位ID
-	RouteName string    `gorm:"column:route_name;comment:路线id" json:"route_name"`                  // 路线id
-	Time      time.Time `gorm:"column:time;default:CURRENT_TIMESTAMP(3);comment:签到时间" json:"time"` // 签到时间
-	UpdatedAt time.Time `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP(3)" json:"updated_at"`
-	CreatedAt time.Time `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP(3)" json:"created_at"`
+	ID            int64     `gorm:"column:id;primaryKey;autoIncrement:true" json:"id"`
+	AdminID       int64     `gorm:"column:admin_id;comment:签到管理员ID" json:"admin_id"`             // 签到管理员ID
+	TeamID        int64     `gorm:"column:team_id;not null;comment:队伍ID" json:"team_id"`         // 队伍ID
+	PointName     string    `gorm:"column:point_name;not null;comment:签到点位ID" json:"point_name"` // 签到点位ID
+	FromPointName string    `gorm:"column:from_point_name;comment:打卡前所在点位ID" json:"from_point_name"`
+	RouteName     string    `gorm:"column:route_name;comment:路线id" json:"route_name"` // 路线id
+	EventType     string    `gorm:"column:event_type;not null;default:normal;comment:打卡事件类型" json:"event_type"`
+	Time          time.Time `gorm:"column:time;default:CURRENT_TIMESTAMP(3);comment:签到时间" json:"time"` // 签到时间
+	UpdatedAt     time.Time `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP(3)" json:"updated_at"`
+	CreatedAt     time.Time `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP(3)" json:"created_at"`
 }
 
 // TableName Checkin's table name

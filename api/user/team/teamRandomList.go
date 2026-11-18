@@ -61,10 +61,10 @@ func (h *TeamRandomListApi) Run(ctx *gin.Context) kit.Code {
 	if err != nil {
 		return comm.CodeServerError
 	}
-	if len(teams) == 0 {
-		return comm.CodeNotFindTeams
-	}
 	h.Response.Teams = make([]TeamRandomListItem, 0, len(teams))
+	if len(teams) == 0 {
+		return comm.CodeOK
+	}
 	for _, team := range teams {
 		h.Response.Teams = append(h.Response.Teams, TeamRandomListItem{
 			ID:        team.ID,

@@ -293,46 +293,56 @@ func (r *PeopleRepo) UpdateMembersWalkStatusByCurrent(ctx context.Context, teamI
 	return err
 }
 
-func (r *PeopleRepo) UpdateWalkStatusByCurrent(ctx context.Context, fromStatus string, toStatus string) (int64, []int64, []*model.People, error) {
+func (r *PeopleRepo) UpdatePendingWalkStatusByCampus(ctx context.Context, campus string) ([]int64, error) {
+	var routeNames []string
+	route := r.query.Route
+	if err := route.WithContext(ctx).
+		Where(route.Campus.Eq(campus)).
+		Pluck(route.Name, &routeNames); err != nil {
+		return nil, err
+	}
+	if len(routeNames) == 0 {
+		return nil, nil
+	}
+
+	var teamIDs []int64
+	t := r.query.Team
+	if err := t.WithContext(ctx).
+		Where(t.RouteName.In(routeNames...)).
+		Pluck(t.ID, &teamIDs); err != nil {
+		return nil, err
+	}
+	if len(teamIDs) == 0 {
+		return nil, nil
+	}
+
 	p := r.query.People
 	people, err := p.WithContext(ctx).
-		Where(p.WalkStatus.Eq(fromStatus)).
+		Select(p.ID, p.TeamID).
+		Where(p.TeamID.In(teamIDs...), p.WalkStatus.Eq(comm.WalkStatusPending)).
 		Find()
 	if err != nil {
-		return 0, nil, nil, err
+		return nil, err
 	}
 	if len(people) == 0 {
-		return 0, nil, nil, nil
+		return nil, nil
 	}
 
 	userIDs := make([]int64, 0, len(people))
-	teamIDSet := make(map[int64]struct{})
+	pendingTeamIDs := make(map[int64]struct{})
 	for _, person := range people {
-		if person == nil {
-			continue
-		}
 		userIDs = append(userIDs, person.ID)
-		if person.TeamID > 0 {
-			teamIDSet[person.TeamID] = struct{}{}
-		}
+		pendingTeamIDs[person.TeamID] = struct{}{}
 	}
-	if len(userIDs) == 0 {
-		return 0, nil, nil, nil
-	}
-
-	_, err = p.WithContext(ctx).
-		Where(
-			p.ID.In(userIDs...),
-			p.WalkStatus.Eq(fromStatus),
-		).
-		Update(p.WalkStatus, toStatus)
-	if err != nil {
-		return 0, nil, nil, err
+	if _, err := p.WithContext(ctx).
+		Where(p.ID.In(userIDs...), p.WalkStatus.Eq(comm.WalkStatusPending)).
+		Update(p.WalkStatus, comm.WalkStatusInProgress); err != nil {
+		return nil, err
 	}
 
-	teamIDs := make([]int64, 0, len(teamIDSet))
-	for teamID := range teamIDSet {
+	teamIDs = make([]int64, 0, len(pendingTeamIDs))
+	for teamID := range pendingTeamIDs {
 		teamIDs = append(teamIDs, teamID)
 	}
-	return int64(len(userIDs)), teamIDs, people, nil
+	return teamIDs, nil
 }

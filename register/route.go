@@ -66,8 +66,8 @@ func Route(router *gin.Engine) {
 
 			teamGroup := dashboardGroup.Group("/teams")
 			{
-				teamGroup.GET("", middleware.NeedPerm("manager"), teams.TeamHandler())
-				teamGroup.POST("/lost", middleware.NeedPerm("manager"), teams.LostHandler())
+				teamGroup.GET("", middleware.NeedPerm("internal"), teams.TeamHandler())
+				teamGroup.POST("/lost", middleware.NeedPerm("internal"), teams.LostHandler())
 				teamGroup.GET("/filter", middleware.NeedPerm("internal"), teams.FilterHandler())
 			}
 

@@ -64,13 +64,24 @@ type TeamFilterRow struct {
 }
 
 type TeamCheckinRow struct {
-	ID        int64     `gorm:"column:id"`
-	AdminID   int64     `gorm:"column:admin_id"`
-	TeamID    int64     `gorm:"column:team_id"`
-	PointName string    `gorm:"column:point_name"`
-	RouteName string    `gorm:"column:route_name"`
-	Time      time.Time `gorm:"column:time"`
-	CreatedAt time.Time `gorm:"column:created_at"`
+	ID            int64     `gorm:"column:id"`
+	AdminID       int64     `gorm:"column:admin_id"`
+	TeamID        int64     `gorm:"column:team_id"`
+	PointName     string    `gorm:"column:point_name"`
+	FromPointName string    `gorm:"column:from_point_name"`
+	RouteName     string    `gorm:"column:route_name"`
+	EventType     string    `gorm:"column:event_type"`
+	Time          time.Time `gorm:"column:time"`
+	CreatedAt     time.Time `gorm:"column:created_at"`
+}
+
+type RouteCheckinSequence struct {
+	PreviousSeq int
+	CurrentSeq  int
+	NextSeq     int
+	HasNext     bool
+	HasPrevious bool
+	HasCurrent  bool
 }
 
 func NewTeamRepo() *TeamRepo {
@@ -354,18 +365,37 @@ func (r *TeamRepo) ChangeCaptain(ctx context.Context, teamID, oldCaptainID, newC
 	})
 }
 
-func (r *TeamRepo) DisbandTeam(ctx context.Context, teamID int64) error {
+func (r *TeamRepo) DisbandTeam(ctx context.Context, teamID, captainID int64) error {
 	return r.query.Transaction(func(tx *query.Query) error {
-		if err := NewPeopleRepoWithTx(tx).UpdateByTeamID(ctx, teamID, map[string]any{
-			"role":    comm.RoleUnbind,
-			"team_id": int64(-1),
-		}); err != nil {
+		peopleRepo := NewPeopleRepoWithTx(tx)
+		members, err := peopleRepo.FindPeopleByTeamID(ctx, teamID)
+		if err != nil {
 			return err
 		}
 		if err := NewNoticeRepoWithTx(tx).DeleteUnreadByTeamID(ctx, teamID); err != nil {
 			return err
 		}
-		return NewTeamRepoWithTx(tx).DeleteByID(ctx, teamID)
+		if err := peopleRepo.UpdateByTeamID(ctx, teamID, map[string]any{
+			"role":    comm.RoleUnbind,
+			"team_id": int64(-1),
+		}); err != nil {
+			return err
+		}
+		if err := NewTeamRepoWithTx(tx).DeleteByID(ctx, teamID); err != nil {
+			return err
+		}
+		notices := make([]*model.Notice, 0, len(members))
+		for _, member := range members {
+			if member != nil && member.ID != captainID {
+				teamIDValue := teamID
+				notices = append(notices, &model.Notice{
+					UserID: member.ID,
+					Type:   comm.NoticeTeamDisbanded,
+					TeamID: &teamIDValue,
+				})
+			}
+		}
+		return NewNoticeRepoWithTx(tx).UpsertUnread(ctx, notices)
 	})
 }
 
@@ -435,13 +465,15 @@ func (r *TeamRepo) ListRandomMatchTeams(ctx context.Context, routeName string, m
 	return teams, nil
 }
 
-func (r *TeamRepo) CreateCheckin(ctx context.Context, adminID, teamID int64, pointName, routeName string) error {
+func (r *TeamRepo) CreateCheckin(ctx context.Context, adminID, teamID int64, fromPointName, pointName, routeName, eventType string) error {
 	checkin := &model.Checkin{
-		AdminID:   adminID,
-		TeamID:    teamID,
-		PointName: pointName,
-		RouteName: routeName,
-		Time:      time.Now(),
+		AdminID:       adminID,
+		TeamID:        teamID,
+		PointName:     pointName,
+		FromPointName: fromPointName,
+		RouteName:     routeName,
+		EventType:     eventType,
+		Time:          time.Now(),
 	}
 	return r.query.Checkin.WithContext(ctx).Create(checkin)
 }
@@ -565,48 +597,46 @@ func (r *TeamRepo) IsPointOnRoute(ctx context.Context, routeName, pointName stri
 	return total > 0, nil
 }
 
-func (r *TeamRepo) IsRouteTransitionValid(ctx context.Context, routeName, prevPointName, pointName string) (bool, error) {
+func (r *TeamRepo) FindRouteCheckinSequence(ctx context.Context, routeName, prevPointName, pointName string) (RouteCheckinSequence, error) {
+	var sequence RouteCheckinSequence
 	re := r.query.RouteEdge
-	total, err := re.WithContext(ctx).
-		Where(
-			re.RouteName.Eq(routeName),
-			re.PrevPointName.Eq(prevPointName),
-			re.PointName.Eq(pointName),
-		).
-		Count()
-	if err != nil {
-		return false, err
-	}
-	return total > 0, nil
-}
-
-func (r *TeamRepo) IsDirectionBackward(ctx context.Context, routeName, prevPointName, pointName string) (bool, error) {
-	if prevPointName == "" {
-		return false, nil
-	}
-
-	isDirectNext, err := r.IsRouteTransitionValid(ctx, routeName, prevPointName, pointName)
-	if err != nil {
-		return false, err
-	}
-	if isDirectNext {
-		return false, nil
-	}
-
-	re := r.query.RouteEdge
-	nextEdge, err := re.WithContext(ctx).
-		Select(re.SeqOrder).
-		Where(re.RouteName.Eq(routeName), re.PrevPointName.Eq(prevPointName)).
-		Order(re.SeqOrder).
-		First()
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return false, nil
-	}
-	if err != nil {
-		return false, err
-	}
-	if nextEdge.SeqOrder == 0 {
-		return false, nil
+	if prevPointName != "" {
+		nextEdge, err := re.WithContext(ctx).
+			Select(re.SeqOrder).
+			Where(re.RouteName.Eq(routeName), re.PrevPointName.Eq(prevPointName)).
+			Order(re.SeqOrder).
+			First()
+		if err == nil {
+			sequence.NextSeq = int(nextEdge.SeqOrder)
+			sequence.HasNext = true
+			previousEdge, err := re.WithContext(ctx).
+				Select(re.SeqOrder).
+				Where(re.RouteName.Eq(routeName), re.PointName.Eq(prevPointName), re.SeqOrder.Lt(nextEdge.SeqOrder)).
+				Order(re.SeqOrder.Desc()).
+				First()
+			if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+				return sequence, err
+			}
+			if err == nil {
+				sequence.PreviousSeq = int(previousEdge.SeqOrder)
+				sequence.HasPrevious = true
+			}
+		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return sequence, err
+		} else {
+			previousEdge, err := re.WithContext(ctx).
+				Select(re.SeqOrder).
+				Where(re.RouteName.Eq(routeName), re.PointName.Eq(prevPointName)).
+				Order(re.SeqOrder.Desc()).
+				First()
+			if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+				return sequence, err
+			}
+			if err == nil {
+				sequence.PreviousSeq = int(previousEdge.SeqOrder)
+				sequence.HasPrevious = true
+			}
+		}
 	}
 
 	currentEdge, err := re.WithContext(ctx).
@@ -614,27 +644,23 @@ func (r *TeamRepo) IsDirectionBackward(ctx context.Context, routeName, prevPoint
 		Where(re.RouteName.Eq(routeName), re.PointName.Eq(pointName)).
 		Order(re.SeqOrder.Desc()).
 		First()
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return false, nil
-	}
 	if err != nil {
-		return false, err
+		return sequence, err
 	}
-	if currentEdge.SeqOrder == 0 {
-		return false, nil
-	}
-	return currentEdge.SeqOrder < nextEdge.SeqOrder, nil
+	sequence.CurrentSeq = int(currentEdge.SeqOrder)
+	sequence.HasCurrent = true
+	return sequence, nil
 }
 
-func (r *TeamRepo) ListLatestCheckins(ctx context.Context, teamID int64, limit int) ([]TeamCheckinRow, error) {
+func (r *TeamRepo) ListLatestNonDuplicateCheckins(ctx context.Context, teamID int64, limit int) ([]TeamCheckinRow, error) {
 	rows := make([]TeamCheckinRow, 0, limit)
 	if limit <= 0 {
 		return rows, nil
 	}
 	c := r.query.Checkin
 	err := c.WithContext(ctx).
-		Select(c.ID, c.AdminID, c.TeamID, c.PointName, c.RouteName, c.Time, c.CreatedAt).
-		Where(c.TeamID.Eq(teamID)).
+		Select(c.ID, c.AdminID, c.TeamID, c.PointName, c.FromPointName, c.RouteName, c.EventType, c.Time, c.CreatedAt).
+		Where(c.TeamID.Eq(teamID), c.EventType.Neq("duplicate")).
 		Order(c.Time.Desc(), c.ID.Desc()).
 		Limit(limit).
 		Scan(&rows)

@@ -69,7 +69,7 @@ func (h *TeamDisbandApi) Run(ctx *gin.Context) kit.Code {
 			return comm.CodeServerError
 		}
 	}
-	if err := teamRepo.DisbandTeam(ctx, team.ID); err != nil {
+	if err := teamRepo.DisbandTeam(ctx, team.ID, person.ID); err != nil {
 		if refunded {
 			// Compensation must still run if the request context has been cancelled.
 			recoveryCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)

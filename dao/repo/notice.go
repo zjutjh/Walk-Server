@@ -93,10 +93,10 @@ func (r *NoticeRepo) DeleteUnreadTypes(ctx context.Context, userID int64, types 
 // DeleteUnreadTeamNotices 清理用户在成员关系变化前遗留的队伍通知。
 func (r *NoticeRepo) DeleteUnreadTeamNotices(ctx context.Context, userID int64) error {
 	return r.DeleteUnreadTypes(ctx, userID,
-		comm.NoticeTeamPasswordChanged,
 		comm.NoticeTeamRouteChanged,
 		comm.NoticeRemovedFromTeam,
 		comm.NoticeCaptainTransferred,
+		comm.NoticeTeamDisbanded,
 	)
 }
 

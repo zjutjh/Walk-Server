@@ -243,7 +243,7 @@ func (r *RebuildApi) handleStartPointCheckin(ctx *gin.Context, teamRepo *repo.Te
 	if err := teamRepo.UpdateLatestPointName(ctx, team.ID, startEdge.PointName); err != nil {
 		return err
 	}
-	if err := teamRepo.CreateCheckin(ctx, admin.ID, team.ID, startEdge.PointName, team.RouteName); err != nil {
+	if err := teamRepo.CreateCheckin(ctx, admin.ID, team.ID, "", startEdge.PointName, team.RouteName, checkinEventNormal); err != nil {
 		return err
 	}
 	return peopleRepo.UpdateMembersWalkStatusByCurrent(ctx, team.ID, comm.WalkStatusNotStart, comm.WalkStatusPending)

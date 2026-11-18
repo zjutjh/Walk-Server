@@ -11,9 +11,8 @@ import (
 
 // middleware 只做鉴权
 var permissionRank = map[string]int{
-	"external": 4,
-	"internal": 3,
-	"manager":  2,
+	"external": 3,
+	"internal": 2,
 	"super":    1,
 }
 
@@ -23,7 +22,7 @@ func getPermRank(perm string) (int, bool) {
 }
 
 // NeedPerm 判断当前管理员权限是否达到传入的最低权限。
-// 例如最低权限为 internal 时，internal/manager/super 都会放行。
+// 例如最低权限为 internal 时，internal/super 都会放行。
 func NeedPerm(minPerm string) gin.HandlerFunc {
 	minPerm = strings.ToLower(strings.TrimSpace(minPerm))
 	return func(ctx *gin.Context) {

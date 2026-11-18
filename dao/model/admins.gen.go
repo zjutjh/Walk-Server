@@ -16,7 +16,7 @@ type Admin struct {
 	Name       string    `gorm:"column:name" json:"name"`
 	Account    string    `gorm:"column:account;not null" json:"account"`
 	Password   string    `gorm:"column:password" json:"password"`
-	Permission string    `gorm:"column:permission;not null;comment:权限级别(super最高权限,manager负责人权限,internal内部权限,external外部权限)" json:"permission"` // 权限级别(super最高权限,manager负责人权限,internal内部权限,external外部权限)
+	Permission string    `gorm:"column:permission;not null;comment:权限级别(super最高权限,internal内部权限,external外部权限)" json:"permission"` // 权限级别(super最高权限,internal内部权限,external外部权限)
 	PointName  string    `gorm:"column:point_name;comment:负责点位id" json:"point_name"`                                                          // 负责点位id
 	Campus     string    `gorm:"column:campus;not null;comment:校区(zh朝晖,pf屏峰,mgs莫干山)" json:"campus"`                                           // 校区(zh朝晖,pf屏峰,mgs莫干山)
 	UpdatedAt  time.Time `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP(3)" json:"updated_at"`

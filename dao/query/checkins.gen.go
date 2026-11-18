@@ -32,7 +32,9 @@ func newCheckin(db *gorm.DB, opts ...gen.DOOption) checkin {
 	_checkin.AdminID = field.NewInt64(tableName, "admin_id")
 	_checkin.TeamID = field.NewInt64(tableName, "team_id")
 	_checkin.PointName = field.NewString(tableName, "point_name")
+	_checkin.FromPointName = field.NewString(tableName, "from_point_name")
 	_checkin.RouteName = field.NewString(tableName, "route_name")
+	_checkin.EventType = field.NewString(tableName, "event_type")
 	_checkin.Time = field.NewTime(tableName, "time")
 	_checkin.UpdatedAt = field.NewTime(tableName, "updated_at")
 	_checkin.CreatedAt = field.NewTime(tableName, "created_at")
@@ -45,15 +47,17 @@ func newCheckin(db *gorm.DB, opts ...gen.DOOption) checkin {
 type checkin struct {
 	checkinDo checkinDo
 
-	ALL       field.Asterisk
-	ID        field.Int64
-	AdminID   field.Int64  // 签到管理员ID
-	TeamID    field.Int64  // 队伍ID
-	PointName field.String // 签到点位ID
-	RouteName field.String // 路线id
-	Time      field.Time   // 签到时间
-	UpdatedAt field.Time
-	CreatedAt field.Time
+	ALL           field.Asterisk
+	ID            field.Int64
+	AdminID       field.Int64  // 签到管理员ID
+	TeamID        field.Int64  // 队伍ID
+	PointName     field.String // 签到点位ID
+	FromPointName field.String // 打卡前所在点位ID
+	RouteName     field.String // 路线id
+	EventType     field.String // 打卡事件类型
+	Time          field.Time   // 签到时间
+	UpdatedAt     field.Time
+	CreatedAt     field.Time
 
 	fieldMap map[string]field.Expr
 }
@@ -74,7 +78,9 @@ func (c *checkin) updateTableName(table string) *checkin {
 	c.AdminID = field.NewInt64(table, "admin_id")
 	c.TeamID = field.NewInt64(table, "team_id")
 	c.PointName = field.NewString(table, "point_name")
+	c.FromPointName = field.NewString(table, "from_point_name")
 	c.RouteName = field.NewString(table, "route_name")
+	c.EventType = field.NewString(table, "event_type")
 	c.Time = field.NewTime(table, "time")
 	c.UpdatedAt = field.NewTime(table, "updated_at")
 	c.CreatedAt = field.NewTime(table, "created_at")
@@ -102,12 +108,14 @@ func (c *checkin) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (c *checkin) fillFieldMap() {
-	c.fieldMap = make(map[string]field.Expr, 8)
+	c.fieldMap = make(map[string]field.Expr, 10)
 	c.fieldMap["id"] = c.ID
 	c.fieldMap["admin_id"] = c.AdminID
 	c.fieldMap["team_id"] = c.TeamID
 	c.fieldMap["point_name"] = c.PointName
+	c.fieldMap["from_point_name"] = c.FromPointName
 	c.fieldMap["route_name"] = c.RouteName
+	c.fieldMap["event_type"] = c.EventType
 	c.fieldMap["time"] = c.Time
 	c.fieldMap["updated_at"] = c.UpdatedAt
 	c.fieldMap["created_at"] = c.CreatedAt

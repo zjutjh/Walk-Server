@@ -30,23 +30,22 @@ type StartPendingPeopleApi struct {
 }
 
 func (s *StartPendingPeopleApi) Run(ctx *gin.Context) kit.Code {
+	admin, ok := repo.GetAdminInfo(ctx)
+	if !ok {
+		return comm.CodeNotLoggedIn
+	}
+
 	var teamIDs []int64
 	err := query.Use(ndb.Pick()).Transaction(func(tx *query.Query) error {
-		txPeopleRepo := repo.NewPeopleRepoWithTx(tx)
-		txTeamRepo := repo.NewTeamRepoWithTx(tx)
+		peopleRepo := repo.NewPeopleRepoWithTx(tx)
+		teamRepo := repo.NewTeamRepoWithTx(tx)
 
 		var err error
-		_, teamIDs, _, err = txPeopleRepo.UpdateWalkStatusByCurrent(ctx, comm.WalkStatusPending, comm.WalkStatusInProgress)
+		teamIDs, err = peopleRepo.UpdatePendingWalkStatusByCampus(ctx, admin.Campus)
 		if err != nil {
 			return err
 		}
-		if len(teamIDs) > 0 {
-			if err := txTeamRepo.UpdateStatusByIDs(ctx, teamIDs, comm.TeamStatusInProgress); err != nil {
-				return err
-			}
-		}
-
-		return nil
+		return teamRepo.UpdateStatusByIDs(ctx, teamIDs, comm.TeamStatusInProgress)
 	})
 	if err != nil {
 		nlog.Pick().WithContext(ctx).WithError(err).Error("批量更新待出发人员状态失败")

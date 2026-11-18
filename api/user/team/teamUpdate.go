@@ -70,20 +70,16 @@ func (h *TeamUpdateApi) Run(ctx *gin.Context) kit.Code {
 	if existing != nil {
 		return comm.CodeTeamNameDuplicated
 	}
-	passwordChanged := team.Password != h.Request.Body.Password
 	routeChanged := team.RouteName != h.Request.Body.RouteName
 	if team.Submit && routeChanged {
 		return comm.CodeSubmittedRouteLocked
 	}
 	memberIDs := make([]int64, 0)
 	noticeTypes := make([]comm.NoticeType, 0, 2)
-	if passwordChanged {
-		noticeTypes = append(noticeTypes, comm.NoticeTeamPasswordChanged)
-	}
 	if routeChanged {
 		noticeTypes = append(noticeTypes, comm.NoticeTeamRouteChanged)
 	}
-	if passwordChanged || routeChanged {
+	if routeChanged {
 		members, err := repo.NewPeopleRepo().FindPeopleByTeamID(ctx, team.ID)
 		if err != nil {
 			return comm.CodeServerError

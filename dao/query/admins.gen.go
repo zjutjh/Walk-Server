@@ -51,7 +51,7 @@ type admin struct {
 	Name       field.String
 	Account    field.String
 	Password   field.String
-	Permission field.String // 权限级别(super最高权限,manager负责人权限,internal内部权限,external外部权限)
+	Permission field.String // 权限级别(super最高权限,internal内部权限,external外部权限)
 	PointName  field.String // 负责点位id
 	Campus     field.String // 校区(zh朝晖,pf屏峰,mgs莫干山)
 	UpdatedAt  field.Time

@@ -31,7 +31,7 @@ type PermissionApiRequest struct {
 
 type PermissionApiResponse struct {
 	Name       string `json:"name" desc:"管理员姓名"`
-	Permission string `json:"permission" desc:"权限级别(super最高权限,manager负责人权限,internal内部权限,external外部权限)"`
+	Permission string `json:"permission" desc:"权限级别(super最高权限,internal内部权限,external外部权限)"`
 	Campus     string `json:"campus" desc:"负责校区"`
 	PointName  string `json:"point_name" desc:"负责的点位name"`
 }

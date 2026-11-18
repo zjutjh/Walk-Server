@@ -76,10 +76,10 @@ const (
 type NoticeType string
 
 const (
-	NoticeTeamPasswordChanged NoticeType = "team_password_changed"
-	NoticeTeamRouteChanged    NoticeType = "team_route_changed"
-	NoticeRemovedFromTeam     NoticeType = "removed_from_team"
-	NoticeCaptainTransferred  NoticeType = "captain_transferred"
+	NoticeTeamRouteChanged   NoticeType = "team_route_changed"
+	NoticeRemovedFromTeam    NoticeType = "removed_from_team"
+	NoticeCaptainTransferred NoticeType = "captain_transferred"
+	NoticeTeamDisbanded      NoticeType = "team_disbanded"
 )
 
 func IsValidWalkStatus(status string) bool {
